@@ -1760,6 +1760,22 @@ body {
   flex-shrink: 0;
 }
 
+/* ————— Cloud sync ————— */
+.import-modal {
+  width: min(480px, 100%);
+  height: auto;
+}
+
+.spin {
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ————— Auth screens ————— */
 .auth-screen {
   min-height: 100vh;

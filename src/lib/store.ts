@@ -71,6 +71,9 @@ export const usePlanner = create<PlannerState>()(
             c.id === cardId
               ? {
                   ...c,
+                  // Must bump updatedAt: it drives last-write-wins across
+                  // devices, so a stale timestamp lets an older edit win.
+                  updatedAt: new Date().toISOString(),
                   sections: c.sections.map((s) =>
                     s.id === sectionId && s.items
                       ? {

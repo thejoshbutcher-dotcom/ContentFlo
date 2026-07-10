@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { Check, ChevronUp, Pencil, Plus, Trash2, UserRound } from "lucide-react";
 import { useAccounts } from "@/lib/accounts";
-import { createAccount, deleteAccount, switchAccount } from "@/lib/workspace";
+import {
+  createAccount,
+  deleteAccount,
+  renameAccount,
+  switchAccount,
+} from "@/lib/workspace";
 
 export interface AccountMenuAction {
   label: string;
@@ -22,7 +27,6 @@ function AccountMenu({
 }) {
   const accounts = useAccounts((s) => s.accounts);
   const activeId = useAccounts((s) => s.activeId);
-  const rename = useAccounts((s) => s.rename);
   const [draft, setDraft] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -50,7 +54,7 @@ function AccountMenu({
   }
 
   function commitRename() {
-    if (editingId) rename(editingId, editName);
+    if (editingId) void renameAccount(editingId, editName);
     setEditingId(null);
     setEditName("");
   }

@@ -20,6 +20,7 @@ import { useProfile } from "@/lib/profile";
 import { ContentType, ViewId } from "@/lib/types";
 import { AccountSwitcher, ProfileNavButton } from "./AccountSwitcher";
 import BoardView from "./BoardView";
+import CloudSync from "./CloudSync";
 import BrainstormView from "./BrainstormView";
 import CalendarView from "./CalendarView";
 import CardModal from "./CardModal";
@@ -252,6 +253,8 @@ export default function PlannerApp() {
           actions={[setupAction]}
         />
       </nav>
+
+      <CloudSync />
 
       {openCardId && (
         <CardModal cardId={openCardId} onClose={() => setOpenCardId(null)} />

@@ -9,6 +9,7 @@ import {
   hasLocalData,
   importLocalData,
 } from "@/lib/migrate-local";
+import { defaultProfileData } from "@/lib/profile";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { setCloudUser, startSync } from "@/lib/sync";
 import { readActiveProfileId } from "@/lib/workspace";
@@ -21,6 +22,13 @@ type Phase =
   | "loading"
   | "ready"
   | "error";
+
+/** Reuse the local profile's id/name so a later import lines up, else default. */
+function seedProfileIdentity(): { id: string; name: string } {
+  const { accounts, activeId } = useAccounts.getState();
+  const active = accounts.find((a) => a.id === activeId);
+  return { id: active?.id ?? "default", name: active?.name ?? "My Brand" };
+}
 
 /**
  * Headless bootstrap. Runs only when a Supabase session exists — signed-out
@@ -74,27 +82,46 @@ export default function CloudSync({ onReady }: { onReady?: () => void }) {
   async function activate(supabase: NonNullable<ReturnType<typeof getSupabaseBrowser>>) {
     setPhase("loading");
 
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+    if (!userId) throw new Error("No session");
+
     const { data, error: err } = await supabase
       .from("profiles")
       .select("*")
       .order("sort", { ascending: true });
     if (err) throw err;
 
-    const rows = (data ?? []) as ProfileRow[];
-    if (rows.length) {
-      useAccounts.setState({
-        accounts: rows.map((r) => ({ id: r.id, name: r.name })),
-      });
+    let rows = (data ?? []) as ProfileRow[];
+
+    // A signed-in user with nothing in the cloud (fresh account, or they chose
+    // "Start empty") still needs a profile row: cards.profile_id references it,
+    // so the very first card save would otherwise fail a foreign-key check.
+    if (!rows.length) {
+      const { id, name } = seedProfileIdentity();
+      const { data: created, error: insErr } = await supabase
+        .from("profiles")
+        .insert({
+          id,
+          user_id: userId,
+          name,
+          sort: 0,
+          data: defaultProfileData(),
+        })
+        .select()
+        .single();
+      if (insErr) throw insErr;
+      rows = [created as ProfileRow];
     }
 
-    const saved = readActiveProfileId();
-    const activeId =
-      rows.find((r) => r.id === saved)?.id ?? rows[0]?.id ?? useAccounts.getState().activeId;
+    useAccounts.setState({
+      accounts: rows.map((r) => ({ id: r.id, name: r.name })),
+    });
 
+    const saved = readActiveProfileId();
+    const activeId = rows.find((r) => r.id === saved)?.id ?? rows[0].id;
     useAccounts.getState().setActive(activeId);
 
-    const userId = (await supabase.auth.getUser()).data.user?.id;
-    if (userId) await startSync(userId, activeId);
+    await startSync(userId, activeId);
 
     setPhase("ready");
     onReady?.();

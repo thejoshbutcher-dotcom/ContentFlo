@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronDown, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronUp, Pencil, Plus, Trash2, UserRound } from "lucide-react";
 import { useAccounts } from "@/lib/accounts";
 import { createAccount, deleteAccount, switchAccount } from "@/lib/workspace";
 
@@ -17,17 +17,20 @@ function AccountMenu({
   actions,
 }: {
   onDone: () => void;
-  onSwitched: () => void;
+  onSwitched: (isNew: boolean) => void;
   actions?: AccountMenuAction[];
 }) {
   const accounts = useAccounts((s) => s.accounts);
   const activeId = useAccounts((s) => s.activeId);
+  const rename = useAccounts((s) => s.rename);
   const [draft, setDraft] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
 
   async function pick(id: string) {
     if (id !== activeId) {
       await switchAccount(id);
-      onSwitched();
+      onSwitched(false);
     }
     onDone();
   }
@@ -37,39 +40,76 @@ function AccountMenu({
     if (!name) return;
     setDraft("");
     await createAccount(name);
-    onSwitched();
+    onSwitched(true);
     onDone();
   }
 
+  function startRename(id: string, current: string) {
+    setEditingId(id);
+    setEditName(current);
+  }
+
+  function commitRename() {
+    if (editingId) rename(editingId, editName);
+    setEditingId(null);
+    setEditName("");
+  }
+
   return (
-    <div className="acct-menu" role="menu">
+    <div className="acct-menu up" role="menu">
       {accounts.map((a) => (
         <div key={a.id} className={`acct-item${a.id === activeId ? " on" : ""}`}>
-          <button className="acct-pick" onClick={() => pick(a.id)}>
-            {a.id === activeId ? (
-              <Check size={13} className="acct-check" />
-            ) : (
-              <span className="acct-check" />
-            )}
-            <span className="acct-name">{a.name}</span>
-          </button>
-          {accounts.length > 1 && (
-            <button
-              className="acct-del"
-              aria-label={`Delete ${a.name}`}
-              onClick={async () => {
-                if (
-                  confirm(
-                    `Delete profile "${a.name}" and all of its content? This can't be undone.`
-                  )
-                ) {
-                  await deleteAccount(a.id);
-                  onSwitched();
+          {editingId === a.id ? (
+            <input
+              className="acct-rename"
+              autoFocus
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitRename();
+                if (e.key === "Escape") {
+                  setEditingId(null);
+                  setEditName("");
                 }
               }}
-            >
-              <Trash2 size={12} />
-            </button>
+              onBlur={commitRename}
+            />
+          ) : (
+            <>
+              <button className="acct-pick" onClick={() => pick(a.id)}>
+                {a.id === activeId ? (
+                  <Check size={13} className="acct-check" />
+                ) : (
+                  <span className="acct-check" />
+                )}
+                <span className="acct-name">{a.name}</span>
+              </button>
+              <button
+                className="acct-edit"
+                aria-label={`Rename ${a.name}`}
+                onClick={() => startRename(a.id, a.name)}
+              >
+                <Pencil size={12} />
+              </button>
+              {accounts.length > 1 && (
+                <button
+                  className="acct-del"
+                  aria-label={`Delete ${a.name}`}
+                  onClick={async () => {
+                    if (
+                      confirm(
+                        `Delete profile "${a.name}" and all of its content? This can't be undone.`
+                      )
+                    ) {
+                      await deleteAccount(a.id);
+                      onSwitched(false);
+                    }
+                  }}
+                >
+                  <Trash2 size={12} />
+                </button>
+              )}
+            </>
           )}
         </div>
       ))}
@@ -109,7 +149,14 @@ function AccountMenu({
   );
 }
 
-export function AccountSwitcher({ onSwitched }: { onSwitched: () => void }) {
+// Desktop: sits in the sidebar's bottom-left corner, opens upward.
+export function AccountSwitcher({
+  onSwitched,
+  actions,
+}: {
+  onSwitched: (isNew: boolean) => void;
+  actions?: AccountMenuAction[];
+}) {
   const accounts = useAccounts((s) => s.accounts);
   const activeId = useAccounts((s) => s.activeId);
   const [open, setOpen] = useState(false);
@@ -120,44 +167,40 @@ export function AccountSwitcher({ onSwitched }: { onSwitched: () => void }) {
       <button className="acct-btn" onClick={() => setOpen((v) => !v)}>
         <span className="dot" />
         <span className="acct-name">{active?.name ?? "Profile"}</span>
-        <ChevronDown size={13} style={{ marginLeft: "auto", flexShrink: 0 }} />
+        <ChevronUp size={13} style={{ marginLeft: "auto", flexShrink: 0 }} />
       </button>
       {open && (
         <>
           <div className="acct-backdrop" onClick={() => setOpen(false)} />
-          <AccountMenu onDone={() => setOpen(false)} onSwitched={onSwitched} />
+          <AccountMenu
+            onDone={() => setOpen(false)}
+            onSwitched={onSwitched}
+            actions={actions}
+          />
         </>
       )}
     </div>
   );
 }
 
-export function AccountBubble({
+// Mobile: a tab in the bottom navigation bar, opens upward.
+export function ProfileNavButton({
   onSwitched,
   actions,
 }: {
-  onSwitched: () => void;
-  actions: AccountMenuAction[];
+  onSwitched: (isNew: boolean) => void;
+  actions?: AccountMenuAction[];
 }) {
-  const accounts = useAccounts((s) => s.accounts);
-  const activeId = useAccounts((s) => s.activeId);
   const [open, setOpen] = useState(false);
-  const active = accounts.find((a) => a.id === activeId);
-  const initials = (active?.name ?? "?")
-    .split(/\s+/)
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 
   return (
-    <div className="account-bubble">
+    <div className="bottom-profile">
       <button
-        className="bubble-btn"
+        className={`bottom-tab${open ? " on" : ""}`}
         onClick={() => setOpen((v) => !v)}
-        aria-label="Profile & settings"
       >
-        {initials}
+        <UserRound size={18} />
+        <span>Profile</span>
       </button>
       {open && (
         <>

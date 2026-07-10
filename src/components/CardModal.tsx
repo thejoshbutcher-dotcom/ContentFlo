@@ -541,12 +541,10 @@ export default function CardModal({
                   {card.contentType ?? "Short form"} · reference library
                 </div>
                 {library.map((group) => (
-                  <details
-                    className="ref-group"
-                    key={group.title}
-                    open={library.length === 1}
-                  >
-                    <summary>▸ {group.title}</summary>
+                  <details className="ref-group" key={group.title}>
+                    <summary>
+                      <span className="ref-arrow">▸</span> {group.title}
+                    </summary>
                     {group.entries.map((entry) => (
                       <div className="ref-entry" key={entry.title}>
                         <h5>{entry.title}</h5>

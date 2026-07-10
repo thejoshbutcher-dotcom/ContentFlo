@@ -28,7 +28,8 @@ The content OS for creators — plan, script, organize, and publish from one wor
 
 ## Brand & multi-profile (added later in phase 1)
 - Branding follows `Brand Media/CreatorFlo_Brand_Guidelines.md`: dark theme (#181A20 bg, #22252C surface, #F7C948 accent), Geist font, 20/14/12px radii; logos in `public/brand/`
-- Multiple profiles per install: `src/lib/accounts.ts` + `src/lib/workspace.ts` swap the planner/profile localStorage keys per account; switcher in sidebar (desktop) and account bubble (mobile)
+- Multiple profiles per install: `src/lib/accounts.ts` + `src/lib/workspace.ts` swap the planner/profile localStorage keys per account; profiles are renamable (incl. the default) and deletable; switcher lives bottom-left in the sidebar (desktop) and as a Profile tab in the bottom nav (mobile)
+- App loads on Brainstorm; Brand setup only auto-opens when a NEW profile is created (never on normal load); Export/Import/Reset were removed from the UI
 - Cards have Plan/Script/Post tabs that auto-select from status (Ideas→Plan, Scripting/Filming/Editing→Script, Ready/Posted→Post); sections carry a `phase`
 - Sections accept pasted clipboard images (compressed to ~900px JPEG data URLs)
 - Mobile (≤900px): bottom nav (Create/Pipeline/Plan) + sub-tabs + account bubble

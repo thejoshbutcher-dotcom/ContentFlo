@@ -172,10 +172,10 @@ body {
   color: var(--text-2);
 }
 
-/* ————— Account switcher ————— */
+/* ————— Account switcher (bottom-left) ————— */
 .acct-switch {
   position: relative;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .acct-btn {
@@ -222,13 +222,19 @@ body {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  min-width: 230px;
+  min-width: 236px;
   background: var(--ink-2);
   border: 1px solid var(--ink-3);
   border-radius: 16px;
   padding: 6px;
   z-index: 60;
   box-shadow: var(--shadow-lift);
+}
+
+/* Opens upward from a bottom-anchored trigger */
+.acct-menu.up {
+  top: auto;
+  bottom: calc(100% + 8px);
 }
 
 .acct-item {
@@ -273,17 +279,37 @@ body {
   white-space: nowrap;
 }
 
+.acct-edit,
 .acct-del {
   background: transparent;
   border: none;
   color: var(--text-3);
-  padding: 6px 8px;
+  padding: 6px 7px;
   cursor: pointer;
   border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.acct-edit:hover {
+  color: var(--amber);
 }
 
 .acct-del:hover {
   color: var(--rec);
+}
+
+.acct-rename {
+  flex: 1;
+  min-width: 0;
+  margin: 3px;
+  background: var(--ink);
+  border: 1px solid var(--amber-deep);
+  border-radius: 8px;
+  color: #fff;
+  padding: 7px 9px;
+  font-size: 12.5px;
+  font-weight: 500;
+  outline: none;
 }
 
 .acct-new {
@@ -348,31 +374,17 @@ body {
   color: #fff;
 }
 
-/* ————— Account bubble (mobile) ————— */
-.account-bubble {
-  display: none;
-  position: fixed;
-  top: 9px;
-  right: 12px;
-  z-index: 45;
+/* ————— Profile tab inside the mobile bottom nav ————— */
+.bottom-profile {
+  position: relative;
+  flex: 1;
+  display: flex;
 }
 
-.bubble-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  background: var(--amber);
-  color: #181a20;
-  border: none;
-  font-weight: 700;
-  font-size: 12px;
-  cursor: pointer;
-  box-shadow: var(--shadow-card);
-}
-
-.account-bubble .acct-menu {
+.bottom-profile .acct-menu {
   left: auto;
-  right: 0;
+  right: 6px;
+  min-width: 220px;
 }
 
 /* ————— Main column ————— */
@@ -1257,6 +1269,16 @@ body {
   display: none;
 }
 
+.ref-arrow {
+  display: inline-block;
+  transition: transform 150ms ease;
+  color: var(--amber);
+}
+
+.ref-group[open] > summary .ref-arrow {
+  transform: rotate(90deg);
+}
+
 .ref-entry {
   margin: 4px 0 12px;
 }
@@ -1725,13 +1747,8 @@ body {
     display: flex;
   }
 
-  .account-bubble {
-    display: block;
-  }
-
   .topbar {
     padding: 12px 14px;
-    padding-right: 56px; /* room for the account bubble */
     gap: 10px;
   }
 

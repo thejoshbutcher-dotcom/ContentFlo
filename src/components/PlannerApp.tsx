@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
   CalendarDays,
-  Download,
   GalleryHorizontalEnd,
   Kanban,
   LayoutGrid,
@@ -12,16 +11,14 @@ import {
   Mic,
   MonitorPlay,
   Plus,
-  RotateCcw,
   Settings2,
   Smartphone,
   Table2,
-  Upload,
 } from "lucide-react";
 import { usePlanner } from "@/lib/store";
 import { useProfile } from "@/lib/profile";
-import { ContentCard, ContentType, ViewId } from "@/lib/types";
-import { AccountBubble, AccountSwitcher } from "./AccountSwitcher";
+import { ContentType, ViewId } from "@/lib/types";
+import { AccountSwitcher, ProfileNavButton } from "./AccountSwitcher";
 import BoardView from "./BoardView";
 import BrainstormView from "./BrainstormView";
 import CalendarView from "./CalendarView";
@@ -72,28 +69,20 @@ const MOBILE_GROUPS: {
 ];
 
 function groupOf(viewId: ViewId): MobileGroup {
-  return (
-    MOBILE_GROUPS.find((g) => g.views.includes(viewId))?.id ?? "pipeline"
-  );
+  return MOBILE_GROUPS.find((g) => g.views.includes(viewId))?.id ?? "create";
 }
 
 export default function PlannerApp() {
   const [mounted, setMounted] = useState(false);
-  const [viewId, setViewId] = useState<ViewId>("board-short");
+  const [viewId, setViewId] = useState<ViewId>("ideate");
   const [search, setSearch] = useState("");
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [showSetup, setShowSetup] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const cards = usePlanner((s) => s.cards);
   const addCard = usePlanner((s) => s.addCard);
-  const importAll = usePlanner((s) => s.importAll);
-  const resetToSeed = usePlanner((s) => s.resetToSeed);
 
-  useEffect(() => {
-    setMounted(true);
-    if (!useProfile.getState().setupComplete) setShowSetup(true);
-  }, []);
+  useEffect(() => setMounted(true), []);
   if (!mounted) {
     return (
       <div className="app-frame">
@@ -125,33 +114,19 @@ export default function PlannerApp() {
     setOpenCardId(card.id);
   }
 
-  function exportJson() {
-    const blob = new Blob([JSON.stringify(cards, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `creatorflo-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function importJson(file: File) {
-    file.text().then((text) => {
-      try {
-        const data = JSON.parse(text) as ContentCard[];
-        if (Array.isArray(data)) importAll(data);
-      } catch {
-        alert("That file doesn't look like a CreatorFlo export.");
-      }
-    });
-  }
-
-  function handleAccountSwitched() {
+  // Only surface Brand setup automatically right after a new profile is created.
+  function handleAccountSwitched(isNew: boolean) {
     setOpenCardId(null);
-    if (!useProfile.getState().setupComplete) setShowSetup(true);
+    setViewId("ideate");
+    setSearch("");
+    if (isNew) setShowSetup(true);
   }
+
+  const setupAction = {
+    label: "Brand setup",
+    icon: <Settings2 size={13} />,
+    onClick: () => setShowSetup(true),
+  };
 
   const groups: { label: string; ids: ViewId[] }[] = [
     { label: "Create", ids: ["ideate"] },
@@ -174,7 +149,6 @@ export default function PlannerApp() {
             priority
             className="brand-logo"
           />
-          <AccountSwitcher onSwitched={handleAccountSwitched} />
         </div>
 
         {groups.map((g) => (
@@ -203,35 +177,7 @@ export default function PlannerApp() {
             <Settings2 size={13} />
             <span className="label">Brand setup</span>
           </button>
-          <button className="foot-btn" onClick={exportJson}>
-            <Download size={13} />
-            <span className="label">Export data</span>
-          </button>
-          <button className="foot-btn" onClick={() => fileRef.current?.click()}>
-            <Upload size={13} />
-            <span className="label">Import data</span>
-          </button>
-          <button
-            className="foot-btn"
-            onClick={() => {
-              if (confirm("Replace everything with the starter examples?"))
-                resetToSeed();
-            }}
-          >
-            <RotateCcw size={13} />
-            <span className="label">Reset to examples</span>
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/json"
-            hidden
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) importJson(f);
-              e.target.value = "";
-            }}
-          />
+          <AccountSwitcher onSwitched={handleAccountSwitched} />
         </div>
       </aside>
 
@@ -241,7 +187,7 @@ export default function PlannerApp() {
           <span className="view-note">{view.note}</span>
           {view.id === "board-buckets" && (
             <button className="btn btn-ghost" onClick={() => setShowSetup(true)}>
-              <Settings2 size={14} /> Brand setup
+              <Settings2 size={14} /> <span className="btn-label">Brand setup</span>
             </button>
           )}
           <input
@@ -301,28 +247,11 @@ export default function PlannerApp() {
             <span>{g.label}</span>
           </button>
         ))}
+        <ProfileNavButton
+          onSwitched={handleAccountSwitched}
+          actions={[setupAction]}
+        />
       </nav>
-
-      <AccountBubble
-        onSwitched={handleAccountSwitched}
-        actions={[
-          {
-            label: "Brand setup",
-            icon: <Settings2 size={13} />,
-            onClick: () => setShowSetup(true),
-          },
-          {
-            label: "Export data",
-            icon: <Download size={13} />,
-            onClick: exportJson,
-          },
-          {
-            label: "Import data",
-            icon: <Upload size={13} />,
-            onClick: () => fileRef.current?.click(),
-          },
-        ]}
-      />
 
       {openCardId && (
         <CardModal cardId={openCardId} onClose={() => setOpenCardId(null)} />

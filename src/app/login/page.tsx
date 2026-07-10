@@ -13,7 +13,8 @@ function LoginForm() {
   const next = params.get("next") ?? "/";
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
-  const [error, setError] = useState("");
+  // Surfaced by /auth/confirm when a link is expired, reused, or malformed.
+  const [error, setError] = useState(params.get("error") ?? "");
 
   async function sendLink(e: React.FormEvent) {
     e.preventDefault();
@@ -93,7 +94,7 @@ function LoginForm() {
         </button>
       </form>
 
-      {status === "error" && <p className="auth-error">{error}</p>}
+      {error && <p className="auth-error">{error}</p>}
     </div>
   );
 }

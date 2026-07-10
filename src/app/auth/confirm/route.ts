@@ -3,39 +3,50 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { createSupabaseServer } from "@/lib/supabase/server";
 
 /**
- * Magic-link landing route. Supabase emails a `token_hash` which we exchange
- * for a session; the SSR client writes the auth cookies onto the response.
+ * Magic-link landing route. Handles both shapes Supabase can send:
  *
- * Set the Supabase "Magic Link" email template to:
- *   {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email
+ *  1. `?code=...` — the PKCE flow used by the DEFAULT email template. Supabase's
+ *     /auth/v1/verify endpoint redirects here with a code, which we swap for a
+ *     session. The code_verifier was stored in a cookie by the browser client.
+ *     This is the path that works with no custom SMTP, since Supabase only lets
+ *     you edit email templates once you've configured your own SMTP server.
+ *
+ *  2. `?token_hash=...&type=...` — used if the Magic Link template is customised
+ *     to `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`.
+ *
+ * Supporting both means sign-in works out of the box and keeps working if a
+ * custom template is added later.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
+  const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next") ?? "/";
 
-  const failed = new URL("/login", origin);
-
-  if (!tokenHash || !type) {
-    failed.searchParams.set("error", "Invalid sign-in link.");
-    return NextResponse.redirect(failed);
-  }
+  const fail = (reason: string) => {
+    const url = new URL("/login", origin);
+    url.searchParams.set("error", reason);
+    return NextResponse.redirect(url);
+  };
 
   const supabase = await createSupabaseServer();
-  if (!supabase) {
-    failed.searchParams.set("error", "Sign-in isn't configured.");
-    return NextResponse.redirect(failed);
+  if (!supabase) return fail("Sign-in isn't configured.");
+
+  let error = null;
+
+  if (code) {
+    ({ error } = await supabase.auth.exchangeCodeForSession(code));
+  } else if (tokenHash && type) {
+    ({ error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash }));
+  } else {
+    return fail("Invalid sign-in link.");
   }
 
-  const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
-  if (error) {
-    failed.searchParams.set("error", "That link expired. Request a new one.");
-    return NextResponse.redirect(failed);
-  }
+  if (error) return fail("That link expired or was already used. Request a new one.");
 
-  // `next` comes from our own redirect param; keep it relative to block
-  // open-redirects to another origin.
-  const dest = next.startsWith("/") ? next : "/";
+  // `next` is our own param, but keep it relative so a crafted link can't
+  // turn this into an open redirect.
+  const dest = next.startsWith("/") && !next.startsWith("//") ? next : "/";
   return NextResponse.redirect(new URL(dest, origin));
 }

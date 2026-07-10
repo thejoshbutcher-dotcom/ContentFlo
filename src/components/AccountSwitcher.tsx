@@ -1,8 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { Check, ChevronUp, Pencil, Plus, Trash2, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Check,
+  ChevronUp,
+  LogOut,
+  Pencil,
+  Plus,
+  Trash2,
+  UserRound,
+} from "lucide-react";
 import { useAccounts } from "@/lib/accounts";
+import { getSupabaseBrowser } from "@/lib/supabase/client";
 import {
   createAccount,
   deleteAccount,
@@ -30,6 +39,20 @@ function AccountMenu({
   const [draft, setDraft] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [email, setEmail] = useState<string | null>(null);
+
+  // Only signed-in users get a Sign out control.
+  useEffect(() => {
+    const supabase = getSupabaseBrowser();
+    if (!supabase) return;
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!cancelled) setEmail(data.user?.email ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function pick(id: string) {
     if (id !== activeId) {
@@ -147,6 +170,21 @@ function AccountMenu({
               {act.label}
             </button>
           ))}
+        </div>
+      )}
+
+      {email && (
+        <div className="acct-actions">
+          <div className="acct-email t-mono" title={email}>
+            {email}
+          </div>
+          {/* POST to a route handler so the server can clear the auth cookies. */}
+          <form action="/auth/signout" method="post">
+            <button type="submit" className="acct-action acct-signout">
+              <LogOut size={13} />
+              Sign out
+            </button>
+          </form>
         </div>
       )}
     </div>

@@ -80,9 +80,7 @@ export default function BrainstormView({
   const beat = formats.find((f) => f.name === pick.format)?.hint;
 
   const autoTitle =
-    pick.topic && lens
-      ? `${pick.topic} — through the lens of ${lens.name.toLowerCase()}`
-      : pick.topic ?? "";
+    pick.topic && lens ? `${pick.topic} — ${lens.name}` : pick.topic ?? "";
 
   function send() {
     const finalTitle = title.trim() || autoTitle || "Untitled idea";
@@ -115,6 +113,75 @@ export default function BrainstormView({
     setTitle("");
   }
 
+  const resultBlock = (
+    <div className="slate-result">
+      <input
+        className="slate-title-input"
+        placeholder={autoTitle ? autoTitle.toUpperCase() : "WORKING TITLE..."}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
+      {(
+        [
+          ["Topic", pick.topic],
+          ["Bucket", lens?.name],
+          ["Who", pick.who],
+          [
+            "Feel → Do",
+            pick.feeling ? `${pick.feeling} → ${pick.action ?? "…"}` : pick.action,
+          ],
+          ["Format", pick.format],
+        ] as [string, string | undefined][]
+      ).map(([k, v]) => (
+        <div className="slate-line" key={k}>
+          <span className="k">{k}</span>
+          <span className={`v${v ? "" : " empty"}`}>{v ?? "—"}</span>
+        </div>
+      ))}
+      {beat && <div className="beat-strip">▶ {beat}</div>}
+
+      <div className="slate-actions">
+        <span className="t-eyebrow" style={{ color: "var(--text-3)" }}>
+          Send as
+        </span>
+        {DESTS.map((d) => (
+          <Chip
+            key={d}
+            label={d}
+            on={pick.dest === d}
+            onClick={() => {
+              setPick((p) => ({ ...p, dest: d }));
+              setSent(null);
+            }}
+          />
+        ))}
+        <div style={{ flex: 1 }} />
+        <button className="btn btn-primary" onClick={send}>
+          <Send size={14} /> Add to pipeline
+        </button>
+      </div>
+
+      {sent && (
+        <div className="slate-line" style={{ marginTop: 10 }}>
+          <span className="k">Added ✓</span>
+          <span className="v">
+            Landed in Ideas —{" "}
+            <button
+              className="mini-chip"
+              onClick={() => onOpen(sent)}
+              style={{ marginRight: 6 }}
+            >
+              Open card
+            </button>
+            <button className="mini-chip" onClick={() => onGoToBoard(pick.dest)}>
+              View board
+            </button>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="slate-wrap">
       <div className="slate-board">
@@ -130,9 +197,14 @@ export default function BrainstormView({
                 Brainstorm
               </h2>
               <p>
-                {brandName ? `${brandName} — ` : ""}relatable topic → through the
-                lens of a bucket → who → what they should feel → format. Stack the
-                deck or shuffle it.
+                {brandName ? `${brandName} — ` : ""}Create a new idea for your next
+                piece of content. Follow the Flo to generate a new idea from
+                scratch or shuffle things up for some random inspiration!
+                <br />
+                <span className="flo-line">
+                  Flo: relatable topic → through the lens of your content bucket →
+                  who → what they should feel → format
+                </span>
               </p>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
@@ -151,6 +223,8 @@ export default function BrainstormView({
         </div>
 
         <div className="slate-body">
+          {resultBlock}
+
           <div className="dim-grid">
             <div className="dim">
               <div className="dim-label">
@@ -268,74 +342,6 @@ export default function BrainstormView({
             </div>
           </div>
 
-          <div className="slate-result">
-            <input
-              className="slate-title-input"
-              placeholder={autoTitle ? autoTitle.toUpperCase() : "WORKING TITLE..."}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-            {(
-              [
-                ["Topic", pick.topic],
-                ["Lens", lens?.name],
-                ["Who", pick.who],
-                [
-                  "Feel → Do",
-                  pick.feeling
-                    ? `${pick.feeling} → ${pick.action ?? "…"}`
-                    : pick.action,
-                ],
-                ["Format", pick.format],
-              ] as [string, string | undefined][]
-            ).map(([k, v]) => (
-              <div className="slate-line" key={k}>
-                <span className="k">{k}</span>
-                <span className={`v${v ? "" : " empty"}`}>{v ?? "—"}</span>
-              </div>
-            ))}
-            {beat && <div className="beat-strip">▶ {beat}</div>}
-
-            <div className="slate-actions">
-              <span className="t-eyebrow" style={{ color: "var(--text-3)" }}>
-                Send as
-              </span>
-              {DESTS.map((d) => (
-                <Chip
-                  key={d}
-                  label={d}
-                  on={pick.dest === d}
-                  onClick={() => {
-                    setPick((p) => ({ ...p, dest: d }));
-                    setSent(null);
-                  }}
-                />
-              ))}
-              <div style={{ flex: 1 }} />
-              <button className="btn btn-primary" onClick={send}>
-                <Send size={14} /> Add to pipeline
-              </button>
-            </div>
-
-            {sent && (
-              <div className="slate-line" style={{ marginTop: 10 }}>
-                <span className="k">Added ✓</span>
-                <span className="v">
-                  Landed in Ideas —{" "}
-                  <button
-                    className="mini-chip"
-                    onClick={() => onOpen(sent)}
-                    style={{ marginRight: 6 }}
-                  >
-                    Open card
-                  </button>
-                  <button className="mini-chip" onClick={() => onGoToBoard(pick.dest)}>
-                    View board
-                  </button>
-                </span>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

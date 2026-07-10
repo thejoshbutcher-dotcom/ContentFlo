@@ -386,6 +386,23 @@ body {
   color: #fff;
 }
 
+.acct-email {
+  color: var(--text-3);
+  padding: 6px 9px 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acct-signout {
+  color: var(--rec);
+}
+
+.acct-signout:hover {
+  background: rgba(240, 68, 56, 0.12);
+  color: var(--rec);
+}
+
 /* ————— Profile tab inside the mobile bottom nav ————— */
 .bottom-profile {
   position: relative;
@@ -1457,7 +1474,16 @@ body {
 .slate-head p {
   color: var(--text-3);
   font-size: 12.5px;
-  max-width: 460px;
+  max-width: 560px;
+  line-height: 1.55;
+}
+
+.flo-line {
+  display: inline-block;
+  margin-top: 6px;
+  color: var(--amber);
+  font-family: var(--font-mono-ui), monospace;
+  font-size: 11px;
 }
 
 .slate-body {
@@ -1504,7 +1530,7 @@ body {
 }
 
 .slate-result {
-  margin-top: 22px;
+  margin-bottom: 22px;
   border: 1px solid var(--amber-deep);
   border-radius: var(--radius);
   background: var(--ink);

@@ -5,7 +5,6 @@ import { BookOpen, ImagePlus, Trash2, X } from "lucide-react";
 import { usePlanner } from "@/lib/store";
 import { useProfile } from "@/lib/profile";
 import { STATUS_COLORS, statusesFor } from "@/lib/seed";
-import { DELIVERIES, VERBAL_HOOKS } from "@/lib/ideation";
 import { HINT_OVERRIDES, REFERENCE_LIBRARY, sectionPhase } from "@/lib/templates";
 import { ContentCard, ContentType, Section, Who } from "@/lib/types";
 
@@ -468,38 +467,6 @@ export default function CardModal({
                 {actionOptions.map((a) => (
                   <option key={a} value={a}>
                     {a}
-                  </option>
-                ))}
-              </select>
-
-              <div className="prop-label t-eyebrow">Verbal hook</div>
-              <select
-                className="prop-select"
-                value={card.hook ?? ""}
-                onChange={(e) =>
-                  updateCard(card.id, { hook: e.target.value || undefined })
-                }
-              >
-                <option value="">—</option>
-                {VERBAL_HOOKS.map((h) => (
-                  <option key={h} value={h}>
-                    {h}
-                  </option>
-                ))}
-              </select>
-
-              <div className="prop-label t-eyebrow">Delivery</div>
-              <select
-                className="prop-select"
-                value={card.delivery ?? ""}
-                onChange={(e) =>
-                  updateCard(card.id, { delivery: e.target.value || undefined })
-                }
-              >
-                <option value="">—</option>
-                {DELIVERIES.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
                   </option>
                 ))}
               </select>

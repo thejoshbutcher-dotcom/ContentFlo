@@ -7,13 +7,15 @@ export function isSupabaseConfigured(): boolean {
 }
 
 /**
- * Whether to actually gate the app behind sign-in.
+ * Whether to gate the app behind sign-in.
  *
- * Kept separate from `isSupabaseConfigured` on purpose: it lets us build and
- * test the sync engine against a live project while the app still runs on
- * localStorage, and flip the login wall on only once the cloud migration is
- * ready. Set NEXT_PUBLIC_ENABLE_AUTH=true to turn it on.
+ * Fail-secure: once a Supabase backend is configured, the login wall is ON by
+ * default. A deployment with the keys set is therefore protected even if the
+ * flag is forgotten. Set NEXT_PUBLIC_ENABLE_AUTH=false to explicitly turn it
+ * off for local development (the app then runs on localStorage only).
  */
 export function isAuthEnabled(): boolean {
-  return isSupabaseConfigured() && process.env.NEXT_PUBLIC_ENABLE_AUTH === "true";
+  return (
+    isSupabaseConfigured() && process.env.NEXT_PUBLIC_ENABLE_AUTH !== "false"
+  );
 }

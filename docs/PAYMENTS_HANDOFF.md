@@ -66,7 +66,7 @@ STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...        # the live endpoint's secret from step 2
 NEXT_PUBLIC_STRIPE_PRICE_ID=price_...  # the live price from step 1
 NEXT_PUBLIC_SITE_URL=https://<your-domain>
-NEXT_PUBLIC_ENABLE_AUTH=true           # turns ON the login wall
+NEXT_PUBLIC_ENABLE_AUTH=true           # login wall (ON by default when Supabase is configured; this is explicit)
 ADMIN_EMAILS=thejoshbutcher@gmail.com  # only emails you intend to comp
 DEV_LOGIN_EMAILS=                      # MUST be empty in production
 NEXT_PUBLIC_DEV_LOGIN_EMAIL=           # MUST be empty in production
@@ -80,7 +80,7 @@ Use a real card (or Stripe's live-mode test tooling) end to end: buy → land on
 ## 🔒 Pre-launch security checklist (do not skip)
 
 1. **Rotate the Supabase `service_role` key.** It was shared in a dev chat and must be considered exposed. Supabase → Project Settings → API Keys → roll it, then update `SUPABASE_SERVICE_ROLE_KEY` everywhere. (There's a persistent memory note about this.)
-2. **`NEXT_PUBLIC_ENABLE_AUTH=true`** in production (off = no gate).
+2. **Login wall on.** It's now ON by default whenever Supabase is configured (fail-secure); only `NEXT_PUBLIC_ENABLE_AUTH=false` disables it. Ensure production does **not** set it to `false`.
 3. **`DEV_LOGIN_EMAILS` empty** in production. The route also hard-404s when `NODE_ENV=production`, but leave it empty as defense in depth.
 4. **`ADMIN_EMAILS`** contains only emails you truly want to give free access.
 5. Confirm `.env.local` / real keys are **never committed** (they're gitignored; verify in CI).

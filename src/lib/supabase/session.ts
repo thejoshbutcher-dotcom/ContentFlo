@@ -9,6 +9,7 @@ const PUBLIC_PATHS = [
   "/purchase", // a buyer must reach checkout before they have an account
   "/api/auth", // the access check, called from the login form
   "/api/checkout",
+  "/api/dev-login", // dev-only instant sign-in; self-gated, must run pre-session
   "/api/stripe/webhook", // unauthenticated by design; verified by signature
 ];
 

@@ -1928,6 +1928,28 @@ body {
   text-decoration: underline;
 }
 
+.dev-login-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 8px 12px;
+  border-radius: var(--radius-btn);
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dev-login-btn:hover:not(:disabled) {
+  border-color: var(--amber-deep);
+  color: var(--amber);
+}
+
 /* ————— Empty state ————— */
 .empty-state {
   color: var(--text-3);

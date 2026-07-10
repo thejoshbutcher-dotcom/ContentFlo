@@ -3,10 +3,14 @@
 import { Suspense, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { MailCheck, PartyPopper, Send } from "lucide-react";
+import { MailCheck, PartyPopper, Send, Zap } from "lucide-react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 
 type Status = "idle" | "checking" | "sending" | "sent" | "denied";
+
+// Inlined at build time; the block below is stripped from production bundles.
+const DEV = process.env.NODE_ENV === "development";
+const DEV_EMAIL = process.env.NEXT_PUBLIC_DEV_LOGIN_EMAIL ?? "";
 
 function LoginForm() {
   const params = useSearchParams();
@@ -159,6 +163,31 @@ function LoginForm() {
       </form>
 
       {error && <p className="auth-error">{error}</p>}
+
+      {DEV && DEV_EMAIL && (
+        <button
+          className="dev-login-btn"
+          disabled={busy}
+          onClick={async () => {
+            setStatus("checking");
+            setError("");
+            const res = await fetch("/api/dev-login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: DEV_EMAIL }),
+            });
+            if (res.ok) {
+              window.location.href = next;
+            } else {
+              const d = await res.json().catch(() => ({}));
+              setStatus("idle");
+              setError(d.error ?? "Dev login failed.");
+            }
+          }}
+        >
+          <Zap size={13} /> Dev sign-in as {DEV_EMAIL}
+        </button>
+      )}
 
       {!justPurchased && (
         <p className="auth-foot">

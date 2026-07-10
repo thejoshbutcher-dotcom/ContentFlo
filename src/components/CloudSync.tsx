@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CloudUpload, Loader2 } from "lucide-react";
+import { CloudUpload, Loader2, TriangleAlert, X } from "lucide-react";
 import { useAccounts } from "@/lib/accounts";
 import type { ProfileRow } from "@/lib/mapping";
 import {
@@ -13,7 +13,14 @@ import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { setCloudUser, startSync } from "@/lib/sync";
 import { readActiveProfileId } from "@/lib/workspace";
 
-type Phase = "idle" | "checking" | "prompt" | "importing" | "loading" | "ready";
+type Phase =
+  | "idle"
+  | "checking"
+  | "prompt"
+  | "importing"
+  | "loading"
+  | "ready"
+  | "error";
 
 /**
  * Headless bootstrap. Runs only when a Supabase session exists — signed-out
@@ -50,8 +57,10 @@ export default function CloudSync({ onReady }: { onReady?: () => void }) {
         await activate(supabase);
       } catch (err) {
         if (!cancelled) {
+          // Never fail silently — this used to render nothing at all.
+          console.error("[cloud-sync] bootstrap failed", err);
           setError(err instanceof Error ? err.message : String(err));
-          setPhase("idle");
+          setPhase("error");
         }
       }
     })();
@@ -114,8 +123,25 @@ export default function CloudSync({ onReady }: { onReady?: () => void }) {
     try {
       await activate(supabase);
     } catch (err) {
+      console.error("[cloud-sync] activate failed", err);
       setError(err instanceof Error ? err.message : String(err));
+      setPhase("error");
     }
+  }
+
+  if (phase === "error") {
+    return (
+      <div className="sync-error">
+        <TriangleAlert size={15} />
+        <span>
+          Cloud sync couldn&apos;t start: {error}. Your work is still saved in
+          this browser.
+        </span>
+        <button onClick={() => setPhase("idle")} aria-label="Dismiss">
+          <X size={14} />
+        </button>
+      </div>
+    );
   }
 
   if (phase === "prompt" || phase === "importing") {

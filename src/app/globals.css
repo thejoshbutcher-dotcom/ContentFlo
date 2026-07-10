@@ -1761,6 +1761,43 @@ body {
 }
 
 /* ————— Cloud sync ————— */
+.sync-error {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 11px 14px;
+  border-radius: var(--radius-btn);
+  background: var(--ink-2);
+  border: 1px solid var(--rec);
+  color: var(--text);
+  font-size: 12.5px;
+  box-shadow: var(--shadow-lift);
+}
+
+.sync-error svg:first-child {
+  color: var(--rec);
+  flex-shrink: 0;
+}
+
+.sync-error button {
+  background: transparent;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.sync-error button:hover {
+  color: #fff;
+}
+
 .import-modal {
   width: min(480px, 100%);
   height: auto;

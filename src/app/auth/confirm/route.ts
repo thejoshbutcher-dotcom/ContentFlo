@@ -18,7 +18,11 @@ import { createSupabaseServer } from "@/lib/supabase/server";
  * custom template is added later.
  */
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  // Behind a reverse proxy (Hostinger/LiteSpeed) request.nextUrl.origin resolves to
+  // the internal bind address (0.0.0.0:3000), which breaks the post-verify redirect.
+  // Prefer the configured public site URL, same as the checkout route.
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? request.nextUrl.origin;
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;

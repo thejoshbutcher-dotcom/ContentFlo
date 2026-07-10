@@ -48,8 +48,10 @@ To switch the live site on:
    - **Server-only secrets** (`SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`) must NOT carry a `NEXT_PUBLIC_` prefix or they leak into the browser.
    - **Do not set** `DEV_LOGIN_EMAILS` / `NEXT_PUBLIC_DEV_LOGIN_EMAIL` in production. The dev-login route hard-404s when `NODE_ENV=production`, but leave them unset as defense in depth. On the live site you sign in with the real emailed magic link, not the dev button.
 2. **Supabase → Authentication → URL Configuration.** Set **Site URL** = `https://creatorflo.io` and add `https://creatorflo.io/**` to **Redirect URLs** (keep `http://localhost:3000/**` too for local dev). Without this the magic link dead-ends on the live site.
-3. **Trigger a rebuild / redeploy** so the new env vars are baked in (`NEXT_PUBLIC_*` values are inlined at build time, so an env change needs a fresh build, not just a restart).
-4. Re-check `https://creatorflo.io/auth/status` → should read `"supabaseConfigured": true, "loginWallEnabled": true`. The wall is now live.
+3. **Trigger a rebuild / redeploy** so the new env vars are baked in (`NEXT_PUBLIC_*` values are inlined at build time, so an env change needs a fresh build, not just a restart). Hostinger auto-builds on git push; if you only changed env vars (no code change), trigger a manual redeploy so the build re-runs with them present. Build pipeline: Node 22, `app_type: next`, `build` script, output `.next`, source `git`.
+4. **Verify in two steps — `/auth/status` alone is not enough:**
+   - `https://creatorflo.io/auth/status` should read `"supabaseConfigured": true, "loginWallEnabled": true`. But this only proves the **server** sees the env vars at runtime.
+   - Then open `https://creatorflo.io/login` in a real browser and confirm you can actually request a magic link. The browser Supabase client uses **build-time-inlined** `NEXT_PUBLIC_*` values, so if Hostinger didn't pass the env vars into the `npm run build` step, sign-in silently fails even while `/auth/status` says `true`. If that happens, confirm the env vars are set *before* triggering the rebuild, then rebuild again.
 
 Keep the app running as a **Node.js app** on Hostinger — it uses server components, API routes, and the auth proxy. Static hosting would break all of that. (`/auth/status` returning live JSON confirms Node is running.)
 

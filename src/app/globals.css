@@ -1899,6 +1899,35 @@ body {
   margin-top: 14px;
 }
 
+.auth-cta {
+  display: inline-flex;
+  justify-content: center;
+  width: 100%;
+  text-decoration: none;
+}
+
+.auth-foot {
+  margin-top: 18px;
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.auth-foot a,
+.link-btn {
+  color: var(--amber);
+  text-decoration: none;
+  background: none;
+  border: none;
+  font-size: 12.5px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.auth-foot a:hover,
+.link-btn:hover {
+  text-decoration: underline;
+}
+
 /* ————— Empty state ————— */
 .empty-state {
   color: var(--text-3);

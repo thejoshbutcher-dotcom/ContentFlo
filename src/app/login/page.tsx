@@ -3,30 +3,51 @@
 import { Suspense, useState } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { MailCheck, Send } from "lucide-react";
+import { MailCheck, PartyPopper, Send } from "lucide-react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 
-type Status = "idle" | "sending" | "sent" | "error";
+type Status = "idle" | "checking" | "sending" | "sent" | "denied";
 
 function LoginForm() {
   const params = useSearchParams();
   const next = params.get("next") ?? "/";
+  const justPurchased = params.get("purchased") === "1";
+
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");
-  // Surfaced by /auth/confirm when a link is expired, reused, or malformed.
   const [error, setError] = useState(params.get("error") ?? "");
 
-  async function sendLink(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     const supabase = getSupabaseBrowser();
     if (!supabase) {
-      setStatus("error");
       setError("Sign-in isn't configured yet.");
       return;
     }
-    setStatus("sending");
     setError("");
+    setStatus("checking");
 
+    // Don't email a sign-in link to someone who can't get in anyway.
+    // This is UX only — the real gate runs server-side on the app route.
+    try {
+      const res = await fetch("/api/auth/check-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not verify your access.");
+      if (!data.hasAccess) {
+        setStatus("denied");
+        return;
+      }
+    } catch (err) {
+      setStatus("idle");
+      setError(err instanceof Error ? err.message : String(err));
+      return;
+    }
+
+    setStatus("sending");
     const redirect = new URL("/auth/confirm", window.location.origin);
     redirect.searchParams.set("next", next);
 
@@ -36,7 +57,7 @@ function LoginForm() {
     });
 
     if (err) {
-      setStatus("error");
+      setStatus("idle");
       setError(err.message);
     } else {
       setStatus("sent");
@@ -49,8 +70,9 @@ function LoginForm() {
         <MailCheck size={30} className="auth-icon" />
         <h1 className="auth-title">Check your email</h1>
         <p className="auth-sub">
-          We sent a sign-in link to <strong>{email}</strong>. Open it on any
-          device and you&apos;ll land right in your workspace.
+          We sent a sign-in link to <strong>{email}</strong>. Open it{" "}
+          <strong>in this browser</strong> and you&apos;ll land straight in your
+          workspace — and stay signed in on this device.
         </p>
         <button className="btn btn-ghost" onClick={() => setStatus("idle")}>
           Use a different email
@@ -58,6 +80,31 @@ function LoginForm() {
       </div>
     );
   }
+
+  if (status === "denied") {
+    return (
+      <div className="auth-card">
+        <h1 className="auth-title">No purchase found</h1>
+        <p className="auth-sub">
+          We couldn&apos;t find a CreatorFlo purchase for{" "}
+          <strong>{email}</strong>. If you bought with a different email, try
+          that one. Otherwise, grab your copy below.
+        </p>
+        <a className="btn btn-amber auth-cta" href="/purchase">
+          Get CreatorFlo
+        </a>
+        <button
+          className="btn btn-ghost"
+          style={{ marginTop: 10 }}
+          onClick={() => setStatus("idle")}
+        >
+          Try another email
+        </button>
+      </div>
+    );
+  }
+
+  const busy = status === "checking" || status === "sending";
 
   return (
     <div className="auth-card">
@@ -69,12 +116,27 @@ function LoginForm() {
         priority
         className="auth-logo"
       />
-      <h1 className="auth-title">Sign in</h1>
-      <p className="auth-sub">
-        Enter your email and we&apos;ll send you a link. No password to remember.
-      </p>
 
-      <form onSubmit={sendLink} className="auth-form">
+      {justPurchased ? (
+        <>
+          <PartyPopper size={28} className="auth-icon" />
+          <h1 className="auth-title">You&apos;re in</h1>
+          <p className="auth-sub">
+            Thanks for buying CreatorFlo. Enter the email you paid with to create
+            your account and unlock your workspace.
+          </p>
+        </>
+      ) : (
+        <>
+          <h1 className="auth-title">Sign in</h1>
+          <p className="auth-sub">
+            Enter the email you bought with and we&apos;ll send you a link. No
+            password to remember.
+          </p>
+        </>
+      )}
+
+      <form onSubmit={submit} className="auth-form">
         <input
           className="prop-input setup-input"
           type="email"
@@ -84,17 +146,25 @@ function LoginForm() {
           placeholder="you@example.com"
           onChange={(e) => setEmail(e.target.value)}
         />
-        <button
-          className="btn btn-amber"
-          type="submit"
-          disabled={status === "sending"}
-        >
+        <button className="btn btn-amber" type="submit" disabled={busy}>
           <Send size={15} />
-          {status === "sending" ? "Sending…" : "Send sign-in link"}
+          {status === "checking"
+            ? "Checking…"
+            : status === "sending"
+            ? "Sending…"
+            : justPurchased
+            ? "Create my account"
+            : "Send sign-in link"}
         </button>
       </form>
 
       {error && <p className="auth-error">{error}</p>}
+
+      {!justPurchased && (
+        <p className="auth-foot">
+          Don&apos;t have CreatorFlo yet? <a href="/purchase">Get it here.</a>
+        </p>
+      )}
     </div>
   );
 }

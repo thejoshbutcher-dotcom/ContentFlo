@@ -3,7 +3,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./env";
 
 /** Routes reachable without a session. */
-const PUBLIC_PATHS = ["/login", "/auth", "/api/stripe/webhook"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/auth",
+  "/purchase", // a buyer must reach checkout before they have an account
+  "/api/auth", // the access check, called from the login form
+  "/api/checkout",
+  "/api/stripe/webhook", // unauthenticated by design; verified by signature
+];
 
 function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.some(

@@ -1,0 +1,109 @@
+"use client";
+
+import { useDraggable } from "@dnd-kit/core";
+import { STATUS_COLORS, STATUSES } from "@/lib/seed";
+import { useProfile } from "@/lib/profile";
+import { ContentCard } from "@/lib/types";
+
+const TYPE_CLASS: Record<string, string> = {
+  "Short form": "type-short",
+  "Long form": "type-long",
+  Podcast: "type-podcast",
+  Carousel: "type-carousel",
+};
+
+export function typeTagClass(type?: string) {
+  return type ? TYPE_CLASS[type] ?? "" : "";
+}
+
+export function formatDate(iso?: string) {
+  if (!iso) return "";
+  const d = new Date(iso + (iso.length === 10 ? "T00:00:00" : ""));
+  return d
+    .toLocaleDateString("en-US", { month: "short", day: "2-digit" })
+    .toUpperCase();
+}
+
+export function CardBody({
+  card,
+  showStatus,
+  showBucket,
+}: {
+  card: ContentCard;
+  showStatus?: boolean;
+  showBucket?: boolean;
+}) {
+  const buckets = useProfile((s) => s.buckets);
+  const status = STATUSES.find((s) => s.id === card.status);
+  const bucket = buckets.find((b) => b.id === card.bucketId);
+  const overdue =
+    card.postingDate &&
+    card.status !== "posted" &&
+    new Date(card.postingDate) < new Date(new Date().toDateString());
+
+  return (
+    <>
+      <div className="card-title">{card.title || "Untitled"}</div>
+      <div className="card-meta">
+        {card.contentType && (
+          <span className={`tag ${typeTagClass(card.contentType)}`}>
+            {card.contentType}
+          </span>
+        )}
+        {showStatus && status && (
+          <span
+            className="tag"
+            style={{
+              background: STATUS_COLORS[status.color].bg,
+              color: STATUS_COLORS[status.color].fg,
+              borderColor: "transparent",
+            }}
+          >
+            {status.name}
+          </span>
+        )}
+        {card.who && <span className="tag who">{card.who}</span>}
+        {showBucket && bucket && <span className="tag">{bucket.name}</span>}
+        {card.format && !showBucket && <span className="tag">{card.format}</span>}
+        {card.postingDate && (
+          <span className={`card-date${overdue ? " overdue" : ""}`}>
+            {formatDate(card.postingDate)}
+          </span>
+        )}
+      </div>
+    </>
+  );
+}
+
+export default function CardItem({
+  card,
+  onOpen,
+  showStatus,
+  showBucket,
+}: {
+  card: ContentCard;
+  onOpen: (id: string) => void;
+  showStatus?: boolean;
+  showBucket?: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: card.id,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className={`content-card${isDragging ? " dragging" : ""}`}
+      onClick={() => onOpen(card.id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") onOpen(card.id);
+      }}
+    >
+      <CardBody card={card} showStatus={showStatus} showBucket={showBucket} />
+    </div>
+  );
+}

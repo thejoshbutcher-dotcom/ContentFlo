@@ -23,13 +23,6 @@ const TAB_LABELS: { id: Tab; label: string }[] = [
   { id: "post", label: "Post" },
 ];
 
-function tabForStatus(status: string): Tab {
-  if (status === "scripting" || status === "filming" || status === "editing")
-    return "script";
-  if (status === "ready" || status === "posted") return "post";
-  return "plan";
-}
-
 function sectionsAreEmpty(card: ContentCard) {
   return card.sections.every(
     (s) =>
@@ -180,10 +173,8 @@ export default function CardModal({
   const profileFeelings = useProfile((s) => s.feelings);
   const profileActions = useProfile((s) => s.actions);
   const socials = useProfile((s) => s.socials);
-  const [tab, setTab] = useState<Tab>(() => {
-    const c = usePlanner.getState().cards.find((x) => x.id === cardId);
-    return c ? tabForStatus(c.status) : "plan";
-  });
+  // Cards open straight into the script, whatever their status
+  const [tab, setTab] = useState<Tab>("script");
   const [showRef, setShowRef] = useState(false);
 
   useEffect(() => {
@@ -233,7 +224,6 @@ export default function CardModal({
   function setStatus(statusId: string) {
     if (!card) return;
     updateCard(card.id, { status: statusId });
-    setTab(tabForStatus(statusId));
   }
 
   return (
@@ -504,11 +494,17 @@ export default function CardModal({
 
             {showRef && (
               <div className="ref-drawer">
-                <div
-                  className="t-eyebrow"
-                  style={{ color: "var(--text-3)", marginBottom: 10 }}
-                >
-                  {card.contentType ?? "Short form"} · reference library
+                <div className="ref-drawer-head">
+                  <span className="t-eyebrow">
+                    {card.contentType ?? "Short form"} · reference library
+                  </span>
+                  <button
+                    className="ref-close"
+                    onClick={() => setShowRef(false)}
+                    aria-label="Close guides"
+                  >
+                    <X size={15} />
+                  </button>
                 </div>
                 {library.map((group) => (
                   <details className="ref-group" key={group.title}>

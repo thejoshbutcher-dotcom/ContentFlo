@@ -1,0 +1,1383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CreatorFlo — The content OS for creators</title>
+<meta name="description" content="Never wonder what to post again. Plan, script, organize, and publish your content from one workspace built for creators. One-time $29.">
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ————— CreatorFlo brand tokens ————— */
+:root{
+  --paper:#181a20;
+  --ink:#14161b;
+  --surface:#22252c;
+  --border:#30343c;
+  --line:#272b32;
+  --text:#ffffff;
+  --text-2:#b7bdc6;
+  --text-3:#8a9099;
+  --amber:#f7c948;
+  --amber-deep:#e0b028;
+  --success:#32d583;
+  --error:#f04438;
+  --blue:#5b8def;
+  --purple:#b692f6;
+  --pink:#f472b6;
+  --radius:20px;
+  --radius-btn:14px;
+  --radius-input:12px;
+  --shadow-card:0 10px 30px rgba(0,0,0,.18);
+  --shadow-lift:0 24px 70px rgba(0,0,0,.5);
+  --font:"Geist",Inter,system-ui,sans-serif;
+  --mono:"Geist Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--paper);
+  color:var(--text);
+  font-family:var(--font);
+  font-size:16px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+::selection{background:rgba(247,201,72,.35)}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:6px}
+
+.wrap{max-width:1140px;margin:0 auto;padding:0 24px}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;font-weight:500;
+  text-transform:uppercase;letter-spacing:.18em;color:var(--amber);
+}
+h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em}
+.lede{color:var(--text-2);font-size:18px;max-width:560px}
+
+/* ————— Buttons ————— */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  border-radius:var(--radius-btn);border:1px solid transparent;
+  font-weight:600;font-size:15px;padding:12px 22px;
+  transition:transform .15s ease,background .15s ease,border-color .15s ease,box-shadow .15s ease;
+  white-space:nowrap;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(0) scale(.98)}
+.btn-amber{background:var(--amber);color:#181a20;box-shadow:0 6px 24px rgba(247,201,72,.22)}
+.btn-amber:hover{background:#ffd45e;box-shadow:0 10px 32px rgba(247,201,72,.3)}
+.btn-ghost{border-color:var(--border);color:var(--text-2)}
+.btn-ghost:hover{border-color:var(--text-3);color:var(--text)}
+
+/* ————— Nav ————— */
+.nav{
+  position:sticky;top:0;z-index:50;
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  background:rgba(24,26,32,.78);
+  border-bottom:1px solid var(--line);
+}
+.nav-in{display:flex;align-items:center;gap:28px;height:64px}
+.nav-logo img{height:24px;width:auto}
+.nav-links{display:flex;gap:24px;font-size:14px;font-weight:500;color:var(--text-3)}
+.nav-links a{transition:color .15s ease}
+.nav-links a:hover{color:var(--text)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.nav-login{
+  font-size:14px;font-weight:600;color:var(--text-2);white-space:nowrap;
+  padding:8px 16px;border-radius:12px;border:1px solid var(--border);
+  transition:color .15s ease,border-color .15s ease,background .15s ease;
+}
+.nav-login:hover{color:var(--text);border-color:var(--text-3);background:var(--surface)}
+.nav .btn{padding:9px 18px;font-size:14px}
+@media(max-width:760px){.nav-links{display:none}}
+
+/* ————— Hero ————— */
+.hero{position:relative;padding:88px 0 40px;text-align:center}
+.hero::before{
+  content:"";position:absolute;inset:-64px 0 auto 0;height:640px;pointer-events:none;
+  background:
+    radial-gradient(560px 320px at 50% 0%,rgba(247,201,72,.10),transparent 70%),
+    radial-gradient(900px 480px at 50% 20%,rgba(91,141,239,.05),transparent 70%);
+}
+.hero .eyebrow{display:inline-flex;align-items:center;gap:10px}
+.hero .eyebrow::before,.hero .eyebrow::after{content:"";width:26px;height:1px;background:var(--border)}
+.hero h1{
+  font-size:clamp(44px,7.4vw,86px);font-weight:800;letter-spacing:-.045em;
+  margin:22px auto 18px;max-width:14ch;
+}
+.hero h1 .flo{color:var(--amber)}
+.hero .lede{margin:0 auto 34px;font-size:clamp(16px,2.4vw,19px)}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.hero-cta .note{width:100%;margin-top:14px;font-size:13px;color:var(--text-3)}
+.hero-cta .note a{color:var(--text-2);text-decoration:underline;text-underline-offset:3px}
+.hero-cta .note a:hover{color:var(--amber)}
+
+/* load-in choreography */
+.rise{opacity:0;transform:translateY(22px);animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards}
+.rise.d1{animation-delay:.08s}.rise.d2{animation-delay:.16s}.rise.d3{animation-delay:.24s}.rise.d4{animation-delay:.34s}
+@keyframes rise{to{opacity:1;transform:none}}
+
+/* ————— Live demo (signature) ————— */
+.demo-hint{
+  display:inline-flex;align-items:center;gap:8px;margin:56px auto 18px;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;color:var(--text-3);
+}
+.demo-hint .dot{width:7px;height:7px;border-radius:99px;background:var(--success);animation:pulse 2.2s ease infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(50,213,131,.5)}50%{box-shadow:0 0 0 6px rgba(50,213,131,0)}}
+.demo-scene{perspective:1600px;padding-bottom:96px}
+.demo-frame{
+  position:relative;max-width:1020px;margin:0 auto;text-align:left;
+  background:var(--ink);border:1px solid var(--border);border-radius:var(--radius);
+  box-shadow:var(--shadow-lift),0 0 0 1px rgba(255,255,255,.02) inset,0 60px 140px -40px rgba(247,201,72,.13);
+  transform:rotateX(9deg) scale(.985);transform-origin:50% 0;
+  transition:transform .7s cubic-bezier(.2,.7,.2,1),box-shadow .7s ease;
+  overflow:hidden;
+}
+.demo-scene:hover .demo-frame,.demo-frame:focus-within{transform:none;box-shadow:var(--shadow-lift)}
+@media(hover:none){.demo-frame{transform:none}}
+.demo-chrome{
+  display:flex;align-items:center;gap:14px;padding:11px 16px;
+  border-bottom:1px solid var(--line);background:#101216;
+}
+.demo-chrome .dots{display:flex;gap:6px}
+.demo-chrome .dots i{width:10px;height:10px;border-radius:99px;background:#2c3038}
+.demo-chrome .dots i:first-child{background:#f0443855}
+.demo-chrome .dots i:nth-child(2){background:#f7c94855}
+.demo-chrome .dots i:last-child{background:#32d58355}
+.demo-url{
+  flex:1;max-width:280px;margin:0 auto;text-align:center;
+  font-family:var(--mono);font-size:11px;color:var(--text-3);
+  background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:4px 12px;
+}
+.demo-body{display:grid;grid-template-columns:188px 1fr;height:580px}
+.demo-side{
+  background:#101216;border-right:1px solid var(--line);
+  padding:14px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;
+}
+.demo-side img{height:20px;width:auto;margin:2px 6px 12px;align-self:flex-start}
+.demo-side .grp{
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text-3);padding:10px 8px 5px;
+}
+.demo-side button{
+  display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+  background:none;border:none;border-radius:10px;padding:7px 9px;
+  color:var(--text-2);font-size:12.5px;font-weight:500;font-family:var(--font);
+  transition:background .15s ease,color .15s ease;
+}
+.demo-side button:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.demo-side button.on{background:rgba(247,201,72,.12);color:var(--amber)}
+.demo-side button .ic{width:15px;text-align:center;font-size:12px;opacity:.85;flex:none}
+.demo-side button .ct{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--text-3)}
+.demo-main{display:flex;flex-direction:column;min-width:0;background:var(--paper);overflow:hidden}
+.demo-view{display:none;flex:1;min-height:0;padding:16px 18px;overflow:auto}
+.demo-view.on{display:flex;flex-direction:column;animation:viewin .3s ease}
+@keyframes viewin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* — board (matches Video Status view) — */
+.b-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.b-title{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.b-sub{font-size:10.5px;color:var(--text-3)}
+.b-new{
+  margin-left:auto;display:inline-flex;align-items:center;gap:5px;
+  background:var(--amber);color:#181a20;font-weight:600;font-size:11px;
+  border:none;border-radius:99px;padding:6px 13px;transition:background .15s ease;
+}
+.b-new:hover{background:#ffd45e}
+.cols{display:grid;grid-template-columns:repeat(6,minmax(142px,1fr));gap:10px;align-items:start;flex:1;overflow-x:auto;padding-bottom:4px}
+.col{display:flex;flex-direction:column;gap:8px;min-height:340px;border-radius:12px;padding:3px;transition:background .15s ease,outline-color .15s ease;outline:1px dashed transparent}
+.col.over{background:rgba(247,201,72,.05);outline-color:rgba(247,201,72,.55)}
+.col-h{display:flex;align-items:center;gap:6px;padding:0 2px 2px}
+.col-pill{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:600;padding:3px 10px;border-radius:99px;white-space:nowrap}
+.col-pill i{width:6px;height:6px;border-radius:99px;flex:none}
+.col-h .n{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--text-3)}
+.kcard{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:10px 11px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;
+  box-shadow:var(--shadow-card);
+  transition:transform .15s ease,border-color .15s ease,opacity .2s ease;
+}
+.kcard:hover{transform:translateY(-2px);border-color:#3d424c}
+.kcard.lift{opacity:.25}
+.kcard.flash{animation:flash 1.2s ease}
+@keyframes flash{0%,60%{border-color:var(--amber);box-shadow:0 0 0 3px rgba(247,201,72,.25)}100%{border-color:var(--border)}}
+.kcard .kt{font-size:11.5px;font-weight:600;line-height:1.35;color:var(--text);letter-spacing:-.01em}
+.kcard .km{display:flex;gap:5px;margin-top:8px;align-items:center;flex-wrap:wrap}
+.fmt{
+  font-size:8.5px;letter-spacing:.02em;padding:2px 8px;border-radius:99px;font-weight:600;
+  background:rgba(50,213,131,.16);color:#5fe3a1;
+}
+.whop{
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;padding:2px 7px;border-radius:99px;
+  border:1px solid var(--border);color:var(--text-3);
+}
+.kd{margin-left:auto;font-family:var(--mono);font-size:8.5px;color:var(--text-3);letter-spacing:.06em}
+.knew{
+  border:1px dashed var(--border);border-radius:12px;background:none;
+  padding:9px 11px;font-size:10.5px;color:var(--text-3);text-align:left;font-family:var(--font);
+  transition:border-color .15s ease,color .15s ease;
+}
+.knew:hover{border-color:var(--text-3);color:var(--text-2)}
+.kghost{
+  position:fixed;z-index:100;pointer-events:none;width:190px;
+  transform:rotate(3deg) scale(1.04);opacity:.95;cursor:grabbing;
+  box-shadow:0 18px 40px rgba(0,0,0,.5);
+}
+
+/* — calendar (matches Posting Schedule) — */
+.cal-top{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.cal-month{font-size:16px;font-weight:700;letter-spacing:-.01em}
+.cal-nav{
+  width:24px;height:24px;border-radius:99px;border:1px solid var(--border);
+  background:none;color:var(--text-2);font-size:11px;line-height:1;
+}
+.cal-today{border:1px solid var(--border);border-radius:99px;background:none;color:var(--text-2);font-size:10.5px;font-weight:600;padding:4px 12px;font-family:var(--font)}
+.cal-hintline{font-size:10px;color:var(--text-3)}
+.cal-head{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;overflow:hidden}
+.cal-head span{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--text-3);text-transform:uppercase;padding:5px 7px;border-right:1px solid var(--line)}
+.cal-head span:last-child{border-right:none}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));flex:1;border:1px solid var(--line);border-radius:0 0 8px 8px;overflow:hidden}
+.day{
+  border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+  min-height:66px;padding:5px 6px;position:relative;
+  min-width:0;overflow:hidden;
+}
+.day:nth-child(7n){border-right:none}
+.day:nth-last-child(-n+7){border-bottom:none}
+.day .num{font-family:var(--mono);font-size:9px;color:var(--text-3)}
+.day.dim{background:rgba(0,0,0,.16)}
+.day.dim .num{opacity:.4}
+.day.today .num{background:var(--amber);color:#181a20;border-radius:99px;padding:1px 6px;font-weight:600}
+.chip{
+  margin-top:4px;font-size:8.5px;font-weight:600;line-height:1.3;
+  border-radius:99px;padding:2px 8px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+/* — brainstorm (matches Brainstorm view) — */
+.stripes{height:10px;flex:none;border-radius:99px;margin-bottom:12px;
+  background:repeating-linear-gradient(115deg,var(--amber) 0 22px,transparent 22px 46px)}
+.bs-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.bs-head .bulb{font-size:15px;line-height:1.5}
+.bs-title{font-size:15px;font-weight:700}
+.bs-sub{font-size:10px;color:var(--text-3);max-width:44ch;line-height:1.5}
+.bs-btns{margin-left:auto;display:flex;gap:8px;align-items:center}
+.bs-brand{
+  font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  border:1px solid var(--border);border-radius:10px;background:none;color:var(--text-2);padding:7px 12px;
+}
+.bs-shuffle{
+  background:var(--amber);color:#181a20;border:none;border-radius:10px;
+  font-weight:600;font-size:12px;padding:7px 15px;transition:background .15s ease;
+}
+.bs-shuffle:hover{background:#ffd45e}
+.bs-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;margin-bottom:14px}
+.dim-h{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
+.dim-h em{font-style:normal;text-transform:none;letter-spacing:.02em;color:var(--text-3);margin-left:6px}
+.picks{display:flex;flex-wrap:wrap;gap:5px}
+.pick{
+  border:1px solid var(--border);background:var(--surface);border-radius:99px;
+  padding:3px 10px;font-size:10px;color:var(--text-2);font-family:var(--font);font-weight:500;
+  transition:border-color .15s ease,color .15s ease,background .15s ease;
+}
+.pick:hover{border-color:var(--text-3);color:var(--text)}
+.pick.on{border-color:var(--amber);color:var(--amber);background:rgba(247,201,72,.08)}
+.deck{
+  border:1px solid rgba(247,201,72,.55);border-radius:14px;padding:14px 16px;flex:none;
+}
+.deck .wt{
+  font-size:13.5px;font-weight:700;letter-spacing:-.01em;min-height:1.5em;
+  border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:10px;
+}
+.deck .wt.empty{color:var(--text-3);font-weight:600}
+.deck-rows{display:flex;flex-direction:column;gap:5px}
+.drow{display:grid;grid-template-columns:86px 1fr;gap:10px;align-items:baseline}
+.drow .l{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--text-3);text-transform:uppercase}
+.drow .v{font-size:11.5px;font-weight:600;color:var(--text)}
+.drow .v.none{color:var(--text-3);font-weight:400}
+.drow .v.spin{animation:slotspin .12s linear infinite}
+@keyframes slotspin{0%{opacity:1;transform:translateY(0)}49%{opacity:0;transform:translateY(-6px)}51%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:translateY(0)}}
+.deck-foot{display:flex;align-items:center;gap:6px;margin-top:14px;flex-wrap:wrap}
+.deck-foot .sa{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--text-3);text-transform:uppercase;margin-right:4px}
+.send{
+  border:1px solid var(--border);background:none;border-radius:99px;
+  padding:4px 12px;font-size:10.5px;font-weight:600;color:var(--text-2);font-family:var(--font);
+  transition:background .15s ease,color .15s ease,border-color .15s ease;
+}
+.send.on{background:var(--amber);border-color:var(--amber);color:#181a20}
+.add-pipe{
+  margin-left:auto;display:inline-flex;align-items:center;gap:6px;
+  background:#fff;color:#14161b;border:none;border-radius:99px;
+  font-weight:600;font-size:12px;padding:8px 16px;transition:transform .15s ease;
+}
+.add-pipe:hover{transform:translateY(-1px)}
+
+/* demo toast */
+.toast{
+  position:absolute;left:50%;bottom:18px;transform:translate(-50%,16px);
+  background:#101216;border:1px solid var(--border);border-radius:12px;
+  padding:9px 16px;font-size:12.5px;font-weight:500;color:var(--text-2);
+  box-shadow:var(--shadow-card);opacity:0;pointer-events:none;
+  transition:opacity .25s ease,transform .25s ease;white-space:nowrap;max-width:92%;
+  overflow:hidden;text-overflow:ellipsis;z-index:5;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast b{color:var(--amber)}
+
+@media(max-width:860px){
+  .demo-body{grid-template-columns:1fr;height:auto}
+  .demo-side{flex-direction:row;overflow-x:auto;border-right:none;border-bottom:1px solid var(--line);align-items:center;gap:4px;padding:10px}
+  .demo-side img{margin:0 8px 0 2px}
+  .demo-side .grp{display:none}
+  .demo-side button{width:auto;white-space:nowrap;padding:6px 10px}
+  .demo-side button .ct{display:none}
+  .demo-view{max-height:520px}
+  .bs-grid{grid-template-columns:1fr}
+  .day{min-height:52px}
+}
+
+/* ————— Sections ————— */
+section{padding:96px 0}
+.sec-head{max-width:640px;margin-bottom:56px}
+.sec-head h2{font-size:clamp(30px,4.6vw,48px);margin:14px 0 16px;letter-spacing:-.035em}
+.sec-head.center{margin-left:auto;margin-right:auto;text-align:center}
+.sec-head.center .lede{margin:0 auto}
+
+/* scroll reveal */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* ————— Chaos section ————— */
+.chaos{border-top:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.015),transparent)}
+.chaos-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:760px;margin:0 auto 30px}
+.chaos-chip{
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:14px;font-weight:500;color:var(--text-2);
+  border:1px solid var(--border);border-radius:99px;padding:10px 20px 10px 14px;
+  background:var(--surface);position:relative;box-shadow:var(--shadow-card);
+  transition:opacity .5s ease;
+}
+.chaos-chip svg{width:18px;height:18px;flex:none}
+.chaos-chip::after{
+  content:"";position:absolute;left:12px;right:12px;top:50%;height:1.5px;
+  background:var(--error);transform:scaleX(0);transform-origin:left;
+  transition:transform .5s ease .2s;
+}
+.chaos.done .chaos-chip{opacity:.6}
+.chaos.done .chaos-chip::after{transform:scaleX(1)}
+.chaos-arrow{text-align:center;color:var(--text-3);font-size:20px;margin:6px 0 18px}
+.chaos-one{
+  display:flex;align-items:center;gap:12px;justify-content:center;margin:0 auto;
+  width:fit-content;background:var(--surface);border:1px solid rgba(247,201,72,.45);
+  border-radius:16px;padding:16px 28px;font-weight:700;font-size:18px;letter-spacing:-.01em;
+  box-shadow:0 10px 40px rgba(247,201,72,.1);
+}
+.chaos-one img{height:26px;width:auto}
+
+/* ————— Features ————— */
+.feat{display:grid;grid-template-columns:1fr 1.2fr;gap:52px;align-items:center;padding:56px 0}
+.feat+.feat{border-top:1px solid var(--line)}
+.feat:nth-child(even){grid-template-columns:1.2fr 1fr}
+.feat:nth-child(even) .feat-txt{order:2}
+.feat:nth-child(even) .shot-scene{order:1}
+.feat-txt h3{font-size:clamp(24px,3.2vw,32px);margin:12px 0 14px;letter-spacing:-.03em}
+.feat-txt p{color:var(--text-2);max-width:44ch}
+.feat-txt ul{list-style:none;margin-top:18px;display:flex;flex-direction:column;gap:9px}
+.feat-txt li{display:flex;gap:10px;font-size:14.5px;color:var(--text-2)}
+.feat-txt li::before{content:"→";color:var(--amber);font-weight:600}
+
+/* 3D perspective shots */
+.shot-scene{perspective:1300px}
+.shot{
+  background:var(--paper);border:1px solid var(--border);border-radius:16px;overflow:hidden;
+  box-shadow:var(--shadow-lift),0 40px 90px -30px rgba(247,201,72,.1);
+  transform:rotateY(-11deg) rotateX(5deg);
+  transition:transform .7s cubic-bezier(.2,.7,.2,1);
+}
+.feat:nth-child(even) .shot{transform:rotateY(11deg) rotateX(5deg)}
+.shot-scene:hover .shot{transform:rotateY(0) rotateX(0)}
+.shot-bar{display:flex;gap:6px;padding:10px 14px;border-bottom:1px solid var(--line);background:#101216}
+.shot-bar i{width:8px;height:8px;border-radius:99px;background:#2c3038}
+.shot-body{padding:14px 16px 16px;pointer-events:none}
+.shot .stripes{height:8px;margin-bottom:10px}
+
+/* shot: shared minis */
+.s-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.s-title{font-size:12.5px;font-weight:700;letter-spacing:-.01em}
+.s-sub{font-size:9px;color:var(--text-3)}
+.s-btn{margin-left:auto;background:var(--amber);color:#181a20;font-weight:600;font-size:9.5px;border-radius:99px;padding:4px 11px;white-space:nowrap}
+.s-btn.ghostb{background:none;border:1px solid var(--border);color:var(--text-2);font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase}
+.s-dim{margin-bottom:10px}
+.s-dim .dim-h{font-size:8px;margin-bottom:5px}
+.s-pick{border:1px solid var(--border);background:var(--surface);border-radius:99px;padding:2px 9px;font-size:8.5px;color:var(--text-2);font-weight:500;display:inline-block}
+.s-pick.on{border-color:var(--amber);color:var(--amber);background:rgba(247,201,72,.08)}
+.s-picks{display:flex;flex-wrap:wrap;gap:4px}
+.s-deck{border:1px solid rgba(247,201,72,.55);border-radius:12px;padding:11px 13px;margin-top:12px}
+.s-deck .wt{font-size:11px;font-weight:700;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:8px}
+.s-drow{display:grid;grid-template-columns:64px 1fr;gap:8px;margin-bottom:3px;align-items:baseline}
+.s-drow .l{font-family:var(--mono);font-size:7.5px;letter-spacing:.12em;color:var(--text-3);text-transform:uppercase}
+.s-drow .v{font-size:9.5px;font-weight:600}
+.s-foot{display:flex;align-items:center;gap:5px;margin-top:9px}
+.s-foot .sa{font-family:var(--mono);font-size:7.5px;letter-spacing:.12em;color:var(--text-3)}
+.s-send{border-radius:99px;padding:2px 9px;font-size:8.5px;font-weight:600;border:1px solid var(--border);color:var(--text-2)}
+.s-send.on{background:var(--amber);border-color:var(--amber);color:#181a20}
+.s-add{margin-left:auto;background:#fff;color:#14161b;border-radius:99px;padding:4px 11px;font-size:9px;font-weight:600}
+
+/* shot: script editor */
+.s-card-top{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding-bottom:9px;margin-bottom:10px}
+.s-card-title{font-size:10.5px;font-weight:700;letter-spacing:-.01em;line-height:1.3}
+.s-tabs{margin-left:auto;display:flex;gap:2px;background:var(--surface);border-radius:99px;padding:2px;flex:none}
+.s-tab{font-size:8.5px;font-weight:600;padding:2px 9px;border-radius:99px;color:var(--text-3)}
+.s-tab.on{background:var(--amber);color:#181a20}
+.s-script-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:10px}
+.s-feel{
+  border:1px solid var(--line);border-radius:9px;padding:6px 10px;margin-bottom:8px;
+  font-family:var(--mono);font-size:8px;letter-spacing:.06em;color:var(--error);
+}
+.s-feel b{color:var(--amber);font-weight:500}
+.s-sec{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:8px}
+.s-sec .t{font-size:9.5px;font-weight:700;margin-bottom:3px}
+.s-sec .h{font-size:7.5px;color:var(--text-3);line-height:1.45}
+.s-sec .m-line{height:6px;border-radius:99px;background:#2e323a;margin-top:5px}
+.m-line.w70{width:70%}.m-line.w45{width:45%}.m-line.w85{width:85%}
+.s-lib .lib-h{font-family:var(--mono);font-size:7.5px;letter-spacing:.12em;color:var(--text-3);text-transform:uppercase;margin-bottom:7px}
+.s-lib-item{font-size:9px;font-weight:600;color:var(--amber);margin-bottom:6px}
+.s-lib-item::before{content:"▸ ";font-size:7px}
+.s-lib-item.open::before{content:"▾ "}
+.s-lib-sub{font-size:8px;color:var(--text-2);line-height:1.5;margin:2px 0 7px;padding-left:8px}
+.s-lib-sub b{color:var(--text);font-size:8px}
+
+/* shot: board */
+.s-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.s-col-h{display:flex;align-items:center;gap:5px;margin-bottom:7px}
+.s-col-pill{display:inline-flex;align-items:center;gap:4px;font-size:8px;font-weight:600;padding:2px 8px;border-radius:99px}
+.s-col-pill i{width:5px;height:5px;border-radius:99px}
+.s-col-h .n{margin-left:auto;font-family:var(--mono);font-size:7.5px;color:var(--text-3)}
+.s-kcard{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:7px 8px;margin-bottom:6px;box-shadow:var(--shadow-card)}
+.s-kcard .t{font-size:8.5px;font-weight:600;line-height:1.35}
+.s-kcard .m{display:flex;gap:4px;margin-top:5px;align-items:center}
+.s-fmt{font-size:6.5px;font-weight:600;padding:1px 6px;border-radius:99px;background:rgba(50,213,131,.16);color:#5fe3a1}
+.s-who{font-family:var(--mono);font-size:6.5px;padding:1px 5px;border-radius:99px;border:1px solid var(--border);color:var(--text-3)}
+.s-kd{margin-left:auto;font-family:var(--mono);font-size:6.5px;color:var(--text-3)}
+.s-knew{border:1px dashed var(--border);border-radius:9px;padding:6px 8px;font-size:7.5px;color:var(--text-3)}
+
+/* shot: calendar */
+.s-cal-top{display:flex;align-items:center;gap:7px;margin-bottom:9px}
+.s-cal-month{font-size:12px;font-weight:700}
+.s-cal-nav{width:16px;height:16px;border-radius:99px;border:1px solid var(--border);color:var(--text-2);font-size:8px;display:inline-flex;align-items:center;justify-content:center}
+.s-cal-today{border:1px solid var(--border);border-radius:99px;padding:2px 9px;font-size:8px;font-weight:600;color:var(--text-2)}
+.s-cal-hint{font-size:7.5px;color:var(--text-3)}
+.s-cal-head{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--line);border-bottom:none;border-radius:6px 6px 0 0}
+.s-cal-head span{font-family:var(--mono);font-size:6.5px;letter-spacing:.1em;color:var(--text-3);padding:3px 5px;border-right:1px solid var(--line)}
+.s-cal-head span:last-child{border-right:none}
+.s-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--line);border-radius:0 0 6px 6px;overflow:hidden}
+.s-day{border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-height:38px;padding:3px 4px;min-width:0;overflow:hidden}
+.s-day:nth-child(7n){border-right:none}
+.s-day:nth-last-child(-n+7){border-bottom:none}
+.s-day .num{font-family:var(--mono);font-size:6.5px;color:var(--text-3)}
+.s-day.today .num{background:var(--amber);color:#181a20;border-radius:99px;padding:0 4px;font-weight:600}
+.s-chip{margin-top:3px;font-size:6px;font-weight:600;border-radius:99px;padding:1px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+@media(max-width:820px){
+  .feat,.feat:nth-child(even){grid-template-columns:1fr;gap:30px}
+  .feat:nth-child(even) .feat-txt{order:1}
+  .feat:nth-child(even) .shot-scene{order:2}
+  .shot,.feat:nth-child(even) .shot{transform:rotateY(0) rotateX(4deg)}
+}
+
+/* ————— Workflow ————— */
+.flow{border-top:1px solid var(--line);text-align:center}
+.rail{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:8px;align-items:center;
+  margin:0 auto 64px;max-width:900px;
+}
+.stage{
+  font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+  border:1px solid var(--border);border-radius:99px;padding:9px 18px;color:var(--text-2);
+  background:var(--surface);transition:border-color .3s ease,color .3s ease,box-shadow .3s ease;
+}
+.stage.lit{border-color:var(--amber);color:var(--amber);box-shadow:0 0 22px rgba(247,201,72,.18)}
+.rail .sep{color:var(--text-3);font-size:13px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;text-align:left}
+.step{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:26px;transition:transform .2s ease,border-color .2s ease;
+}
+.step:hover{transform:translateY(-3px);border-color:#3d424c}
+.step .n{
+  font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.14em;
+  display:block;margin-bottom:14px;
+}
+.step h3{font-size:19px;margin-bottom:8px;letter-spacing:-.02em}
+.step p{font-size:14.5px;color:var(--text-2)}
+@media(max-width:820px){.steps{grid-template-columns:1fr}}
+
+/* ————— Pricing ————— */
+.pricing{border-top:1px solid var(--line)}
+.price-card{
+  position:relative;max-width:480px;margin:0 auto;text-align:center;
+  background:var(--surface);border:1px solid rgba(247,201,72,.4);border-radius:24px;
+  padding:44px 40px 38px;box-shadow:0 30px 90px -30px rgba(247,201,72,.14),var(--shadow-lift);
+}
+.price-card .badge-top{
+  position:absolute;top:-13px;left:50%;transform:translateX(-50%);
+  background:var(--amber);color:#181a20;font-family:var(--mono);font-size:10px;
+  letter-spacing:.12em;text-transform:uppercase;font-weight:600;
+  border-radius:99px;padding:5px 14px;
+}
+.price{font-size:72px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.price sup{font-size:26px;font-weight:700;vertical-align:super;margin-right:2px}
+.price-sub{color:var(--text-3);font-size:14px;margin:8px 0 26px}
+.price-list{list-style:none;text-align:left;margin:0 auto 30px;max-width:300px;display:flex;flex-direction:column;gap:11px}
+.price-list li{display:flex;gap:11px;font-size:14.5px;color:var(--text-2)}
+.price-list li::before{content:"✓";color:var(--success);font-weight:700}
+.price-card .btn{width:100%;justify-content:center;font-size:16px;padding:14px}
+.price-fine{margin-top:14px;font-size:12.5px;color:var(--text-3)}
+.price-login{margin-top:22px;font-size:13.5px;color:var(--text-3)}
+.price-login a{color:var(--text-2);text-decoration:underline;text-underline-offset:3px}
+.price-login a:hover{color:var(--amber)}
+
+/* ————— Final CTA ————— */
+.final{border-top:1px solid var(--line);text-align:center;padding:120px 0;position:relative;overflow:hidden}
+.final::before{
+  content:"";position:absolute;inset:auto 0 -200px;height:420px;pointer-events:none;
+  background:radial-gradient(520px 260px at 50% 100%,rgba(247,201,72,.12),transparent 70%);
+}
+.final h2{font-size:clamp(34px,5.4vw,58px);letter-spacing:-.04em;margin-bottom:10px}
+.final h2 .flo{color:var(--amber)}
+.final p{color:var(--text-2);margin-bottom:32px}
+
+/* ————— Footer ————— */
+footer{border-top:1px solid var(--line);background:var(--ink);padding:56px 0 40px}
+.foot{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:40px}
+.foot-brand img{height:22px;width:auto;margin-bottom:14px}
+.foot-brand p{font-size:13.5px;color:var(--text-3);max-width:30ch}
+.foot h4{
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--text-3);margin-bottom:16px;font-weight:500;
+}
+.foot ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+.foot ul a{font-size:14px;color:var(--text-2);transition:color .15s ease}
+.foot ul a:hover{color:var(--amber)}
+.foot-base{
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  margin-top:48px;padding-top:22px;border-top:1px solid var(--line);
+  font-size:12.5px;color:var(--text-3);
+}
+@media(max-width:720px){.foot{grid-template-columns:1fr;gap:32px}}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+  .reveal,.rise{opacity:1;transform:none}
+  .demo-frame,.shot,.feat:nth-child(even) .shot{transform:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ————— Nav ————— -->
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="nav-logo" href="#top" aria-label="CreatorFlo home">
+      <img src="assets/logo-white.png" alt="CreatorFlo">
+    </a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+    </nav>
+    <div class="nav-right">
+      <a class="nav-login" href="https://app.creatorflo.io/login">Log in</a>
+      <a class="btn btn-amber" href="#pricing">Get CreatorFlo — $29</a>
+    </div>
+  </div>
+</header>
+
+<!-- ————— Hero ————— -->
+<main id="top">
+<section class="hero">
+  <div class="wrap">
+    <p class="eyebrow rise">The content OS for creators</p>
+    <h1 class="rise d1">Stay in your Creator<span class="flo">Flo</span>.</h1>
+    <p class="lede rise d2">Never wonder what to post again. Plan, script, organize, and publish your content from one workspace built for creators.</p>
+    <div class="hero-cta rise d3">
+      <a class="btn btn-amber" href="#pricing">Get CreatorFlo — $29 once</a>
+      <a class="btn btn-ghost" href="#how">See how it works</a>
+      <p class="note">No subscription. Already bought it? <a href="https://app.creatorflo.io/login">Log in</a></p>
+    </div>
+
+    <!-- ————— Live interactive demo ————— -->
+    <div class="rise d4">
+      <p class="demo-hint"><span class="dot"></span>LIVE DEMO — a simplified version of the app · stack the deck, drag a card</p>
+    </div>
+    <div class="demo-scene rise d4">
+      <div class="demo-frame" id="demo">
+        <div class="demo-chrome">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <div class="demo-url">creatorflo.io/app</div>
+        </div>
+        <div class="demo-body">
+          <aside class="demo-side" aria-label="Demo navigation">
+            <img src="assets/icon.png" alt="">
+            <p class="grp">Create</p>
+            <button data-view="brainstorm"><span class="ic">💡</span>Brainstorm</button>
+            <p class="grp">Pipeline</p>
+            <button data-view="board" data-board="short" class="on"><span class="ic">▤</span>Short Form<span class="ct" data-count="short"></span></button>
+            <button data-view="board" data-board="long"><span class="ic">▥</span>Long Form<span class="ct" data-count="long"></span></button>
+            <p class="grp">Plan</p>
+            <button data-view="calendar"><span class="ic">▣</span>Posting Schedule<span class="ct">4</span></button>
+          </aside>
+          <div class="demo-main">
+
+            <!-- Board view -->
+            <div class="demo-view on" data-view="board">
+              <div class="b-head">
+                <span class="b-title" id="b-title">Video Status · Short</span>
+                <span class="b-sub" id="b-sub">Shorts pipeline, idea → posted</span>
+                <button class="b-new" id="b-new">＋ New idea</button>
+              </div>
+              <div class="cols" id="cols"></div>
+            </div>
+
+            <!-- Calendar view -->
+            <div class="demo-view" data-view="calendar">
+              <div class="b-head">
+                <span class="b-title">Posting Schedule</span>
+                <span class="b-sub">Everything with a posting date</span>
+              </div>
+              <div class="cal-top">
+                <span class="cal-month">July 2026</span>
+                <button class="cal-nav" aria-label="Previous month">‹</button>
+                <button class="cal-nav" aria-label="Next month">›</button>
+                <button class="cal-today">Today</button>
+                <span class="cal-hintline">Drag a video onto a day to reschedule it</span>
+              </div>
+              <div class="cal-head">
+                <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+              </div>
+              <div class="cal" id="cal"></div>
+            </div>
+
+            <!-- Brainstorm view -->
+            <div class="demo-view" data-view="brainstorm">
+              <div class="stripes"></div>
+              <div class="bs-head">
+                <span class="bulb">💡</span>
+                <div>
+                  <p class="bs-title">Brainstorm</p>
+                  <p class="bs-sub">relatable topic → through the lens of a bucket → who → what they should feel → format. Stack the deck or shuffle it.</p>
+                </div>
+                <div class="bs-btns">
+                  <button class="bs-brand">⚙ Brand Setup</button>
+                  <button class="bs-shuffle" id="bs-shuffle">🎲 Shuffle</button>
+                </div>
+              </div>
+              <div class="bs-grid" id="bs-grid"></div>
+              <div class="deck">
+                <p class="wt empty" id="deck-title">Working title…</p>
+                <div class="deck-rows">
+                  <div class="drow"><span class="l">Topic</span><span class="v none" data-deck="topic">—</span></div>
+                  <div class="drow"><span class="l">Lens</span><span class="v none" data-deck="lens">—</span></div>
+                  <div class="drow"><span class="l">Who</span><span class="v none" data-deck="who">—</span></div>
+                  <div class="drow"><span class="l">Feel → Do</span><span class="v none" data-deck="feeldo">—</span></div>
+                  <div class="drow"><span class="l">Format</span><span class="v none" data-deck="format">—</span></div>
+                </div>
+                <div class="deck-foot">
+                  <span class="sa">Send as</span>
+                  <button class="send on" data-send="short">Short form</button>
+                  <button class="send" data-send="long">Long form</button>
+                  <button class="add-pipe" id="bs-add">✈ Add to pipeline</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ————— Chaos → one place ————— -->
+<section class="chaos" id="chaos">
+  <div class="wrap">
+    <div class="sec-head center reveal">
+      <p class="eyebrow">The problem</p>
+      <h2>Content creation shouldn't feel chaotic.</h2>
+      <p class="lede">Ideas in one app, scripts in another, planning in a third — and no clue what's actually ready to post.</p>
+    </div>
+    <div class="chaos-row reveal">
+      <span class="chaos-chip">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4" fill="#fff"/><path d="M3 7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v2H3z" fill="#f7c948"/><rect x="6" y="12" width="12" height="1.6" rx=".8" fill="#c8cdd4"/><rect x="6" y="15.5" width="9" height="1.6" rx=".8" fill="#c8cdd4"/></svg>
+        Ideas in Notes
+      </span>
+      <span class="chaos-chip">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l5 5v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" fill="#4285f4"/><path d="M14 2l5 5h-5z" fill="#a6c5fa"/><rect x="8" y="11" width="8" height="1.6" rx=".8" fill="#fff"/><rect x="8" y="14.2" width="8" height="1.6" rx=".8" fill="#fff"/><rect x="8" y="17.4" width="5.5" height="1.6" rx=".8" fill="#fff"/></svg>
+        Scripts in Google Docs
+      </span>
+      <span class="chaos-chip">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3.5" fill="#fff"/><path d="M8.2 16.8V8.6l1.9-.1 4.3 6.5V8.3l1.6-.1v8.6l-1.8.1-4.4-6.7v6.7z" fill="#14161b"/></svg>
+        Planning in Notion
+      </span>
+      <span class="chaos-chip">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3.5" fill="#0079bf"/><rect x="6" y="6" width="5" height="12" rx="1.4" fill="#fff"/><rect x="13" y="6" width="5" height="8" rx="1.4" fill="#fff"/></svg>
+        Boards in Trello
+      </span>
+      <span class="chaos-chip">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 3 7.5l9 3.8 9-3.8z" fill="#fcb400"/><path d="M3 9.5v7l8 3.4v-7z" fill="#18bfff"/><path d="M21 9.5v7l-8 3.4v-7z" fill="#f82b60"/></svg>
+        Databases in Airtable
+      </span>
+      <span class="chaos-chip">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3.5" fill="#34a853"/><path d="M7 8h10M7 12h10M7 16h10M10.5 8v8.5M15 8v8.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg>
+        Random spreadsheets
+      </span>
+    </div>
+    <p class="chaos-arrow reveal">↓</p>
+    <div class="chaos-one reveal">
+      <img src="assets/icon.png" alt=""> One workspace. Every piece of content.
+    </div>
+  </div>
+</section>
+
+<!-- ————— Features ————— -->
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p class="eyebrow">Everything you need</p>
+      <h2>From idea to published, without leaving the page.</h2>
+    </div>
+
+    <div class="feat reveal">
+      <div class="feat-txt">
+        <p class="eyebrow">Ideate</p>
+        <h3>Never run out of ideas.</h3>
+        <p>Brainstorm builds ideas the way bangers actually get made: a relatable topic, through the lens of your content bucket, aimed at the right depth of your audience, in a proven format.</p>
+        <ul>
+          <li>Relatable topic × lens × who × feel × format</li>
+          <li>Stack the deck yourself, or hit Shuffle</li>
+          <li>One click sends it to your pipeline</li>
+        </ul>
+      </div>
+      <div class="shot-scene">
+        <div class="shot">
+          <div class="shot-bar"><i></i><i></i><i></i></div>
+          <div class="shot-body">
+            <div class="stripes"></div>
+            <div class="s-head">
+              <span class="s-title">💡 Brainstorm</span>
+              <span class="s-btn ghostb">⚙ Brand Setup</span>
+              <span class="s-btn" style="margin-left:0">🎲 Shuffle</span>
+            </div>
+            <div class="s-dim">
+              <p class="dim-h">01 · Relatable Topic <em>what they're living through</em></p>
+              <div class="s-picks">
+                <span class="s-pick">Overthinking</span>
+                <span class="s-pick on">Shiny object syndrome</span>
+                <span class="s-pick">Comparing to others</span>
+                <span class="s-pick">Millennial career crisis</span>
+              </div>
+            </div>
+            <div class="s-dim">
+              <p class="dim-h">02 · Through The Lens Of <em>your content bucket</em></p>
+              <div class="s-picks">
+                <span class="s-pick">Content Creation</span>
+                <span class="s-pick">AI Tools/Workflows</span>
+                <span class="s-pick on">Online solo biz life</span>
+              </div>
+            </div>
+            <div class="s-deck">
+              <p class="wt">You don't have shiny object syndrome — you have no filter</p>
+              <div class="s-drow"><span class="l">Topic</span><span class="v">Shiny object syndrome</span></div>
+              <div class="s-drow"><span class="l">Who</span><span class="v">TOF</span></div>
+              <div class="s-drow"><span class="l">Feel → Do</span><span class="v">Understood / seen → Follow</span></div>
+              <div class="s-drow"><span class="l">Format</span><span class="v">Hot take / opinion</span></div>
+              <div class="s-foot">
+                <span class="sa">SEND AS</span>
+                <span class="s-send on">Short form</span>
+                <span class="s-send">Long form</span>
+                <span class="s-add">✈ Add to pipeline</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feat reveal">
+      <div class="feat-txt">
+        <p class="eyebrow">Script</p>
+        <h3>Script faster.</h3>
+        <p>Every card opens to the right template for its format, with a reference library of viral hook formulas, hook angles, and interest peaks one click away while you write.</p>
+        <ul>
+          <li>Visual hook + script sections per format</li>
+          <li>Hook → Build Up → Value → Resolution → CTA → Loop Back</li>
+          <li>Paste reference clips and images right into the card</li>
+        </ul>
+      </div>
+      <div class="shot-scene">
+        <div class="shot">
+          <div class="shot-bar"><i></i><i></i><i></i></div>
+          <div class="shot-body">
+            <div class="s-card-top">
+              <span class="s-card-title">The muggle conversation: explaining my job at Thanksgiving</span>
+              <div class="s-tabs"><span class="s-tab">Plan</span><span class="s-tab on">Script</span><span class="s-tab">Post</span></div>
+            </div>
+            <div class="s-script-grid">
+              <div>
+                <div class="s-feel">FEEL: Laughter/Joy · <b>📍 Excited</b></div>
+                <div class="s-sec">
+                  <p class="t">Visual Hook</p>
+                  <p class="h">Summarize in 3–7 key words · at least one POWER word · graphic that previews value</p>
+                  <div class="m-line w70"></div>
+                </div>
+                <div class="s-sec">
+                  <p class="t">My Script ✍️</p>
+                  <p class="h">Hook → Build Up → Value → Resolution → CTA → Loop Back</p>
+                  <div class="m-line w85"></div><div class="m-line"></div><div class="m-line w45"></div>
+                </div>
+              </div>
+              <div class="s-lib">
+                <p class="lib-h">Short Form · Reference Library</p>
+                <p class="s-lib-item">Viral Script Formula</p>
+                <p class="s-lib-item open">Viral Hook Formulas</p>
+                <p class="s-lib-sub"><b>Call-out mistakes</b><br>· Stop doing [X] if you want [Y]<br>· The #1 mistake new [X] make</p>
+                <p class="s-lib-item">Hook Angles</p>
+                <p class="s-lib-item">Interest Peaks</p>
+                <p class="s-lib-item">Visual Hook — S.P.G.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feat reveal">
+      <div class="feat-txt">
+        <p class="eyebrow">Produce</p>
+        <h3>Stay organized.</h3>
+        <p>Every video moves across one board — Ideas, Up Next, Scripting, Filming, Editing, Ready for Posting. Drag a card forward and you always know exactly where everything stands.</p>
+        <ul>
+          <li>A pipeline board per content type: short, long, podcast, carousels</li>
+          <li>Content buckets keep your niches balanced</li>
+          <li>Unlimited brand profiles in one install</li>
+        </ul>
+      </div>
+      <div class="shot-scene">
+        <div class="shot">
+          <div class="shot-bar"><i></i><i></i><i></i></div>
+          <div class="shot-body">
+            <div class="s-head">
+              <span class="s-title">Video Status · Short</span>
+              <span class="s-sub">Shorts pipeline, idea → posted</span>
+              <span class="s-btn">＋ New idea</span>
+            </div>
+            <div class="s-cols">
+              <div>
+                <div class="s-col-h"><span class="s-col-pill" style="background:rgba(154,161,171,.15);color:#c3c9d1"><i style="background:#9aa1ab"></i>Ideas</span><span class="n">3</span></div>
+                <div class="s-kcard"><p class="t">The muggle conversation: explaining my job at Thanksgiving</p><div class="m"><span class="s-fmt">Short form</span><span class="s-who">TOF</span></div></div>
+                <div class="s-kcard"><p class="t">Millennial career crisis: the spreadsheet that made me quit</p><div class="m"><span class="s-fmt">Short form</span><span class="s-who">TOF</span></div></div>
+                <div class="s-knew">＋ New idea</div>
+              </div>
+              <div>
+                <div class="s-col-h"><span class="s-col-pill" style="background:rgba(182,146,246,.15);color:var(--purple)"><i style="background:var(--purple)"></i>Editing</span><span class="n">1</span></div>
+                <div class="s-kcard"><p class="t">Why 'learn more' is keeping you broke (action &gt; planning)</p><div class="m"><span class="s-fmt">Short form</span><span class="s-who">MOF</span><span class="s-kd">JUL 11</span></div></div>
+                <div class="s-knew">＋ New idea</div>
+              </div>
+              <div>
+                <div class="s-col-h"><span class="s-col-pill" style="background:rgba(247,201,72,.15);color:var(--amber)"><i style="background:var(--amber)"></i>Ready for Posting</span><span class="n">0</span></div>
+                <div class="s-knew">＋ New idea</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feat reveal">
+      <div class="feat-txt">
+        <p class="eyebrow">Publish</p>
+        <h3>Know exactly what to work on next.</h3>
+        <p>The Posting Schedule shows everything with a posting date, color-coded by production status. Drag a video onto a day to reschedule it — then open the app any morning and know what today is for.</p>
+        <ul>
+          <li>Month view of everything with a posting date</li>
+          <li>Drag a video onto a day to reschedule it</li>
+          <li>All Content table for the full bird's-eye view</li>
+        </ul>
+      </div>
+      <div class="shot-scene">
+        <div class="shot">
+          <div class="shot-bar"><i></i><i></i><i></i></div>
+          <div class="shot-body">
+            <div class="s-cal-top">
+              <span class="s-cal-month">July 2026</span>
+              <span class="s-cal-nav">‹</span><span class="s-cal-nav">›</span>
+              <span class="s-cal-today">Today</span>
+              <span class="s-cal-hint">Drag a video onto a day to reschedule it</span>
+            </div>
+            <div class="s-cal-head"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+            <div class="s-cal">
+              <div class="s-day"><span class="num">5</span></div>
+              <div class="s-day"><span class="num">6</span></div>
+              <div class="s-day"><span class="num">7</span></div>
+              <div class="s-day"><span class="num">8</span></div>
+              <div class="s-day today"><span class="num">9</span></div>
+              <div class="s-day"><span class="num">10</span><div class="s-chip" style="background:rgba(247,201,72,.18);color:var(--amber)">How I schedule a week of content…</div></div>
+              <div class="s-day"><span class="num">11</span><div class="s-chip" style="background:rgba(182,146,246,.18);color:var(--purple)">Why 'learn more' is keeping…</div></div>
+              <div class="s-day"><span class="num">12</span></div>
+              <div class="s-day"><span class="num">13</span></div>
+              <div class="s-day"><span class="num">14</span><div class="s-chip" style="background:rgba(244,114,182,.18);color:var(--pink)">5 AI tools I actually pay for…</div></div>
+              <div class="s-day"><span class="num">15</span></div>
+              <div class="s-day"><span class="num">16</span></div>
+              <div class="s-day"><span class="num">17</span></div>
+              <div class="s-day"><span class="num">18</span></div>
+              <div class="s-day"><span class="num">19</span></div>
+              <div class="s-day"><span class="num">20</span></div>
+              <div class="s-day"><span class="num">21</span><div class="s-chip" style="background:rgba(91,141,239,.18);color:var(--blue)">I let AI plan my content for 30 days</div></div>
+              <div class="s-day"><span class="num">22</span></div>
+              <div class="s-day"><span class="num">23</span></div>
+              <div class="s-day"><span class="num">24</span></div>
+              <div class="s-day"><span class="num">25</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ————— How it works ————— -->
+<section class="flow" id="how">
+  <div class="wrap">
+    <div class="sec-head center reveal">
+      <p class="eyebrow">How it works</p>
+      <h2>One flow. Start to finish.</h2>
+    </div>
+    <div class="rail reveal" id="rail">
+      <span class="stage">Idea</span><span class="sep">→</span>
+      <span class="stage">Script</span><span class="sep">→</span>
+      <span class="stage">Record</span><span class="sep">→</span>
+      <span class="stage">Edit</span><span class="sep">→</span>
+      <span class="stage">Schedule</span><span class="sep">→</span>
+      <span class="stage">Publish</span><span class="sep">→</span>
+      <span class="stage">Track</span>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <span class="n">STEP 1</span>
+        <h3>Set up your brand</h3>
+        <p>Tell CreatorFlo your niche, audience, topics, and content buckets once. Every board, template, and brainstorm is built from your profile — and you can run multiple brands side by side.</p>
+      </div>
+      <div class="step reveal">
+        <span class="n">STEP 2</span>
+        <h3>Brainstorm &amp; script</h3>
+        <p>Stack the deck until an idea clicks, add it to your pipeline, and open the card to a ready-made script template with hooks, frameworks, and CTAs for that exact format.</p>
+      </div>
+      <div class="step reveal">
+        <span class="n">STEP 3</span>
+        <h3>Drag it to done</h3>
+        <p>Move cards through scripting, filming, and editing, then drop them on the calendar. Open the app any morning and know exactly what today is for.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ————— Pricing ————— -->
+<section class="pricing" id="pricing">
+  <div class="wrap">
+    <div class="sec-head center reveal">
+      <p class="eyebrow">Pricing</p>
+      <h2>One price. Yours forever.</h2>
+      <p class="lede">No subscription, no per-seat math, no "pro tier". Buy it once, create with it forever.</p>
+    </div>
+    <div class="price-card reveal">
+      <span class="badge-top">One-time purchase</span>
+      <div class="price"><sup>$</sup>29</div>
+      <p class="price-sub">pay once · use forever</p>
+      <ul class="price-list">
+        <li>Every board, calendar &amp; table view</li>
+        <li>Brainstorm ideation engine</li>
+        <li>Script templates, hooks &amp; CTA library</li>
+        <li>Unlimited brand profiles</li>
+        <li>Your data stays on your device</li>
+        <li>All future updates included</li>
+      </ul>
+      <a class="btn btn-amber" href="https://buy.stripe.com/8x2fZhaQA416a7SaOl18c02" id="buy">Buy CreatorFlo — $29</a>
+      <p class="price-fine">Instant access · works on desktop &amp; mobile</p>
+      <p class="price-login">Already purchased? <a href="https://app.creatorflo.io/login">Log in to your workspace →</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ————— Final CTA ————— -->
+<section class="final">
+  <div class="wrap reveal">
+    <h2>Stop creating in chaos.<br>Start creating in Creator<span class="flo">Flo</span>.</h2>
+    <p>Know exactly what to create next — for $29, once.</p>
+    <a class="btn btn-amber" href="#pricing">Get CreatorFlo — $29 once</a>
+  </div>
+</section>
+</main>
+
+<!-- ————— Footer ————— -->
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div class="foot-brand">
+        <img src="assets/logo-white.png" alt="CreatorFlo">
+        <p>The content OS for creators. One workspace, every piece of content — from idea to published.</p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#top">Live demo</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Already purchased?</h4>
+        <ul>
+          <li><a href="https://app.creatorflo.io/login">Log in</a></li>
+          <li><a href="https://app.creatorflo.io">Open CreatorFlo</a></li>
+          <li><a href="mailto:support@creatorflo.io">Support</a></li>
+          <li><a href="mailto:support@creatorflo.io?subject=Restore%20my%20purchase">Restore purchase</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="foot-base">
+      <span>© 2026 CreatorFlo. All rights reserved.</span>
+      <span>Stay in your CreatorFlo.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ————————————————————————— Demo data (mirrors the real app) ————————————————————————— */
+const STATUS = {
+  ideas:{name:"Ideas",             c:"#9aa1ab", rgb:"154,161,171"},
+  next: {name:"Up Next",           c:"#f472b6", rgb:"244,114,182"},
+  script:{name:"Scripting",        c:"#5b8def", rgb:"91,141,239"},
+  film: {name:"Filming",           c:"#f04438", rgb:"240,68,56"},
+  edit: {name:"Editing",           c:"#b692f6", rgb:"182,146,246"},
+  ready:{name:"Ready for Posting", c:"#f7c948", rgb:"247,201,72"}
+};
+const ORDER = ["ideas","next","script","film","edit","ready"];
+const BOARDS = {
+  short:{title:"Video Status · Short", sub:"Shorts pipeline, idea → posted", fmt:"Short form"},
+  long: {title:"Video Status · Long",  sub:"Long form pipeline, idea → posted", fmt:"Long form"}
+};
+let CARDS = [
+  {id:1,board:"short",col:"ideas",who:"TOF",title:"The muggle conversation: explaining my job at Thanksgiving"},
+  {id:2,board:"short",col:"ideas",who:"TOF",title:"Millennial career crisis: the spreadsheet that made me quit"},
+  {id:3,board:"short",col:"ideas",who:"TOF",title:"You don't have shiny object syndrome — you have no filter"},
+  {id:4,board:"short",col:"next", who:"TOF",title:"5 AI tools I actually pay for as a solo creator",date:"JUL 14"},
+  {id:5,board:"short",col:"edit", who:"MOF",title:"Why 'learn more' is keeping you broke (action > planning)",date:"JUL 11"},
+  {id:6,board:"long", col:"script",who:"MOF",title:"I let AI plan my content for 30 days",date:"JUL 21"},
+  {id:7,board:"long", col:"ready",who:"TOF",title:"How I schedule a week of content in 1 hour",date:"JUL 10"}
+];
+let nextId = 8;
+let activeBoard = "short";
+
+const $ = s => document.querySelector(s);
+const colsEl = $("#cols");
+
+/* ————— Board render ————— */
+function renderBoard(flashId){
+  const b = BOARDS[activeBoard];
+  $("#b-title").textContent = b.title;
+  $("#b-sub").textContent = b.sub;
+  colsEl.innerHTML = "";
+  ORDER.forEach(cid=>{
+    const st = STATUS[cid];
+    const inCol = CARDS.filter(k=>k.board===activeBoard && k.col===cid);
+    const col = document.createElement("div");
+    col.className = "col"; col.dataset.col = cid;
+    col.innerHTML = `<div class="col-h">
+      <span class="col-pill" style="background:rgba(${st.rgb},.14);color:${st.c}"><i style="background:${st.c}"></i>${st.name}</span>
+      <span class="n">${inCol.length}</span></div>`;
+    inCol.forEach(k=>{
+      const el = document.createElement("div");
+      el.className = "kcard" + (k.id===flashId ? " flash" : "");
+      el.dataset.id = k.id;
+      el.innerHTML = `<p class="kt">${k.title}</p>
+        <div class="km"><span class="fmt">${BOARDS[k.board].fmt}</span><span class="whop">${k.who}</span>${k.date?`<span class="kd">${k.date}</span>`:""}</div>`;
+      el.addEventListener("pointerdown", e=>startDrag(e, k.id, el));
+      col.appendChild(el);
+    });
+    col.insertAdjacentHTML("beforeend", `<button class="knew" tabindex="-1">＋ New idea</button>`);
+    col.querySelector(".knew").addEventListener("click", ()=>{
+      switchView("brainstorm");
+      toast("Stack the deck, then <b>Add to pipeline</b>");
+    });
+    colsEl.appendChild(col);
+  });
+  updateCounts();
+}
+function updateCounts(){
+  document.querySelectorAll("[data-count]").forEach(el=>{
+    el.textContent = CARDS.filter(k=>k.board===el.dataset.count).length;
+  });
+}
+$("#b-new").addEventListener("click", ()=>{
+  switchView("brainstorm");
+  toast("Stack the deck, then <b>Add to pipeline</b>");
+});
+
+/* ————— Pointer drag (mouse + touch) ————— */
+let drag = null;
+function startDrag(e, id, el){
+  if(e.button !== undefined && e.button !== 0) return;
+  drag = {id, el, x0:e.clientX, y0:e.clientY, ghost:null, moved:false};
+  el.setPointerCapture?.(e.pointerId);
+  window.addEventListener("pointermove", moveDrag);
+  window.addEventListener("pointerup", endDrag, {once:true});
+}
+function moveDrag(e){
+  if(!drag) return;
+  if(!drag.moved){
+    if(Math.hypot(e.clientX-drag.x0, e.clientY-drag.y0) < 7) return;
+    drag.moved = true;
+    const g = drag.el.cloneNode(true);
+    g.classList.add("kghost");
+    g.style.width = drag.el.offsetWidth + "px";
+    document.body.appendChild(g);
+    drag.ghost = g;
+    drag.el.classList.add("lift");
+  }
+  drag.ghost.style.left = (e.clientX - drag.ghost.offsetWidth/2) + "px";
+  drag.ghost.style.top  = (e.clientY - 20) + "px";
+  document.querySelectorAll(".col").forEach(c=>c.classList.remove("over"));
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  under?.closest(".col")?.classList.add("over");
+}
+function endDrag(e){
+  window.removeEventListener("pointermove", moveDrag);
+  if(!drag) return;
+  const {id, el, ghost, moved} = drag;
+  drag = null;
+  if(!moved) return;
+  ghost?.remove();
+  el.classList.remove("lift");
+  const under = document.elementFromPoint(e.clientX, e.clientY);
+  const colEl = under?.closest(".col");
+  document.querySelectorAll(".col").forEach(c=>c.classList.remove("over"));
+  if(colEl){
+    const card = CARDS.find(k=>k.id===id);
+    if(card && card.col !== colEl.dataset.col){
+      card.col = colEl.dataset.col;
+      renderBoard(id);
+      toast(`Moved to <b>${STATUS[card.col].name}</b>`);
+      return;
+    }
+  }
+  renderBoard();
+}
+
+/* ————— Calendar (July 2026, Sunday start — Jul 1 is a Wednesday) ————— */
+const SCHEDULED = {10:7, 11:5, 14:4, 21:6};
+const TODAY = 9;
+function calCells(){
+  const cells = [];
+  [28,29,30].forEach(d=>cells.push({d, dim:true}));       // June
+  for(let d=1; d<=31; d++) cells.push({d, dim:false});     // July
+  cells.push({d:1, dim:true});                             // Aug 1 — 35 cells
+  return cells;
+}
+function renderCal(){
+  const cal = $("#cal");
+  cal.innerHTML = "";
+  calCells().forEach(({d, dim})=>{
+    const day = document.createElement("div");
+    day.className = "day" + (dim ? " dim" : "") + (!dim && d===TODAY ? " today" : "");
+    day.innerHTML = `<span class="num">${d}</span>`;
+    if(!dim && SCHEDULED[d] !== undefined){
+      const card = CARDS.find(k=>k.id===SCHEDULED[d]);
+      if(card){
+        const st = STATUS[card.col];
+        day.insertAdjacentHTML("beforeend",
+          `<div class="chip" style="background:rgba(${st.rgb},.18);color:${st.c}">${card.title}</div>`);
+      }
+    }
+    cal.appendChild(day);
+  });
+}
+
+/* ————— Brainstorm (matches the real deck) ————— */
+const DIMS = [
+  {key:"topic", num:"01", label:"Relatable Topic", hint:"what they're living through",
+   opts:["Overthinking","Feeling alone/isolated","Lack of consistency","Comparing to others","Millennial career crisis","Too many interests — multi-passionate","Shiny object syndrome","Phobia of commitment","Procrastination king","Anxious"]},
+  {key:"lens", num:"02", label:"Through The Lens Of", hint:"your content bucket",
+   opts:["Content Creation","AI Tools/Workflows","Millennial Money Mindset","Online solo biz life"]},
+  {key:"who", num:"03", label:"Who", hint:"how deep we getting",
+   opts:["TOF","MOF","BOF"]},
+  {key:"action", num:"04", label:"Goal Action", hint:"what they should do",
+   opts:["Follow","Share","Save","Comment","Click the link"]},
+  {key:"feel", num:"05", label:"Need Them To Feel", hint:"feeling > action",
+   opts:["Inspired","Motivated","Understood / seen","Curious","Entertained","Surprised","Empowered","Reassured"]},
+  {key:"format", num:"06", label:"Format", hint:"the structure of the piece",
+   opts:["Quick tip","How-to / tutorial","Story time","List / top picks","Hot take / opinion","Myth busting","Behind the scenes","Review / reaction","Skit / entertainment","Carousel"]}
+];
+const SEL = {topic:null,lens:null,who:null,action:null,feel:null,format:null};
+let sendAs = "short";
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const TITLES = [
+  t=>`The truth about ${t.toLowerCase()} nobody says out loud`,
+  t=>`${t} is costing you more than you think`,
+  t=>`How I finally beat ${t.toLowerCase()}`,
+  t=>`Stop romanticizing ${t.toLowerCase()}`,
+  t=>`${t}: read this before you post today`
+];
+let workingTitle = null;
+
+function renderDims(){
+  const grid = $("#bs-grid");
+  grid.innerHTML = "";
+  DIMS.forEach(dim=>{
+    const box = document.createElement("div");
+    box.innerHTML = `<p class="dim-h">${dim.num} · ${dim.label} <em>${dim.hint}</em></p>`;
+    const picks = document.createElement("div");
+    picks.className = "picks";
+    dim.opts.forEach(o=>{
+      const btn = document.createElement("button");
+      btn.className = "pick" + (SEL[dim.key]===o ? " on" : "");
+      btn.textContent = o;
+      btn.addEventListener("click", ()=>{
+        SEL[dim.key] = SEL[dim.key]===o ? null : o;
+        if(dim.key==="topic") workingTitle = SEL.topic ? pick(TITLES)(SEL.topic) : null;
+        renderDims(); renderDeck();
+      });
+      picks.appendChild(btn);
+    });
+    box.appendChild(picks);
+    grid.appendChild(box);
+  });
+}
+function renderDeck(){
+  const set = (key, val)=>{
+    const el = document.querySelector(`[data-deck="${key}"]`);
+    el.textContent = val || "—";
+    el.classList.toggle("none", !val);
+  };
+  set("topic", SEL.topic);
+  set("lens", SEL.lens);
+  set("who", SEL.who);
+  set("feeldo", SEL.feel && SEL.action ? `${SEL.feel} → ${SEL.action}` : (SEL.feel || SEL.action));
+  set("format", SEL.format);
+  const wt = $("#deck-title");
+  wt.textContent = workingTitle || "Working title…";
+  wt.classList.toggle("empty", !workingTitle);
+}
+function shuffleDeck(){
+  DIMS.forEach((dim,i)=>{
+    const el = document.querySelector(`[data-deck="${dim.key==='action'||dim.key==='feel' ? 'feeldo' : dim.key}"]`);
+    el.classList.add("spin");
+    setTimeout(()=>{
+      SEL[dim.key] = pick(dim.opts);
+      el.classList.remove("spin");
+      if(i===DIMS.length-1){
+        workingTitle = pick(TITLES)(SEL.topic);
+        renderDims(); renderDeck();
+      }
+    }, 380 + i*120);
+  });
+}
+$("#bs-shuffle").addEventListener("click", shuffleDeck);
+document.querySelectorAll(".send").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    sendAs = b.dataset.send;
+    document.querySelectorAll(".send").forEach(x=>x.classList.toggle("on", x===b));
+  });
+});
+$("#bs-add").addEventListener("click", ()=>{
+  if(!SEL.topic){
+    toast("Pick a topic — or hit <b>Shuffle</b>");
+    return;
+  }
+  if(!workingTitle) workingTitle = pick(TITLES)(SEL.topic);
+  const card = {id:nextId++, board:sendAs, col:"ideas", who:SEL.who||"TOF", title:workingTitle};
+  CARDS.unshift(card);
+  toast(`Added to <b>${sendAs==="short"?"Short":"Long"} Form → Ideas</b>`);
+  setTimeout(()=>{
+    activeBoard = sendAs;
+    switchView("board", card.id);
+  }, 500);
+});
+
+/* ————— View switching ————— */
+function switchView(view, flashId, btn){
+  const active = btn || document.querySelector(`.demo-side button[data-view="${view}"]${view==="board" ? `[data-board="${activeBoard}"]` : ""}`);
+  document.querySelectorAll(".demo-side button").forEach(b=>b.classList.toggle("on", b===active));
+  document.querySelectorAll(".demo-view").forEach(v=>v.classList.toggle("on", v.dataset.view===view));
+  if(view==="board") renderBoard(flashId);
+  if(view==="calendar") renderCal();
+}
+document.querySelectorAll(".demo-side button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    if(b.dataset.board) activeBoard = b.dataset.board;
+    switchView(b.dataset.view, null, b);
+  });
+});
+
+/* ————— Toast ————— */
+let toastTimer;
+function toast(html){
+  const t = $("#toast");
+  t.innerHTML = html;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove("show"), 2600);
+}
+
+/* ————— Scroll reveals ————— */
+const io = new IntersectionObserver(entries=>{
+  entries.forEach(en=>{
+    if(en.isIntersecting){
+      en.target.classList.add("in");
+      io.unobserve(en.target);
+    }
+  });
+},{threshold:.18});
+document.querySelectorAll(".reveal").forEach(el=>io.observe(el));
+
+/* strike-through the chaos chips once visible */
+const chaosIO = new IntersectionObserver(entries=>{
+  entries.forEach(en=>{
+    if(en.isIntersecting){
+      setTimeout(()=>$("#chaos").classList.add("done"), 700);
+      chaosIO.disconnect();
+    }
+  });
+},{threshold:.4});
+chaosIO.observe($(".chaos-row"));
+
+/* workflow rail: light stages in sequence when visible */
+const railIO = new IntersectionObserver(entries=>{
+  entries.forEach(en=>{
+    if(en.isIntersecting){
+      document.querySelectorAll("#rail .stage").forEach((s,i)=>{
+        setTimeout(()=>s.classList.add("lit"), 250 + i*170);
+      });
+      railIO.disconnect();
+    }
+  });
+},{threshold:.5});
+railIO.observe($("#rail"));
+
+/* ————— Init ————— */
+renderBoard();
+renderCal();
+renderDims();
+renderDeck();
+</script>
+</body>
+</html>

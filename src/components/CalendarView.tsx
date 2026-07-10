@@ -6,7 +6,8 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useDraggable,
   useDroppable,
   useSensor,
@@ -108,8 +109,12 @@ export default function CalendarView({
   const [month, setMonth] = useState(() => new Date());
   const [activeId, setActiveId] = useState<string | null>(null);
 
+  // Touch needs a press-and-hold to start a drag, otherwise it hijacks scrolling
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 180, tolerance: 8 },
+    })
   );
 
   const q = search.trim().toLowerCase();

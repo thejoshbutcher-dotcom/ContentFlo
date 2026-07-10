@@ -79,6 +79,24 @@ drop policy if exists "read_own_entitlement" on public.entitlements;
 create policy "read_own_entitlement" on public.entitlements
   for select using (user_id = auth.uid());
 
+-- ————— Privileges —————
+-- RLS decides WHICH ROWS a role may see; GRANT decides whether the role may
+-- touch the table at all. Tables created from the SQL editor receive no grants
+-- by default, so without this every query fails with 42501 "permission denied"
+-- even though the policies above are correct.
+--
+-- Note there are deliberately no grants to `anon`: a signed-out visitor cannot
+-- read or write any table.
+grant usage on schema public to anon, authenticated;
+
+grant select, insert, update, delete on public.profiles to authenticated;
+grant select, insert, update, delete on public.cards    to authenticated;
+grant select on public.entitlements to authenticated;
+
+-- Written only by the Stripe webhook, using the service-role key.
+grant all on public.entitlements  to service_role;
+grant all on public.stripe_events to service_role;
+
 -- ————— Storage: pasted screenshots —————
 -- Path convention: {user_id}/{profile_id}/{card_id}/{uuid}.jpg
 insert into storage.buckets (id, name, public)

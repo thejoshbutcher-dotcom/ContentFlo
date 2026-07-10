@@ -83,7 +83,7 @@ export default function TableView({
       </table>
       {rows.length === 0 && (
         <div className="empty-state" style={{ marginTop: 14 }}>
-          Nothing here yet — head to The Slate and stack some ideas.
+          Nothing here yet — head to Brainstorm and stack some ideas.
         </div>
       )}
     </div>

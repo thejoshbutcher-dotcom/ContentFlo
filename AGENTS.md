@@ -29,7 +29,9 @@ The content OS for creators — plan, script, organize, and publish from one wor
 ## Brand & multi-profile (added later in phase 1)
 - Branding follows `Brand Media/CreatorFlo_Brand_Guidelines.md`: dark theme (#181A20 bg, #22252C surface, #F7C948 accent), Geist font, 20/14/12px radii; logos in `public/brand/`
 - Multiple profiles per install: `src/lib/accounts.ts` + `src/lib/workspace.ts` swap the planner/profile localStorage keys per account; profiles are renamable (incl. the default) and deletable; switcher lives bottom-left in the sidebar (desktop) and as a Profile tab in the bottom nav (mobile)
-- App loads on Brainstorm; Brand setup only auto-opens when a NEW profile is created (never on normal load); Export/Import/Reset were removed from the UI
+- App loads on Brainstorm; Brand setup only auto-opens when a NEW profile is created; Export/Import/Reset were removed from the UI
+- Brainstorm dimensions are ALL profile-driven and user-editable: content buckets, relatable topics, content formats (name + structure hint), feelings, and goal actions (CTAs). Defaults are niche-agnostic (src/lib/ideation.ts DEFAULT_* + *_SUGGESTIONS pools); the profile store (src/lib/profile.ts) holds each account's editable copy; the 6-step Setup wizard edits every dimension with tap-to-add suggestions and restore-defaults
+- Desktop profile menu uses fixed positioning to escape the sidebar overflow clip
 - Cards have Plan/Script/Post tabs that auto-select from status (Ideas→Plan, Scripting/Filming/Editing→Script, Ready/Posted→Post); sections carry a `phase`
 - Sections accept pasted clipboard images (compressed to ~900px JPEG data URLs)
 - Mobile (≤900px): bottom nav (Create/Pipeline/Plan) + sub-tabs + account bubble

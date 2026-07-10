@@ -5,13 +5,7 @@ import { BookOpen, ImagePlus, Trash2, X } from "lucide-react";
 import { usePlanner } from "@/lib/store";
 import { useProfile } from "@/lib/profile";
 import { STATUS_COLORS, statusesFor } from "@/lib/seed";
-import {
-  ACTIONS,
-  CONTENT_FORMATS,
-  DELIVERIES,
-  FEELINGS,
-  VERBAL_HOOKS,
-} from "@/lib/ideation";
+import { DELIVERIES, VERBAL_HOOKS } from "@/lib/ideation";
 import { HINT_OVERRIDES, REFERENCE_LIBRARY, sectionPhase } from "@/lib/templates";
 import { ContentCard, ContentType, Section, Who } from "@/lib/types";
 
@@ -183,6 +177,9 @@ export default function CardModal({
   const applyTemplate = usePlanner((s) => s.applyTemplate);
   const buckets = useProfile((s) => s.buckets);
   const profileTopics = useProfile((s) => s.topics);
+  const profileFormats = useProfile((s) => s.formats);
+  const profileFeelings = useProfile((s) => s.feelings);
+  const profileActions = useProfile((s) => s.actions);
   const socials = useProfile((s) => s.socials);
   const [tab, setTab] = useState<Tab>(() => {
     const c = usePlanner.getState().cards.find((x) => x.id === cardId);
@@ -209,15 +206,21 @@ export default function CardModal({
   const scriptSections = card.sections.filter((s) => sectionPhase(s) === "script");
   const postSections = card.sections.filter((s) => sectionPhase(s) === "post");
 
-  const topicOptions =
-    card.topic && !profileTopics.includes(card.topic)
-      ? [card.topic, ...profileTopics]
-      : profileTopics;
-  const lensOptions = buckets.map((b) => b.name);
-  const lensAll =
-    card.pillar && !lensOptions.includes(card.pillar)
-      ? [card.pillar, ...lensOptions]
-      : lensOptions;
+  // Keep a card's saved value selectable even if it's no longer in the profile list
+  function withCurrent(list: string[], current?: string) {
+    return current && !list.includes(current) ? [current, ...list] : list;
+  }
+  const topicOptions = withCurrent(profileTopics, card.topic);
+  const lensAll = withCurrent(
+    buckets.map((b) => b.name),
+    card.pillar
+  );
+  const formatOptions = withCurrent(
+    profileFormats.map((f) => f.name),
+    card.format
+  );
+  const feelingOptions = withCurrent(profileFeelings, card.feeling);
+  const actionOptions = withCurrent(profileActions, card.action);
 
   function setType(type: ContentType) {
     if (!card) return;
@@ -348,7 +351,7 @@ export default function CardModal({
                 }
               >
                 <option value="">—</option>
-                {CONTENT_FORMATS.map((f) => (
+                {formatOptions.map((f) => (
                   <option key={f} value={f}>
                     {f}
                   </option>
@@ -446,7 +449,7 @@ export default function CardModal({
                 }
               >
                 <option value="">—</option>
-                {FEELINGS.map((f) => (
+                {feelingOptions.map((f) => (
                   <option key={f} value={f}>
                     {f}
                   </option>
@@ -462,7 +465,7 @@ export default function CardModal({
                 }
               >
                 <option value="">—</option>
-                {ACTIONS.map((a) => (
+                {actionOptions.map((a) => (
                   <option key={a} value={a}>
                     {a}
                   </option>

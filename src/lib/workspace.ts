@@ -1,7 +1,7 @@
 "use client";
 
 import { plannerKey, profileKey, useAccounts } from "./accounts";
-import { EMPTY_PROFILE, useProfile } from "./profile";
+import { defaultProfileData, useProfile } from "./profile";
 import { usePlanner } from "./store";
 
 // Point both persisted stores at the target account's keys, then either
@@ -23,7 +23,7 @@ export async function switchAccount(id: string): Promise<void> {
   if (localStorage.getItem(profileKey(id))) {
     await useProfile.persist.rehydrate();
   } else {
-    useProfile.setState({ ...EMPTY_PROFILE, topics: [...EMPTY_PROFILE.topics] });
+    useProfile.setState(defaultProfileData());
   }
 }
 

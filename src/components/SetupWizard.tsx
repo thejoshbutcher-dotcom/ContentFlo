@@ -1,24 +1,223 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, Check, Plus, Sparkles, Trash2, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Plus,
+  RotateCcw,
+  Sparkles,
+  Trash2,
+  X,
+} from "lucide-react";
 import {
   PLATFORMS,
+  ProfileFormat,
   newBucket,
+  newFormat,
   newSocial,
   suggestBuckets,
   useProfile,
 } from "@/lib/profile";
 import { useAccounts } from "@/lib/accounts";
-import { RELATABLE_TOPICS } from "@/lib/ideation";
+import {
+  ACTION_SUGGESTIONS,
+  DEFAULT_ACTIONS,
+  DEFAULT_FEELINGS,
+  DEFAULT_FORMATS,
+  DEFAULT_TOPICS,
+  FEELING_SUGGESTIONS,
+  FORMAT_SUGGESTIONS,
+  FormatDef,
+  TOPIC_SUGGESTIONS,
+} from "@/lib/ideation";
 
-const STEPS = ["Brand", "Socials", "Content buckets", "Relatable topics"] as const;
+const STEPS = [
+  "Brand",
+  "Socials",
+  "Buckets",
+  "Topics",
+  "Formats",
+  "Feelings & CTAs",
+] as const;
+
+// ————— Reusable editor for a list of free-text chips —————
+function ChipListEditor({
+  items,
+  onChange,
+  suggestions,
+  defaults,
+  placeholder,
+}: {
+  items: string[];
+  onChange: (next: string[]) => void;
+  suggestions: string[];
+  defaults: string[];
+  placeholder: string;
+}) {
+  const [draft, setDraft] = useState("");
+
+  function add(value: string) {
+    const v = value.trim();
+    if (v && !items.includes(v)) onChange([...items, v]);
+  }
+
+  const unused = suggestions.filter((s) => !items.includes(s));
+
+  return (
+    <>
+      <div className="chip-row" style={{ marginBottom: 12 }}>
+        {items.map((t) => (
+          <button
+            key={t}
+            className="mini-chip removable"
+            title="Remove"
+            onClick={() => onChange(items.filter((x) => x !== t))}
+          >
+            {t} <X size={10} />
+          </button>
+        ))}
+        {items.length === 0 && (
+          <span className="section-hint">Nothing here yet — add your own below.</span>
+        )}
+      </div>
+
+      <div className="setup-row">
+        <input
+          className="prop-input"
+          value={draft}
+          placeholder={placeholder}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              add(draft);
+              setDraft("");
+            }
+          }}
+        />
+        <button
+          className="btn btn-ghost"
+          onClick={() => {
+            add(draft);
+            setDraft("");
+          }}
+        >
+          <Plus size={14} /> Add
+        </button>
+      </div>
+
+      {unused.length > 0 && (
+        <>
+          <div className="t-eyebrow suggest-head">
+            <Sparkles size={11} className="suggest-spark" /> Tap to add
+          </div>
+          <div className="chip-row">
+            {unused.map((s) => (
+              <button key={s} className="mini-chip" onClick={() => add(s)}>
+                + {s}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      <button
+        className="btn btn-ghost restore-btn"
+        onClick={() => onChange([...defaults])}
+      >
+        <RotateCcw size={13} /> Restore defaults
+      </button>
+    </>
+  );
+}
+
+// ————— Editor for formats (name + optional structure hint) —————
+function FormatListEditor({
+  items,
+  onChange,
+}: {
+  items: ProfileFormat[];
+  onChange: (next: ProfileFormat[]) => void;
+}) {
+  const unused = FORMAT_SUGGESTIONS.filter(
+    (s) => !items.some((f) => f.name.toLowerCase() === s.name.toLowerCase())
+  );
+
+  function patch(id: string, key: "name" | "hint", value: string) {
+    onChange(items.map((f) => (f.id === id ? { ...f, [key]: value } : f)));
+  }
+
+  return (
+    <>
+      {items.map((f) => (
+        <div className="format-row" key={f.id}>
+          <input
+            className="prop-input format-name"
+            value={f.name}
+            placeholder="Format name"
+            onChange={(e) => patch(f.id, "name", e.target.value)}
+          />
+          <input
+            className="prop-input"
+            value={f.hint ?? ""}
+            placeholder="Structure / beats (optional)"
+            onChange={(e) => patch(f.id, "hint", e.target.value)}
+          />
+          <button
+            className="icon-btn"
+            aria-label="Remove format"
+            onClick={() => onChange(items.filter((x) => x.id !== f.id))}
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+      ))}
+
+      <button
+        className="btn btn-ghost"
+        style={{ marginTop: 8 }}
+        onClick={() => onChange([...items, newFormat()])}
+      >
+        <Plus size={14} /> Add format
+      </button>
+
+      {unused.length > 0 && (
+        <>
+          <div className="t-eyebrow suggest-head">
+            <Sparkles size={11} className="suggest-spark" /> Tap to add
+          </div>
+          <div className="suggest-grid">
+            {unused.map((s: FormatDef) => (
+              <button
+                key={s.name}
+                className="suggest-card"
+                onClick={() => onChange([...items, newFormat(s.name, s.hint)])}
+              >
+                <strong>{s.name}</strong>
+                <span>{s.hint}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      <button
+        className="btn btn-ghost restore-btn"
+        onClick={() =>
+          onChange(DEFAULT_FORMATS.map((f) => newFormat(f.name, f.hint)))
+        }
+      >
+        <RotateCcw size={13} /> Restore defaults
+      </button>
+    </>
+  );
+}
 
 export default function SetupWizard({ onClose }: { onClose: () => void }) {
   const profile = useProfile();
   const update = useProfile((s) => s.update);
   const [step, setStep] = useState(0);
-  const [topicDraft, setTopicDraft] = useState("");
 
   const suggestions = suggestBuckets(profile.niche, profile.audience).filter(
     (s) => !profile.buckets.some((b) => b.name.toLowerCase() === s.name.toLowerCase())
@@ -29,20 +228,13 @@ export default function SetupWizard({ onClose }: { onClose: () => void }) {
       setupComplete: true,
       buckets: profile.buckets.filter((b) => b.name.trim()),
       socials: profile.socials.filter((s) => s.handle.trim()),
+      formats: profile.formats.filter((f) => f.name.trim()),
     });
     if (profile.brandName.trim()) {
       const { activeId, rename } = useAccounts.getState();
       rename(activeId, profile.brandName.trim());
     }
     onClose();
-  }
-
-  function addTopicDraft() {
-    const t = topicDraft.trim();
-    if (t && !profile.topics.includes(t)) {
-      update({ topics: [...profile.topics, t] });
-    }
-    setTopicDraft("");
   }
 
   return (
@@ -65,8 +257,7 @@ export default function SetupWizard({ onClose }: { onClose: () => void }) {
           </div>
           <div style={{ flex: 1 }} />
           <button
-            className="btn btn-ghost"
-            style={{ color: "#fff", borderColor: "var(--ink-3)" }}
+            className="btn btn-ghost head-close"
             onClick={onClose}
             aria-label="Close setup"
           >
@@ -79,14 +270,14 @@ export default function SetupWizard({ onClose }: { onClose: () => void }) {
             <div className="setup-panel">
               <h3 className="setup-title">Who are you making content as?</h3>
               <p className="setup-sub">
-                Brainstorm uses this to tailor suggested buckets and framing.
+                This tailors the suggestions across the rest of setup and Brainstorm.
               </p>
 
               <div className="prop-label t-eyebrow">Brand / creator name</div>
               <input
                 className="prop-input setup-input"
                 value={profile.brandName}
-                placeholder="e.g. Josh Butcher Online"
+                placeholder="e.g. Your name or brand"
                 onChange={(e) => update({ brandName: e.target.value })}
               />
 
@@ -94,7 +285,7 @@ export default function SetupWizard({ onClose }: { onClose: () => void }) {
               <input
                 className="prop-input setup-input"
                 value={profile.niche}
-                placeholder="e.g. AI tools & content systems for solo creators"
+                placeholder="e.g. fitness for busy parents, personal finance, design…"
                 onChange={(e) => update({ niche: e.target.value })}
               />
 
@@ -102,7 +293,7 @@ export default function SetupWizard({ onClose }: { onClose: () => void }) {
               <input
                 className="prop-input setup-input"
                 value={profile.audience}
-                placeholder="e.g. millennial multi-passionate creators building online"
+                placeholder="e.g. beginners who feel overwhelmed"
                 onChange={(e) => update({ audience: e.target.value })}
               />
 
@@ -112,7 +303,7 @@ export default function SetupWizard({ onClose }: { onClose: () => void }) {
               <input
                 className="prop-input setup-input"
                 value={profile.offer}
-                placeholder="e.g. newsletter, community, lead magnet, product"
+                placeholder="e.g. newsletter, community, product, service"
                 onChange={(e) => update({ offer: e.target.value })}
               />
             </div>
@@ -195,7 +386,7 @@ export default function SetupWizard({ onClose }: { onClose: () => void }) {
                 <div className="setup-row" key={b.id}>
                   <input
                     className="prop-input"
-                    style={{ width: 220, flexShrink: 0 }}
+                    style={{ width: 200, flexShrink: 0 }}
                     value={b.name}
                     placeholder="Bucket name"
                     onChange={(e) =>
@@ -240,15 +431,8 @@ export default function SetupWizard({ onClose }: { onClose: () => void }) {
 
               {suggestions.length > 0 && (
                 <>
-                  <div
-                    className="t-eyebrow"
-                    style={{ color: "var(--amber-deep)", margin: "22px 0 8px" }}
-                  >
-                    <Sparkles
-                      size={11}
-                      style={{ display: "inline", marginRight: 5, verticalAlign: -1 }}
-                    />
-                    Need ideas? Tap to add
+                  <div className="t-eyebrow suggest-head">
+                    <Sparkles size={11} className="suggest-spark" /> Need ideas? Tap to add
                   </div>
                   <div className="suggest-grid">
                     {suggestions.map((s) => (
@@ -279,54 +463,65 @@ export default function SetupWizard({ onClose }: { onClose: () => void }) {
               <h3 className="setup-title">Relatable topics</h3>
               <p className="setup-sub">
                 The struggles and moments your audience is living through — the raw
-                material for step 01 of every Brainstorm. Keep the ones that fit,
-                cut the rest, add your own.
+                material for step 01 of every Brainstorm.
+              </p>
+              <ChipListEditor
+                items={profile.topics}
+                onChange={(topics) => update({ topics })}
+                suggestions={TOPIC_SUGGESTIONS}
+                defaults={DEFAULT_TOPICS}
+                placeholder="Add a topic your audience feels…"
+              />
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="setup-panel">
+              <h3 className="setup-title">Content formats</h3>
+              <p className="setup-sub">
+                The shapes your content takes. The structure hint guides the script
+                when you send an idea to the pipeline. Rename, remove, or add your own.
+              </p>
+              <FormatListEditor
+                items={profile.formats}
+                onChange={(formats) => update({ formats })}
+              />
+            </div>
+          )}
+
+          {step === 5 && (
+            <div className="setup-panel">
+              <h3 className="setup-title">Feelings &amp; goal actions</h3>
+              <p className="setup-sub">
+                What you want the viewer to feel, and the action you want them to
+                take. Feeling &gt; action — get the emotion right and the action
+                follows.
               </p>
 
-              <div className="chip-row" style={{ marginBottom: 14 }}>
-                {profile.topics.map((t) => (
-                  <button
-                    key={t}
-                    className="mini-chip removable"
-                    title="Remove topic"
-                    onClick={() =>
-                      update({ topics: profile.topics.filter((x) => x !== t) })
-                    }
-                  >
-                    {t} <X size={10} />
-                  </button>
-                ))}
+              <div className="prop-label t-eyebrow" style={{ marginTop: 4 }}>
+                Feelings
               </div>
+              <ChipListEditor
+                items={profile.feelings}
+                onChange={(feelings) => update({ feelings })}
+                suggestions={FEELING_SUGGESTIONS}
+                defaults={DEFAULT_FEELINGS}
+                placeholder="Add a feeling…"
+              />
 
-              <div className="setup-row">
-                <input
-                  className="prop-input"
-                  value={topicDraft}
-                  placeholder="Add a topic your audience feels…"
-                  onChange={(e) => setTopicDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") addTopicDraft();
-                  }}
-                />
-                <button className="btn btn-ghost" onClick={addTopicDraft}>
-                  <Plus size={14} /> Add
-                </button>
-              </div>
-
-              <button
-                className="btn btn-ghost"
-                style={{ marginTop: 12 }}
-                onClick={() =>
-                  update({
-                    topics: [
-                      ...profile.topics,
-                      ...RELATABLE_TOPICS.filter((t) => !profile.topics.includes(t)),
-                    ],
-                  })
-                }
+              <div
+                className="prop-label t-eyebrow"
+                style={{ marginTop: 22, borderTop: "1px solid var(--line-strong)", paddingTop: 18 }}
               >
-                Restore default topic list
-              </button>
+                Goal actions (CTAs)
+              </div>
+              <ChipListEditor
+                items={profile.actions}
+                onChange={(actions) => update({ actions })}
+                suggestions={ACTION_SUGGESTIONS}
+                defaults={DEFAULT_ACTIONS}
+                placeholder="Add a call to action…"
+              />
             </div>
           )}
         </div>

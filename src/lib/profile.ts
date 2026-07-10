@@ -3,7 +3,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { activeAccountId, profileKey } from "./accounts";
-import { RELATABLE_TOPICS } from "./ideation";
+import {
+  DEFAULT_ACTIONS,
+  DEFAULT_FEELINGS,
+  DEFAULT_FORMATS,
+  DEFAULT_TOPICS,
+} from "./ideation";
 import { BUCKETS } from "./seed";
 import { newId } from "./templates";
 
@@ -19,6 +24,12 @@ export interface ProfileBucket {
   description?: string;
 }
 
+export interface ProfileFormat {
+  id: string;
+  name: string;
+  hint?: string;
+}
+
 export const PLATFORMS = [
   "YouTube",
   "Instagram",
@@ -32,7 +43,23 @@ export const PLATFORMS = [
   "Other",
 ];
 
-interface ProfileState {
+function defaultBuckets(): ProfileBucket[] {
+  return BUCKETS.map((b) => ({
+    id: b.id,
+    name: b.name,
+    description: b.description,
+  }));
+}
+
+function defaultFormats(): ProfileFormat[] {
+  return DEFAULT_FORMATS.map((f) => ({
+    id: newId("fmt"),
+    name: f.name,
+    hint: f.hint,
+  }));
+}
+
+type ProfileData = {
   brandName: string;
   niche: string;
   audience: string;
@@ -40,56 +67,42 @@ interface ProfileState {
   socials: SocialAccount[];
   buckets: ProfileBucket[];
   topics: string[];
+  formats: ProfileFormat[];
+  feelings: string[];
+  actions: string[];
   setupComplete: boolean;
-  update: (
-    patch: Partial<
-      Pick<
-        ProfileState,
-        | "brandName"
-        | "niche"
-        | "audience"
-        | "offer"
-        | "socials"
-        | "buckets"
-        | "topics"
-        | "setupComplete"
-      >
-    >
-  ) => void;
+};
+
+interface ProfileState extends ProfileData {
+  update: (patch: Partial<ProfileData>) => void;
+}
+
+// A ready-to-use starting point — broad enough for any niche, editable in Setup.
+export function defaultProfileData(): ProfileData {
+  return {
+    brandName: "",
+    niche: "",
+    audience: "",
+    offer: "",
+    socials: [],
+    buckets: defaultBuckets(),
+    topics: [...DEFAULT_TOPICS],
+    formats: defaultFormats(),
+    feelings: [...DEFAULT_FEELINGS],
+    actions: [...DEFAULT_ACTIONS],
+    setupComplete: false,
+  };
 }
 
 export const useProfile = create<ProfileState>()(
   persist(
     (set) => ({
-      brandName: "",
-      niche: "",
-      audience: "",
-      offer: "",
-      socials: [],
-      // Existing planner data references these bucket ids, so they are the defaults
-      buckets: BUCKETS.map((b) => ({
-        id: b.id,
-        name: b.name,
-        description: b.description,
-      })),
-      topics: [...RELATABLE_TOPICS],
-      setupComplete: false,
+      ...defaultProfileData(),
       update: (patch) => set(patch),
     }),
     { name: profileKey(activeAccountId()) }
   )
 );
-
-export const EMPTY_PROFILE = {
-  brandName: "",
-  niche: "",
-  audience: "",
-  offer: "",
-  socials: [] as SocialAccount[],
-  buckets: [] as ProfileBucket[],
-  topics: [...RELATABLE_TOPICS],
-  setupComplete: false,
-};
 
 export function newSocial(): SocialAccount {
   return { id: newId("soc"), platform: "YouTube", handle: "" };
@@ -99,7 +112,11 @@ export function newBucket(name = "", description = ""): ProfileBucket {
   return { id: newId("bucket"), name, description };
 }
 
-// Rule-based starter buckets shaped around proven content pillar archetypes.
+export function newFormat(name = "", hint = ""): ProfileFormat {
+  return { id: newId("fmt"), name, hint };
+}
+
+// Rule-based starter buckets shaped around proven content-pillar archetypes.
 export function suggestBuckets(
   niche: string,
   audience: string
@@ -108,28 +125,28 @@ export function suggestBuckets(
   const a = audience.trim() || "your audience";
   return [
     {
-      name: "Tutorials & how-tos",
-      description: `Step-by-step teaching that builds authority in ${n}.`,
+      name: "Educational",
+      description: `Teach ${a} something useful in ${n} — tips, how-tos, breakdowns.`,
     },
     {
-      name: "Behind the scenes",
-      description: "Build in public — the real process, the wins, the messes.",
+      name: "Entertaining",
+      description: "Fun, relatable, shareable content that stops the scroll.",
     },
     {
-      name: "Hot takes & myths",
-      description: `Opinions and misconceptions in ${n} that spark comments and shares.`,
+      name: "Inspirational",
+      description: "Stories, wins, and motivation that make people feel something.",
     },
     {
-      name: "Tools & workflows",
-      description: "The stack you actually use — honest reviews, setups, systems.",
+      name: "Personal / BTS",
+      description: "Your journey, behind the scenes, the real you.",
     },
     {
-      name: "Results & lessons",
-      description: "Numbers, case studies, receipts — proof content that converts.",
+      name: "Authority",
+      description: `Opinions and hot takes that build trust in ${n}.`,
     },
     {
-      name: "Personal stories",
-      description: `The journey — failures and turning points that make ${a} feel seen.`,
+      name: "Promotional",
+      description: "Offers, products, and clear calls to action.",
     },
   ];
 }

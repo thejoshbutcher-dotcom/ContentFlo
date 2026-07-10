@@ -19,32 +19,37 @@ export function statusesFor(contentType?: string): Status[] {
   );
 }
 
+// Broad, niche-agnostic starting buckets. Users rename/replace these in Setup.
 export const BUCKETS: Bucket[] = [
-  { id: "shorts", name: "Shorts" },
-  { id: "carousels", name: "Carousels", description: "Carousel posts for Instagram" },
   {
-    id: "content-creation",
-    name: "Content Creation",
-    description:
-      "Tools and frameworks for producing better content — how to show up, find your voice, build consistency, and make things people actually watch without burning out.",
+    id: "educational",
+    name: "Educational",
+    description: "Teach your audience something useful — tips, how-tos, breakdowns.",
   },
   {
-    id: "ai-tools",
-    name: "AI Tools/Workflows",
-    description:
-      "The actual stack for solo creators: tutorials, workflows, honest reviews from someone who uses these tools daily.",
+    id: "entertaining",
+    name: "Entertaining",
+    description: "Fun, relatable, shareable content that stops the scroll.",
   },
   {
-    id: "millennial-money",
-    name: "Millennial Money Mindset",
-    description:
-      "Money mindset, misconceptions, hot takes and inspiration about making money online — the honest psychology of money, worth, and building without a salary net.",
+    id: "inspirational",
+    name: "Inspirational",
+    description: "Stories, wins, and motivation that make people feel something.",
   },
   {
-    id: "solo-biz",
-    name: "Online solo biz life",
-    description:
-      "The real texture of building something solo — clients, pivots, pricing, burnout, loneliness, wins with nobody to tell.",
+    id: "personal",
+    name: "Personal / BTS",
+    description: "Your journey, behind the scenes, the real you.",
+  },
+  {
+    id: "authority",
+    name: "Authority",
+    description: "Opinions and hot takes that build trust in your niche.",
+  },
+  {
+    id: "promotional",
+    name: "Promotional",
+    description: "Offers, products, and clear calls to action.",
   },
 ];
 
@@ -95,114 +100,107 @@ function daysFromNow(n: number): string {
 export function seedCards(): ContentCard[] {
   return [
     sample(
-      "You don't have shiny object syndrome — you have no filter",
+      "The one habit that fixed my consistency",
       "ideas",
       "Short form",
-      "shorts",
+      "inspirational",
       {
-        topic: "Shiny object syndrome",
-        pillar: "Content production",
-        subPillar: "Strategy",
+        topic: "Struggling to stay consistent",
         who: "TOF" as Who,
-        feeling: "Understood/Seen",
+        feeling: "Understood / seen",
         hook: "hear me out.",
-        delivery: "Walking/Lifestyle (somewhere random)",
-        format: "Rant/Story Time",
-        goalOfVideo: "Relatability → shares from multi-passionate creators",
+        delivery: "Walking / lifestyle",
+        format: "Story time",
+        goalOfVideo: "Make them feel seen so they share it",
         action: "Share",
       }
     ),
     sample(
-      "I let AI plan my content for 30 days",
+      "I tried planning a month of content in one sitting",
       "scripting",
       "Long form",
-      "ai-tools",
+      "educational",
       {
+        topic: "Never enough time",
         who: "MOF" as Who,
-        format: "Results/Review",
-        goalOfVideo: "Prove the workflow works — drive to lead magnet",
+        format: "Review / reaction",
+        goalOfVideo: "Show the system works — drive to the freebie",
         postingDate: daysFromNow(12),
       }
     ),
     sample(
-      "5 AI tools I actually pay for as a solo creator",
+      "5 tools I actually pay for",
       "up-next",
       "Carousel",
-      "carousels",
+      "educational",
       {
         who: "TOF" as Who,
-        format: "List (Top/Best)",
-        feeling: "Fired up/Excited",
-        action: "Comment word (ManyChat)",
+        format: "List / top picks",
+        feeling: "Fired up",
+        action: "Comment",
         postingDate: daysFromNow(5),
       }
     ),
     sample(
-      "Millennial career crisis: the spreadsheet that made me quit",
+      "The moment I almost quit",
       "up-next",
       "Short form",
-      "shorts",
+      "personal",
       {
-        topic: "Millennial career crisis",
-        pillar: "Millennial money",
-        subPillar: "Oversharing",
+        topic: "Feeling behind everyone else",
         who: "TOF" as Who,
-        feeling: "Inspired/Motivated",
+        feeling: "Inspired",
         hook: "this is gonna sound dramatic...",
-        delivery: "At desk",
-        format: "Rant/Story Time",
+        delivery: "Talking to camera",
+        format: "Story time",
       }
     ),
     sample(
-      "Why 'learn more' is keeping you broke (action > planning)",
+      "Why 'learn more' is keeping you stuck",
       "editing",
       "Short form",
-      "shorts",
+      "authority",
       {
-        topic: "Learning more than doing (action > planning)",
-        pillar: "Online business lifestyle",
-        subPillar: "Hot takes",
+        topic: "Chasing motivation instead of discipline",
         who: "MOF" as Who,
-        feeling: "Fired up/Excited",
-        format: "Quick actionable tip",
+        feeling: "Fired up",
+        format: "Hot take / opinion",
         postingDate: daysFromNow(2),
       }
     ),
     sample(
-      "The muggle conversation: explaining my job at Thanksgiving",
+      "Explaining what I do at family dinner",
       "ideas",
       "Short form",
-      "shorts",
+      "entertaining",
       {
-        topic: "Family/friends not understanding what I do",
-        pillar: "Online business lifestyle",
-        subPillar: "Stories",
+        topic: "Fear of judgment",
         who: "TOF" as Who,
-        feeling: "Laughter/Joy",
-        format: "Fun/Skit",
-        delivery: "Excited",
+        feeling: "Amused",
+        format: "Skit / entertainment",
+        delivery: "High energy",
       }
     ),
     sample(
-      "Ep. 12 — One discovery away syndrome (with receipts)",
+      "Ep. 12 — Why you feel one step away from success",
       "ideas",
       "Podcast",
-      "content-creation",
+      "personal",
       {
-        topic: "One discovery away syndrome",
+        topic: "Wanting results faster",
         who: "MOF" as Who,
-        format: "Podcast/Yap",
+        format: "Story time",
       }
     ),
     sample(
-      "How I schedule a week of content in 90 minutes",
+      "How I plan a week of content in 90 minutes",
       "ready",
       "Long form",
-      "content-creation",
+      "educational",
       {
         who: "BOF" as Who,
-        format: "Tutorial (Step By Step)",
-        goalOfVideo: "Authority + drive to newsletter",
+        format: "How-to / tutorial",
+        goalOfVideo: "Build authority + drive to the newsletter",
         postingDate: daysFromNow(1),
       }
     ),

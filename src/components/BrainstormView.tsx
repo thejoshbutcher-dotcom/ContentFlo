@@ -2,14 +2,7 @@
 
 import { useState } from "react";
 import { Dices, Lightbulb, Send, Settings2 } from "lucide-react";
-import {
-  ACTIONS,
-  FEELINGS,
-  FORMAT_TO_CONTENT_FORMAT,
-  FORMATS,
-  WHO_OPTIONS,
-  randomOf,
-} from "@/lib/ideation";
+import { WHO_OPTIONS, randomOf } from "@/lib/ideation";
 import { useProfile } from "@/lib/profile";
 import { usePlanner } from "@/lib/store";
 import { sectionsFor } from "@/lib/templates";
@@ -57,6 +50,9 @@ export default function BrainstormView({
   const addCard = usePlanner((s) => s.addCard);
   const topics = useProfile((s) => s.topics);
   const buckets = useProfile((s) => s.buckets);
+  const formats = useProfile((s) => s.formats);
+  const feelings = useProfile((s) => s.feelings);
+  const actions = useProfile((s) => s.actions);
   const brandName = useProfile((s) => s.brandName);
   const [pick, setPick] = useState<Pick>({ dest: "Short form" });
   const [title, setTitle] = useState("");
@@ -73,15 +69,15 @@ export default function BrainstormView({
       topic: topics.length ? randomOf(topics) : undefined,
       bucketId: buckets.length ? randomOf(buckets).id : undefined,
       who: randomOf(WHO_OPTIONS).id as Who,
-      action: randomOf(ACTIONS),
-      feeling: randomOf(FEELINGS),
-      format: randomOf(FORMATS).name,
+      action: actions.length ? randomOf(actions) : undefined,
+      feeling: feelings.length ? randomOf(feelings) : undefined,
+      format: formats.length ? randomOf(formats).name : undefined,
     }));
     setSent(null);
   }
 
   const lens = buckets.find((b) => b.id === pick.bucketId);
-  const beat = FORMATS.find((f) => f.name === pick.format)?.beat;
+  const beat = formats.find((f) => f.name === pick.format)?.hint;
 
   const autoTitle =
     pick.topic && lens
@@ -107,7 +103,7 @@ export default function BrainstormView({
       status: "ideas",
       contentType: pick.dest,
       bucketId: pick.bucketId,
-      format: pick.format ? FORMAT_TO_CONTENT_FORMAT[pick.format] : undefined,
+      format: pick.format,
       topic: pick.topic,
       pillar: lens?.name,
       who: pick.who,
@@ -220,9 +216,14 @@ export default function BrainstormView({
                 <span className="sub">what they should do</span>
               </div>
               <div className="dim-chips">
-                {ACTIONS.map((a) => (
+                {actions.map((a) => (
                   <Chip key={a} label={a} on={pick.action === a} onClick={() => set("action", a)} />
                 ))}
+                {actions.length === 0 && (
+                  <button className="mini-chip" onClick={onOpenSetup}>
+                    Add goal actions in Brand setup →
+                  </button>
+                )}
               </div>
             </div>
 
@@ -232,27 +233,37 @@ export default function BrainstormView({
                 <span className="sub">feeling &gt; action</span>
               </div>
               <div className="dim-chips">
-                {FEELINGS.map((f) => (
+                {feelings.map((f) => (
                   <Chip key={f} label={f} on={pick.feeling === f} onClick={() => set("feeling", f)} />
                 ))}
+                {feelings.length === 0 && (
+                  <button className="mini-chip" onClick={onOpenSetup}>
+                    Add feelings in Brand setup →
+                  </button>
+                )}
               </div>
             </div>
 
             <div className="dim">
               <div className="dim-label">
                 <span className="t-eyebrow">06 · Format</span>
-                <span className="sub">recognition → story → reframe → solution → CTA</span>
+                <span className="sub">the structure of the piece</span>
               </div>
               <div className="dim-chips">
-                {FORMATS.map((f) => (
+                {formats.map((f) => (
                   <Chip
-                    key={f.name}
+                    key={f.id}
                     label={f.name}
-                    title={f.beat}
+                    title={f.hint}
                     on={pick.format === f.name}
                     onClick={() => set("format", f.name)}
                   />
                 ))}
+                {formats.length === 0 && (
+                  <button className="mini-chip" onClick={onOpenSetup}>
+                    Add formats in Brand setup →
+                  </button>
+                )}
               </div>
             </div>
           </div>

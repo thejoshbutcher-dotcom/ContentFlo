@@ -15,7 +15,11 @@ export const config = {
     /*
      * Everything except static assets and the Stripe webhook, which arrives
      * unauthenticated and verifies itself by signature.
+     *
+     * manifest.webmanifest and sw.js are excluded too: the browser fetches them
+     * unauthenticated to install the PWA and register the service worker, so
+     * they must never redirect to /login.
      */
-    "/((?!_next/static|_next/image|favicon.ico|icon.png|brand/|api/stripe/webhook|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.png|manifest.webmanifest|sw.js|brand/|api/stripe/webhook|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$).*)",
   ],
 };

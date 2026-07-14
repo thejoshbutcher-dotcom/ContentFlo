@@ -1,4 +1,10 @@
-import { ChecklistItem, ContentType, Section, SectionPhase } from "./types";
+import {
+  ChecklistItem,
+  ContentCard,
+  ContentType,
+  Section,
+  SectionPhase,
+} from "./types";
 
 let uid = 0;
 export function newId(prefix = "id"): string {
@@ -87,14 +93,13 @@ export function shortFormSections(): Section[] {
       "Summarize in 3–7 key words · at least one POWER word · graphic that previews value, borrows interest, or shows before→after"
     ),
     text("Outline", "Beat-by-beat structure before you write the full script"),
-    text("Reference Link 🔗", "Link to the video you're modeling"),
     text("Original Script", "Transcript / beats of the reference video"),
+    text("Reference Link 🔗", "Link to the video you're modeling"),
     script(
       "My Script ✍️",
       "Hook → Build Up → Value → Resolution → CTA → Loop Back"
     ),
     post("Caption for Posting 📱", "Caption + comment word if running ManyChat"),
-    text("Notes", ""),
   ];
 }
 
@@ -176,6 +181,84 @@ export function sectionsFor(type?: ContentType): Section[] {
     default:
       return shortFormSections();
   }
+}
+
+// ————— Migrating existing cards to the current template layout —————
+//
+// Templates only shape NEW cards, so cards saved under an older template keep
+// their old boxes. These reconcile a card's sections to the current layout
+// while carrying over anything the user already wrote (matched by title).
+
+const LEGACY_LONG_SCRIPT: Record<string, string> = {
+  "🪝 Hook": "Hook",
+  "💭 Intro": "Intro",
+  "💰 Value": "Value",
+  "↪ Outro": "Outro",
+};
+
+/** Copy a previous section's content/images/checklist onto a template section. */
+function carryContent(templateSec: Section, prev?: Section): Section {
+  if (!prev) return templateSec;
+  return {
+    ...templateSec,
+    content: prev.content,
+    images: prev.images,
+    items: prev.items ?? templateSec.items,
+  };
+}
+
+function orderedTitles(sections: Section[], phase: SectionPhase): string[] {
+  return sections.filter((s) => sectionPhase(s) === phase).map((s) => s.title);
+}
+
+function sameOrder(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((t, i) => t === b[i]);
+}
+
+function migrateShortForm(old: Section[]): Section[] | null {
+  const expected = ["Visual Hook", "Outline", "Original Script", "Reference Link 🔗"];
+  if (sameOrder(orderedTitles(old, "plan"), expected)) return null;
+
+  const find = (t: string) => old.find((s) => s.title === t);
+  const next = shortFormSections().map((t) => carryContent(t, find(t.title)));
+
+  // "Notes" is gone from the layout — don't silently drop anything written in it.
+  const notes = find("Notes");
+  if (notes?.content.trim()) {
+    const outline = next.find((s) => s.title === "Outline");
+    if (outline && !outline.content.trim()) outline.content = notes.content;
+  }
+  return next;
+}
+
+function migrateLongForm(old: Section[]): Section[] | null {
+  if (sameOrder(orderedTitles(old, "script"), ["Outline", "Script"])) return null;
+
+  const find = (t: string) => old.find((s) => s.title === t);
+
+  // Fold anything written in the old Hook/Intro/Value/Outro boxes into Script.
+  const folded = Object.entries(LEGACY_LONG_SCRIPT)
+    .map(([title, label]) => {
+      const s = find(title);
+      return s?.content.trim() ? `${label}\n${s.content.trim()}` : null;
+    })
+    .filter(Boolean)
+    .join("\n\n");
+
+  return longFormSections().map((t) => {
+    if (t.title === "Script") {
+      const existing = find("Script")?.content.trim();
+      return { ...t, content: existing || folded };
+    }
+    return carryContent(t, find(t.title));
+  });
+}
+
+/** Returns reconciled sections for a card, or null if it's already current. */
+export function migrateCardSections(card: ContentCard): Section[] | null {
+  if (card.contentType === "Short form") return migrateShortForm(card.sections);
+  if (card.contentType === "Long form") return migrateLongForm(card.sections);
+  return null;
 }
 
 // ————— Reference library (the collapsible guides inside the Notion templates) —————

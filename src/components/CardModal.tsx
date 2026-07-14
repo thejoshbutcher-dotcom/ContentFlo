@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { BookOpen, ImagePlus, Trash2, X } from "lucide-react";
 import { usePlanner } from "@/lib/store";
 import { useProfile } from "@/lib/profile";
 import { STATUS_COLORS, statusesFor } from "@/lib/seed";
-import { HINT_OVERRIDES, REFERENCE_LIBRARY, sectionPhase } from "@/lib/templates";
+import {
+  HINT_OVERRIDES,
+  migrateCardSections,
+  REFERENCE_LIBRARY,
+  sectionPhase,
+} from "@/lib/templates";
 import { ContentCard, ContentType, Section, Who } from "@/lib/types";
 
 const CONTENT_TYPES: ContentType[] = [
@@ -198,6 +203,16 @@ export default function CardModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  // Reconcile older cards to the current template layout when opened, carrying
+  // over anything already written. Runs before paint so there's no flash of the
+  // old boxes, and is a no-op once a card is up to date.
+  useLayoutEffect(() => {
+    if (!card) return;
+    const migrated = migrateCardSections(card);
+    if (migrated) updateCard(card.id, { sections: migrated });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card?.id]);
 
   if (!card) return null;
 

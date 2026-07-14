@@ -10,13 +10,16 @@ import {
   Lightbulb,
   Mic,
   MonitorPlay,
+  GraduationCap,
   Plus,
+  RefreshCw,
   Settings2,
   Smartphone,
   Table2,
 } from "lucide-react";
 import { usePlanner } from "@/lib/store";
 import { useProfile } from "@/lib/profile";
+import { refreshFromCloud } from "@/lib/sync";
 import { ContentType, ViewId } from "@/lib/types";
 import { AccountSwitcher, ProfileNavButton } from "./AccountSwitcher";
 import BoardView from "./BoardView";
@@ -26,6 +29,7 @@ import CalendarView from "./CalendarView";
 import CardModal from "./CardModal";
 import SetupWizard from "./SetupWizard";
 import TableView from "./TableView";
+import Tutorial, { TourController } from "./Tutorial";
 import { VIEW_DEFS } from "./views";
 
 const NAV_ICONS: Record<ViewId, React.ReactNode> = {
@@ -79,6 +83,18 @@ export default function PlannerApp() {
   const [search, setSearch] = useState("");
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [showSetup, setShowSetup] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+
+  async function handleRefresh() {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await refreshFromCloud();
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   const cards = usePlanner((s) => s.cards);
   const addCard = usePlanner((s) => s.addCard);
@@ -129,6 +145,17 @@ export default function PlannerApp() {
     onClick: () => setShowSetup(true),
   };
 
+  const tourController: TourController = {
+    setView: (v) => setViewId(v),
+    openSampleCard: () =>
+      setOpenCardId((cur) => {
+        if (cur) return cur;
+        const sample = cards.find((c) => c.contentType === "Short form") ?? cards[0];
+        return sample ? sample.id : cur;
+      }),
+    closeCard: () => setOpenCardId(null),
+  };
+
   const groups: { label: string; ids: ViewId[] }[] = [
     { label: "Create", ids: ["ideate"] },
     {
@@ -153,7 +180,11 @@ export default function PlannerApp() {
         </div>
 
         {groups.map((g) => (
-          <nav className="nav-group" key={g.label}>
+          <nav
+            className="nav-group"
+            key={g.label}
+            data-tour={g.label === "Pipeline" ? "pipeline-group" : undefined}
+          >
             <div className="nav-group-label t-eyebrow">{g.label}</div>
             {g.ids.map((id) => {
               const def = VIEW_DEFS.find((v) => v.id === id)!;
@@ -161,6 +192,7 @@ export default function PlannerApp() {
               return (
                 <button
                   key={id}
+                  data-tour={`nav-${id}`}
                   className={`nav-item${viewId === id ? " active" : ""}`}
                   onClick={() => setViewId(id)}
                 >
@@ -174,7 +206,22 @@ export default function PlannerApp() {
         ))}
 
         <div className="sidebar-foot">
-          <button className="foot-btn" onClick={() => setShowSetup(true)}>
+          <button
+            className="foot-btn"
+            onClick={() => {
+              setOpenCardId(null);
+              setShowSetup(false);
+              setShowTour(true);
+            }}
+          >
+            <GraduationCap size={13} />
+            <span className="label">Tutorial</span>
+          </button>
+          <button
+            className="foot-btn"
+            data-tour="brand-setup"
+            onClick={() => setShowSetup(true)}
+          >
             <Settings2 size={13} />
             <span className="label">Brand setup</span>
           </button>
@@ -189,6 +236,17 @@ export default function PlannerApp() {
           {view.id === "board-buckets" && (
             <button className="btn btn-ghost" onClick={() => setShowSetup(true)}>
               <Settings2 size={14} /> <span className="btn-label">Brand setup</span>
+            </button>
+          )}
+          {view.kind !== "slate" && (
+            <button
+              className="topbar-refresh"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="Refresh — pull cards added on another device"
+              aria-label="Refresh"
+            >
+              <RefreshCw size={15} className={refreshing ? "spin" : ""} />
             </button>
           )}
           <input
@@ -260,6 +318,9 @@ export default function PlannerApp() {
         <CardModal cardId={openCardId} onClose={() => setOpenCardId(null)} />
       )}
       {showSetup && <SetupWizard onClose={() => setShowSetup(false)} />}
+      {showTour && (
+        <Tutorial controller={tourController} onExit={() => setShowTour(false)} />
+      )}
     </div>
   );
 }

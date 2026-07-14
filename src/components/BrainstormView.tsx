@@ -38,6 +38,69 @@ function Chip({
   );
 }
 
+interface DimOpt {
+  value: string;
+  label: string;
+  title?: string;
+}
+
+/**
+ * A brainstorm dimension. Up to 4 options render as tappable chips; beyond that
+ * it collapses to a dropdown so a long list reads cleaner and less daunting.
+ */
+function DimOptions({
+  options,
+  selected,
+  onChange,
+  emptyLabel,
+  onEmpty,
+}: {
+  options: DimOpt[];
+  selected?: string;
+  onChange: (value?: string) => void;
+  emptyLabel?: string;
+  onEmpty?: () => void;
+}) {
+  if (options.length === 0) {
+    return onEmpty ? (
+      <button className="mini-chip" onClick={onEmpty}>
+        {emptyLabel}
+      </button>
+    ) : null;
+  }
+
+  if (options.length > 4) {
+    return (
+      <select
+        className="dim-select"
+        value={selected ?? ""}
+        onChange={(e) => onChange(e.target.value || undefined)}
+      >
+        <option value="">— Any —</option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  return (
+    <div className="dim-chips">
+      {options.map((o) => (
+        <Chip
+          key={o.value}
+          label={o.label}
+          title={o.title}
+          on={selected === o.value}
+          onClick={() => onChange(selected === o.value ? undefined : o.value)}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function BrainstormView({
   onOpen,
   onGoToBoard,
@@ -58,8 +121,9 @@ export default function BrainstormView({
   const [title, setTitle] = useState("");
   const [sent, setSent] = useState<string | null>(null);
 
-  function set<K extends keyof Pick>(key: K, value: Pick[K]) {
-    setPick((p) => ({ ...p, [key]: p[key] === value ? undefined : value }));
+  // Direct set (chips toggle via the same path; a dropdown reports the exact choice).
+  function choose<K extends keyof Pick>(key: K, value: Pick[K] | undefined) {
+    setPick((p) => ({ ...p, [key]: value }));
     setSent(null);
   }
 
@@ -156,7 +220,7 @@ export default function BrainstormView({
           />
         ))}
         <div style={{ flex: 1 }} />
-        <button className="btn btn-primary" onClick={send}>
+        <button className="btn btn-primary" data-tour="add-to-pipeline" onClick={send}>
           <Send size={14} /> Add to pipeline
         </button>
       </div>
@@ -200,11 +264,6 @@ export default function BrainstormView({
                 {brandName ? `${brandName} — ` : ""}Create a new idea for your next
                 piece of content. Follow the Flo to generate a new idea from
                 scratch or shuffle things up for some random inspiration!
-                <br />
-                <span className="flo-line">
-                  Flo: relatable topic → through the lens of your content bucket →
-                  who → what they should feel → format
-                </span>
               </p>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
@@ -225,22 +284,24 @@ export default function BrainstormView({
         <div className="slate-body">
           {resultBlock}
 
-          <div className="dim-grid">
+          <p className="flo-line">
+            <strong>Flo:</strong> relatable topic → through the lens of your content
+            bucket → who → what they should feel → format
+          </p>
+
+          <div className="dim-grid" data-tour="brainstorm-dims">
             <div className="dim">
               <div className="dim-label">
                 <span className="t-eyebrow">01 · Relatable topic</span>
                 <span className="sub">what they&apos;re living through</span>
               </div>
-              <div className="dim-chips">
-                {topics.map((t) => (
-                  <Chip key={t} label={t} on={pick.topic === t} onClick={() => set("topic", t)} />
-                ))}
-                {topics.length === 0 && (
-                  <button className="mini-chip" onClick={onOpenSetup}>
-                    Add topics in Brand setup →
-                  </button>
-                )}
-              </div>
+              <DimOptions
+                options={topics.map((t) => ({ value: t, label: t }))}
+                selected={pick.topic}
+                onChange={(v) => choose("topic", v)}
+                emptyLabel="Add topics in Brand setup →"
+                onEmpty={onOpenSetup}
+              />
             </div>
 
             <div className="dim">
@@ -248,22 +309,17 @@ export default function BrainstormView({
                 <span className="t-eyebrow">02 · Through the lens of</span>
                 <span className="sub">your content bucket</span>
               </div>
-              <div className="dim-chips">
-                {buckets.map((b) => (
-                  <Chip
-                    key={b.id}
-                    label={b.name}
-                    title={b.description}
-                    on={pick.bucketId === b.id}
-                    onClick={() => set("bucketId", b.id)}
-                  />
-                ))}
-                {buckets.length === 0 && (
-                  <button className="mini-chip" onClick={onOpenSetup}>
-                    Add buckets in Brand setup →
-                  </button>
-                )}
-              </div>
+              <DimOptions
+                options={buckets.map((b) => ({
+                  value: b.id,
+                  label: b.name,
+                  title: b.description,
+                }))}
+                selected={pick.bucketId}
+                onChange={(v) => choose("bucketId", v)}
+                emptyLabel="Add buckets in Brand setup →"
+                onEmpty={onOpenSetup}
+              />
             </div>
 
             <div className="dim">
@@ -271,17 +327,15 @@ export default function BrainstormView({
                 <span className="t-eyebrow">03 · Who</span>
                 <span className="sub">how deep we getting</span>
               </div>
-              <div className="dim-chips">
-                {WHO_OPTIONS.map((w) => (
-                  <Chip
-                    key={w.id}
-                    label={w.label}
-                    title={w.hint}
-                    on={pick.who === w.id}
-                    onClick={() => set("who", w.id as Who)}
-                  />
-                ))}
-              </div>
+              <DimOptions
+                options={WHO_OPTIONS.map((w) => ({
+                  value: w.id,
+                  label: w.label,
+                  title: w.hint,
+                }))}
+                selected={pick.who}
+                onChange={(v) => choose("who", v as Who | undefined)}
+              />
             </div>
 
             <div className="dim">
@@ -289,16 +343,13 @@ export default function BrainstormView({
                 <span className="t-eyebrow">04 · Goal action</span>
                 <span className="sub">what they should do</span>
               </div>
-              <div className="dim-chips">
-                {actions.map((a) => (
-                  <Chip key={a} label={a} on={pick.action === a} onClick={() => set("action", a)} />
-                ))}
-                {actions.length === 0 && (
-                  <button className="mini-chip" onClick={onOpenSetup}>
-                    Add goal actions in Brand setup →
-                  </button>
-                )}
-              </div>
+              <DimOptions
+                options={actions.map((a) => ({ value: a, label: a }))}
+                selected={pick.action}
+                onChange={(v) => choose("action", v)}
+                emptyLabel="Add goal actions in Brand setup →"
+                onEmpty={onOpenSetup}
+              />
             </div>
 
             <div className="dim">
@@ -306,16 +357,13 @@ export default function BrainstormView({
                 <span className="t-eyebrow">05 · Need them to feel</span>
                 <span className="sub">feeling &gt; action</span>
               </div>
-              <div className="dim-chips">
-                {feelings.map((f) => (
-                  <Chip key={f} label={f} on={pick.feeling === f} onClick={() => set("feeling", f)} />
-                ))}
-                {feelings.length === 0 && (
-                  <button className="mini-chip" onClick={onOpenSetup}>
-                    Add feelings in Brand setup →
-                  </button>
-                )}
-              </div>
+              <DimOptions
+                options={feelings.map((f) => ({ value: f, label: f }))}
+                selected={pick.feeling}
+                onChange={(v) => choose("feeling", v)}
+                emptyLabel="Add feelings in Brand setup →"
+                onEmpty={onOpenSetup}
+              />
             </div>
 
             <div className="dim">
@@ -323,22 +371,17 @@ export default function BrainstormView({
                 <span className="t-eyebrow">06 · Format</span>
                 <span className="sub">the structure of the piece</span>
               </div>
-              <div className="dim-chips">
-                {formats.map((f) => (
-                  <Chip
-                    key={f.id}
-                    label={f.name}
-                    title={f.hint}
-                    on={pick.format === f.name}
-                    onClick={() => set("format", f.name)}
-                  />
-                ))}
-                {formats.length === 0 && (
-                  <button className="mini-chip" onClick={onOpenSetup}>
-                    Add formats in Brand setup →
-                  </button>
-                )}
-              </div>
+              <DimOptions
+                options={formats.map((f) => ({
+                  value: f.name,
+                  label: f.name,
+                  title: f.hint,
+                }))}
+                selected={pick.format}
+                onChange={(v) => choose("format", v)}
+                emptyLabel="Add formats in Brand setup →"
+                onEmpty={onOpenSetup}
+              />
             </div>
           </div>
 

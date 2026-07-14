@@ -61,14 +61,21 @@ function SectionBlock({
   cardId,
   sec,
   large,
+  valueOverride,
+  onValueChange,
 }: {
   cardId: string;
   sec: Section;
   large?: boolean;
+  // When provided, the textarea reads/writes this instead of the section's own
+  // content — used to link the "Goal of Video" box to the card.goalOfVideo field.
+  valueOverride?: string;
+  onValueChange?: (value: string) => void;
 }) {
   const updateSection = usePlanner((s) => s.updateSection);
   const toggleChecklistItem = usePlanner((s) => s.toggleChecklistItem);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const bound = onValueChange !== undefined;
 
   async function handlePaste(e: React.ClipboardEvent) {
     const files = [...e.clipboardData.items]
@@ -140,9 +147,13 @@ function SectionBlock({
       ) : (
         <textarea
           className="section-textarea"
-          value={sec.content}
+          value={bound ? valueOverride ?? "" : sec.content}
           placeholder="Write here... (you can paste images too)"
-          onChange={(e) => updateSection(cardId, sec.id, { content: e.target.value })}
+          onChange={(e) =>
+            bound
+              ? onValueChange!(e.target.value)
+              : updateSection(cardId, sec.id, { content: e.target.value })
+          }
         />
       )}
 
@@ -173,8 +184,11 @@ export default function CardModal({
   const profileFeelings = useProfile((s) => s.feelings);
   const profileActions = useProfile((s) => s.actions);
   const socials = useProfile((s) => s.socials);
-  // Cards open straight into the script, whatever their status
-  const [tab, setTab] = useState<Tab>("script");
+  // Cards ready to post / already posted open on the Post tab; everything else
+  // opens straight into the script.
+  const [tab, setTab] = useState<Tab>(() =>
+    card?.status === "ready" || card?.status === "posted" ? "post" : "script"
+  );
   const [showRef, setShowRef] = useState(false);
 
   useEffect(() => {
@@ -229,7 +243,7 @@ export default function CardModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className={`modal${tab === "script" ? " full" : ""}`}
+        className={`modal${tab === "script" || tab === "plan" ? " full" : ""}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-head">
@@ -252,7 +266,7 @@ export default function CardModal({
             autoFocus={!card.title}
             onChange={(e) => updateCard(card.id, { title: e.target.value })}
           />
-          <div className="tab-switch" role="tablist">
+          <div className="tab-switch" role="tablist" data-tour="card-tabs">
             {TAB_LABELS.map((t) => (
               <button
                 key={t.id}
@@ -296,9 +310,21 @@ export default function CardModal({
         {tab === "plan" && (
           <div className="modal-body">
             <div className="modal-sections">
-              {planSections.map((sec) => (
-                <SectionBlock key={sec.id} cardId={card.id} sec={sec} />
-              ))}
+              {planSections.map((sec) =>
+                sec.title === "Goal of Video" ? (
+                  <SectionBlock
+                    key={sec.id}
+                    cardId={card.id}
+                    sec={sec}
+                    valueOverride={card.goalOfVideo ?? ""}
+                    onValueChange={(v) =>
+                      updateCard(card.id, { goalOfVideo: v })
+                    }
+                  />
+                ) : (
+                  <SectionBlock key={sec.id} cardId={card.id} sec={sec} />
+                )
+              )}
             </div>
 
             <div className="modal-props">
@@ -468,8 +494,14 @@ export default function CardModal({
           <div className={`script-body${showRef ? " with-ref" : ""}`}>
             <div className="script-pane">
               <div className="script-inner">
-                {(card.hook || card.feeling || card.delivery) && (
+                {(card.goalOfVideo ||
+                  card.hook ||
+                  card.feeling ||
+                  card.delivery) && (
                   <div className="script-context t-mono">
+                    {card.goalOfVideo && (
+                      <span className="script-goal">🎯 Goal: {card.goalOfVideo}</span>
+                    )}
                     {card.hook && <span>🪝 &quot;{card.hook}&quot;</span>}
                     {card.feeling && (
                       <span>

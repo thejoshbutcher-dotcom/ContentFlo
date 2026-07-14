@@ -82,17 +82,18 @@ export const HINT_OVERRIDES: Record<string, string> = {
 
 export function shortFormSections(): Section[] {
   return [
-    script(
+    text(
       "Visual Hook",
       "Summarize in 3–7 key words · at least one POWER word · graphic that previews value, borrows interest, or shows before→after"
     ),
+    text("Outline", "Beat-by-beat structure before you write the full script"),
+    text("Reference Link 🔗", "Link to the video you're modeling"),
+    text("Original Script", "Transcript / beats of the reference video"),
     script(
       "My Script ✍️",
       "Hook → Build Up → Value → Resolution → CTA → Loop Back"
     ),
     post("Caption for Posting 📱", "Caption + comment word if running ManyChat"),
-    text("Reference Link 🔗", "Link to the video you're modeling"),
-    text("Original Script", "Transcript / beats of the reference video"),
     text("Notes", ""),
   ];
 }
@@ -112,11 +113,8 @@ export function longFormSections(): Section[] {
       "Reference title · goal · 3 points/secrets to reveal · main question · what the viewer wants to know · what I want them to LEARN · objections",
       "Reference video title: \n\nGoal of the reference video: \n\n3 points or secrets to reveal:\n1. \n2. \n3. \n\nMain question: \n\nWhat does the viewer want to know?\n- \n\nWhat do I want the viewer to know?\n- \n\nWhat do I want the viewer to LEARN?\n- \n\nObjections or obvious answers:\n- "
     ),
-    script("Outline", ""),
-    script("🪝 Hook", "Explain the video in one sentence"),
-    script("💭 Intro", "Why watch THIS video?"),
-    script("💰 Value", ""),
-    script("↪ Outro", "Link to the next video"),
+    script("Outline", "Beat-by-beat structure before you write the full script"),
+    script("Script", "Hook → Intro → Value → CTA"),
     checklist("Publishing Checklist ✅", [
       "Upload ad-free version if sponsored",
       "Add description (friendly, no 'hey guys' — below sponsor CTA)",

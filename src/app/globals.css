@@ -449,6 +449,37 @@ body {
   text-overflow: ellipsis;
 }
 
+.topbar-refresh {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-input);
+  background: var(--ink-2);
+  color: var(--text-3);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.topbar-refresh:hover:not(:disabled) {
+  border-color: var(--amber-deep);
+  color: var(--text);
+}
+
+.topbar-refresh:disabled {
+  cursor: default;
+}
+
+/* When the refresh button is present it owns the auto-margin; the search sits
+   right beside it instead of getting its own gap. */
+.topbar-refresh + .search-input {
+  margin-left: 10px;
+}
+
 .search-input {
   margin-left: auto;
   width: 220px;
@@ -919,11 +950,337 @@ body {
 }
 
 .data-table tr {
-  cursor: pointer;
+  cursor: default;
 }
 
 .data-table tbody tr:hover td {
   background: #262a32;
+}
+
+.data-table .cell-open {
+  cursor: pointer;
+}
+
+.data-table tr.row-sel td {
+  background: rgba(247, 201, 72, 0.08);
+}
+
+/* Checkbox column */
+.col-check {
+  width: 36px;
+  text-align: center;
+}
+
+.col-check input {
+  cursor: pointer;
+  accent-color: var(--amber);
+}
+
+/* Inline-editable property cells (click to open the dropdown) */
+.cell-select {
+  appearance: none;
+  -webkit-appearance: none;
+  max-width: 100%;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: 12.5px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.cell-select:hover {
+  background: var(--ink-3);
+  border-color: var(--line-strong);
+}
+
+.cell-select:focus {
+  outline: none;
+  border-color: var(--amber-deep);
+}
+
+.cell-select option {
+  background: var(--ink-2);
+  color: var(--text);
+}
+
+.cell-tag {
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 4px 11px;
+}
+
+.cell-tag.type-short { background: rgba(50, 213, 131, 0.15); color: #6ce9a6; }
+.cell-tag.type-long { background: rgba(240, 68, 56, 0.15); color: #f97066; }
+.cell-tag.type-podcast { background: rgba(167, 139, 250, 0.15); color: #c4b0fc; }
+.cell-tag.type-carousel { background: rgba(91, 157, 245, 0.15); color: #9cc4fa; }
+
+.cell-mono {
+  font-family: var(--font-mono-ui), monospace;
+  letter-spacing: 0.06em;
+}
+
+/* Bulk-selection action bar */
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 8px 10px 8px 14px;
+  background: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-btn);
+}
+
+.bulk-count {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.bulk-clear {
+  margin-left: auto;
+  display: inline-flex;
+  padding: 5px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.bulk-clear:hover {
+  color: var(--text);
+  background: var(--ink-2);
+}
+
+.btn-danger-line {
+  background: transparent;
+  border-color: rgba(240, 68, 56, 0.5);
+  color: var(--rec);
+}
+
+.btn-danger-line:hover {
+  background: rgba(240, 68, 56, 0.12);
+}
+
+.btn-danger-solid {
+  background: var(--rec);
+  border-color: transparent;
+  color: #fff;
+}
+
+.btn-danger-solid:hover {
+  background: #d13a2e;
+}
+
+/* Confirm dialog (destructive actions) */
+.confirm-box {
+  background: var(--paper);
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius);
+  width: min(420px, 100%);
+  padding: 28px 26px 22px;
+  text-align: center;
+  box-shadow: var(--shadow-lift);
+  animation: modal-in 200ms ease;
+}
+
+.confirm-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(240, 68, 56, 0.14);
+  color: var(--rec);
+  margin-bottom: 14px;
+}
+
+.confirm-box h3 {
+  font-family: var(--font-display), sans-serif;
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+
+.confirm-box p {
+  color: var(--text-2);
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+/* ————— Guided tutorial (product tour) ————— */
+.tour-root {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  pointer-events: none;
+}
+
+.tour-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 11, 14, 0.62);
+  pointer-events: none;
+}
+
+.tour-spotlight {
+  position: fixed;
+  border-radius: 12px;
+  border: 2px solid var(--amber);
+  pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(10, 11, 14, 0.62),
+    0 0 22px 4px rgba(247, 201, 72, 0.55);
+  transition: top 140ms ease, left 140ms ease, width 140ms ease,
+    height 140ms ease;
+  animation: tour-pulse 1.9s ease-in-out infinite;
+}
+
+@keyframes tour-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 9999px rgba(10, 11, 14, 0.62),
+      0 0 18px 3px rgba(247, 201, 72, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 9999px rgba(10, 11, 14, 0.62),
+      0 0 30px 8px rgba(247, 201, 72, 0.72);
+  }
+}
+
+.tour-dialog {
+  position: fixed;
+  pointer-events: auto;
+  background: var(--card);
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-btn);
+  box-shadow: var(--shadow-lift);
+  padding: 16px 16px 12px;
+  z-index: 3001;
+  transition: top 140ms ease, left 140ms ease;
+}
+
+.tour-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  padding: 2px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.tour-close:hover {
+  color: var(--text);
+}
+
+.tour-title {
+  margin: 0 22px 6px 0;
+  font-family: var(--font-display), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--amber);
+}
+
+.tour-body {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.tour-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tour-count {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.tour-nav {
+  display: flex;
+  gap: 6px;
+}
+
+.tour-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 34px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--ink-2);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tour-btn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--amber-deep);
+}
+
+.tour-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tour-next,
+.tour-done {
+  background: var(--amber);
+  color: #181a20;
+  border-color: transparent;
+}
+
+.tour-next:hover:not(:disabled),
+.tour-done:hover:not(:disabled) {
+  background: #ffd75e;
+  color: #181a20;
+}
+
+/* Brainstorm dimension dropdown (used when a dimension has >4 options) */
+.dim-select {
+  width: 100%;
+  max-width: 320px;
+  padding: 9px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-input);
+  background: var(--ink-2);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.dim-select:focus {
+  outline: none;
+  border-color: var(--amber-deep);
+}
+
+.dim-select option {
+  background: var(--ink-2);
+  color: var(--text);
 }
 
 /* ————— Modal ————— */
@@ -1106,10 +1463,16 @@ body {
   background: transparent;
   color: var(--text);
   min-height: 64px;
+  transition: min-height 180ms ease;
 }
 
 .section-textarea::placeholder {
   color: var(--text-3);
+}
+
+/* Grow the box on focus so there's more room to write and see what you type. */
+.section-textarea:focus {
+  min-height: 200px;
 }
 
 /* ————— Pasted images ————— */
@@ -1422,6 +1785,16 @@ body {
   padding: 12px 22px 18px;
 }
 
+.script-block .section-textarea:focus {
+  min-height: 360px;
+}
+
+/* The goal reminder gets its own line at the top of the yellow context bar. */
+.script-goal {
+  flex-basis: 100%;
+  font-weight: 600;
+}
+
 .script-block {
   margin-bottom: 18px;
 }
@@ -1479,11 +1852,14 @@ body {
 }
 
 .flo-line {
-  display: inline-block;
-  margin-top: 6px;
+  display: block;
+  margin: 14px 2px 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px dotted var(--line-strong);
   color: var(--amber);
   font-family: var(--font-mono-ui), monospace;
   font-size: 11px;
+  line-height: 1.5;
 }
 
 .slate-body {

@@ -12,6 +12,8 @@ interface PlannerState {
   addCard: (partial: Partial<ContentCard> & { title: string }) => ContentCard;
   updateCard: (id: string, patch: Partial<ContentCard>) => void;
   deleteCard: (id: string) => void;
+  deleteCards: (ids: string[]) => void;
+  duplicateCards: (ids: string[]) => string[];
   moveCard: (id: string, status: string) => void;
   updateSection: (cardId: string, sectionId: string, patch: Partial<Section>) => void;
   toggleChecklistItem: (cardId: string, sectionId: string, itemId: string) => void;
@@ -47,6 +49,35 @@ export const usePlanner = create<PlannerState>()(
         }),
 
       deleteCard: (id) => set({ cards: get().cards.filter((c) => c.id !== id) }),
+
+      deleteCards: (ids) => {
+        const kill = new Set(ids);
+        set({ cards: get().cards.filter((c) => !kill.has(c.id)) });
+      },
+
+      duplicateCards: (ids) => {
+        const pick = new Set(ids);
+        const now = new Date().toISOString();
+        // Fresh ids for the card and every nested section/checklist item so the
+        // sync layer treats the copies as brand-new rows, not edits.
+        const copies = get()
+          .cards.filter((c) => pick.has(c.id))
+          .map((c) => ({
+            ...c,
+            id: newId("card"),
+            title: c.title ? `${c.title} (copy)` : "Untitled (copy)",
+            sections: c.sections.map((s) => ({
+              ...s,
+              id: newId("sec"),
+              items: s.items?.map((it) => ({ ...it, id: newId("chk") })),
+              images: s.images ? [...s.images] : undefined,
+            })),
+            createdAt: now,
+            updatedAt: now,
+          }));
+        set({ cards: [...copies, ...get().cards] });
+        return copies.map((c) => c.id);
+      },
 
       moveCard: (id, status) => get().updateCard(id, { status }),
 

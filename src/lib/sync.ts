@@ -202,6 +202,18 @@ export async function pull(supabase: SupabaseClient, profileId: string) {
   if (session) session.hydrating = wasHydrating ?? false;
 }
 
+/**
+ * Manual refresh: push anything pending, then pull the cloud's latest copy so
+ * cards added or edited on another device/session show up here. No-op when
+ * running local-only (signed out).
+ */
+export async function refreshFromCloud(): Promise<void> {
+  const s = session;
+  if (!s) return;
+  await flush();
+  await pull(s.supabase, s.profileId);
+}
+
 // ————— Change tracking —————
 
 function attachSubscriptions(s: SyncSession) {

@@ -158,7 +158,7 @@ export default function BoardView({
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="board-scroll">
-        <div className="board">
+        <div className="board" data-tour="board">
           {columns.map((col) => (
             <Column
               key={col.id}

@@ -90,30 +90,12 @@ function SectionBlock({
   const [lightbox, setLightbox] = useState<string | null>(null);
   const bound = onValueChange !== undefined;
 
-  const taRef = useRef<HTMLTextAreaElement>(null);
-  const pendingSel = useRef<[number, number] | null>(null);
   const INDENT = "  ";
 
-  // Restore the selection after a programmatic edit (controlled value resets it).
-  useLayoutEffect(() => {
-    if (pendingSel.current && taRef.current) {
-      const [s, e] = pendingSel.current;
-      taRef.current.selectionStart = s;
-      taRef.current.selectionEnd = e;
-      pendingSel.current = null;
-    }
-  });
-
-  function writeContent(value: string, selStart?: number, selEnd?: number) {
-    if (selStart !== undefined) pendingSel.current = [selStart, selEnd ?? selStart];
-    if (bound) onValueChange!(value);
-    else updateSection(cardId, sec.id, { content: value });
-  }
-
-  // Smart lists + indent in a plain textarea:
-  //  - Tab / Shift+Tab indent or outdent the current line(s)
-  //  - typing "-"/"*" then space becomes a real "• " bullet
-  //  - Enter after "• x" or "1. x" starts the next item; empty item exits
+  // Smart lists + indent, applied through the browser's own editing engine
+  // (execCommand) instead of a React state write, so every change stays on the
+  // native undo stack and Cmd/Ctrl+Z works. The insert/delete fire input events
+  // that keep the store in sync via onChange.
   function handleTextareaKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.nativeEvent.isComposing) return;
     const ta = e.currentTarget;
@@ -139,10 +121,9 @@ function SectionBlock({
         totalDelta += INDENT.length;
         return INDENT + ln;
       });
-      const newValue =
-        value.slice(0, firstLineStart) + out.join("\n") + value.slice(selEnd);
-      writeContent(
-        newValue,
+      ta.setSelectionRange(firstLineStart, selEnd);
+      document.execCommand("insertText", false, out.join("\n"));
+      ta.setSelectionRange(
         Math.max(firstLineStart, selStart + firstDelta),
         selEnd + totalDelta
       );
@@ -155,14 +136,10 @@ function SectionBlock({
 
     // Space right after a lone dash/asterisk -> turn it into a real bullet.
     if (e.key === " ") {
-      const start = value.slice(lineStart, pos).match(/^(\s*)([-*])$/);
-      if (!start) return;
+      if (!value.slice(lineStart, pos).match(/^\s*[-*]$/)) return;
       e.preventDefault();
-      const line = `${start[1]}• `;
-      writeContent(
-        value.slice(0, lineStart) + line + value.slice(pos),
-        lineStart + line.length
-      );
+      ta.setSelectionRange(pos - 1, pos); // select the dash
+      document.execCommand("insertText", false, "• ");
       return;
     }
 
@@ -176,14 +153,14 @@ function SectionBlock({
     const m = (bullet ?? numbered)!;
     if (m[3].trim() === "") {
       // Empty item — drop the marker and exit the list.
-      writeContent(value.slice(0, lineStart) + value.slice(pos), lineStart);
+      ta.setSelectionRange(lineStart, pos);
+      document.execCommand("delete");
       return;
     }
     const marker = bullet
       ? `${m[1]}• `
       : `${m[1]}${parseInt(numbered![2], 10) + 1}. `;
-    const insert = `\n${marker}`;
-    writeContent(value.slice(0, pos) + insert + value.slice(pos), pos + insert.length);
+    document.execCommand("insertText", false, `\n${marker}`);
   }
 
   async function handlePaste(e: React.ClipboardEvent) {
@@ -255,7 +232,6 @@ function SectionBlock({
         </div>
       ) : (
         <textarea
-          ref={taRef}
           className="section-textarea"
           value={bound ? valueOverride ?? "" : sec.content}
           placeholder="Write here... (you can paste images too)"

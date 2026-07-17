@@ -108,18 +108,35 @@ function SectionBlock({
     else updateSection(cardId, sec.id, { content: value });
   }
 
-  // Markdown-style list continuation: Enter after "- x" or "1. x" starts the
-  // next item; Enter on an empty item leaves the list.
+  // Smart lists in a plain textarea:
+  //  - typing "-"/"*" then space becomes a real "• " bullet
+  //  - Enter after "• x" or "1. x" starts the next item
+  //  - Enter on an empty item leaves the list
   function handleTextareaKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+    if (e.nativeEvent.isComposing) return;
     const ta = e.currentTarget;
     if (ta.selectionStart !== ta.selectionEnd) return;
     const pos = ta.selectionStart;
     const value = ta.value;
-    if (pos !== value.length && value[pos] !== "\n") return; // only at line end
     const lineStart = value.lastIndexOf("\n", pos - 1) + 1;
+
+    // Space right after a lone dash/asterisk -> turn it into a real bullet.
+    if (e.key === " ") {
+      const start = value.slice(lineStart, pos).match(/^(\s*)([-*])$/);
+      if (!start) return;
+      e.preventDefault();
+      const line = `${start[1]}• `;
+      writeContent(
+        value.slice(0, lineStart) + line + value.slice(pos),
+        lineStart + line.length
+      );
+      return;
+    }
+
+    if (e.key !== "Enter" || e.shiftKey) return;
+    if (pos !== value.length && value[pos] !== "\n") return; // only at line end
     const line = value.slice(lineStart, pos);
-    const bullet = line.match(/^(\s*)([-*])\s+(.*)$/);
+    const bullet = line.match(/^(\s*)([-*•])\s+(.*)$/);
     const numbered = bullet ? null : line.match(/^(\s*)(\d+)\.\s+(.*)$/);
     if (!bullet && !numbered) return;
     e.preventDefault();
@@ -130,7 +147,7 @@ function SectionBlock({
       return;
     }
     const marker = bullet
-      ? `${m[1]}${bullet[2]} `
+      ? `${m[1]}• `
       : `${m[1]}${parseInt(numbered![2], 10) + 1}. `;
     const insert = `\n${marker}`;
     writeContent(value.slice(0, pos) + insert + value.slice(pos), pos + insert.length);

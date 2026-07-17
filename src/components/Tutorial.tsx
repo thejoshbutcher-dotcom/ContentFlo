@@ -50,8 +50,9 @@ const STEPS: TourStep[] = [
   {
     selector: '[data-tour="add-to-pipeline"]',
     title: "4. Add to pipeline",
-    body: "Happy with the idea? Send it to your production pipeline as a card. It lands in the Ideas column, ready to develop.",
+    body: "Happy with the idea? Send it to your production pipeline as a card. It lands in the Ideas column, and jumps you to that board.",
     view: "ideate",
+    clickAdvance: true,
     placement: "top",
   },
   {

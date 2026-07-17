@@ -91,33 +91,66 @@ function SectionBlock({
   const bound = onValueChange !== undefined;
 
   const taRef = useRef<HTMLTextAreaElement>(null);
-  const pendingCursor = useRef<number | null>(null);
+  const pendingSel = useRef<[number, number] | null>(null);
+  const INDENT = "  ";
 
-  // Restore the caret after a programmatic edit (controlled value resets it).
+  // Restore the selection after a programmatic edit (controlled value resets it).
   useLayoutEffect(() => {
-    if (pendingCursor.current !== null && taRef.current) {
-      taRef.current.selectionStart = taRef.current.selectionEnd =
-        pendingCursor.current;
-      pendingCursor.current = null;
+    if (pendingSel.current && taRef.current) {
+      const [s, e] = pendingSel.current;
+      taRef.current.selectionStart = s;
+      taRef.current.selectionEnd = e;
+      pendingSel.current = null;
     }
   });
 
-  function writeContent(value: string, cursor?: number) {
-    if (cursor !== undefined) pendingCursor.current = cursor;
+  function writeContent(value: string, selStart?: number, selEnd?: number) {
+    if (selStart !== undefined) pendingSel.current = [selStart, selEnd ?? selStart];
     if (bound) onValueChange!(value);
     else updateSection(cardId, sec.id, { content: value });
   }
 
-  // Smart lists in a plain textarea:
+  // Smart lists + indent in a plain textarea:
+  //  - Tab / Shift+Tab indent or outdent the current line(s)
   //  - typing "-"/"*" then space becomes a real "• " bullet
-  //  - Enter after "• x" or "1. x" starts the next item
-  //  - Enter on an empty item leaves the list
+  //  - Enter after "• x" or "1. x" starts the next item; empty item exits
   function handleTextareaKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.nativeEvent.isComposing) return;
     const ta = e.currentTarget;
-    if (ta.selectionStart !== ta.selectionEnd) return;
-    const pos = ta.selectionStart;
     const value = ta.value;
+    const selStart = ta.selectionStart;
+    const selEnd = ta.selectionEnd;
+
+    // Tab indents (Shift+Tab outdents) every line the selection touches.
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const firstLineStart = value.lastIndexOf("\n", selStart - 1) + 1;
+      const lines = value.slice(firstLineStart, selEnd).split("\n");
+      let firstDelta = 0;
+      let totalDelta = 0;
+      const out = lines.map((ln, i) => {
+        if (e.shiftKey) {
+          const r = ln.match(/^ {1,2}/)?.[0].length ?? 0;
+          if (i === 0) firstDelta = -r;
+          totalDelta -= r;
+          return ln.slice(r);
+        }
+        if (i === 0) firstDelta = INDENT.length;
+        totalDelta += INDENT.length;
+        return INDENT + ln;
+      });
+      const newValue =
+        value.slice(0, firstLineStart) + out.join("\n") + value.slice(selEnd);
+      writeContent(
+        newValue,
+        Math.max(firstLineStart, selStart + firstDelta),
+        selEnd + totalDelta
+      );
+      return;
+    }
+
+    if (selStart !== selEnd) return; // the rest only applies to a plain caret
+    const pos = selStart;
     const lineStart = value.lastIndexOf("\n", pos - 1) + 1;
 
     // Space right after a lone dash/asterisk -> turn it into a real bullet.

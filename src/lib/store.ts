@@ -25,7 +25,9 @@ interface PlannerState {
   deleteCards: (ids: string[]) => void;
   duplicateCards: (ids: string[]) => string[];
   moveCard: (id: string, status: string) => void;
+  moveCards: (ids: string[], status: string) => void;
   moveCardBucket: (id: string, bucketId: string) => void;
+  moveCardsBucket: (ids: string[], bucketId: string) => void;
   updateSection: (cardId: string, sectionId: string, patch: Partial<Section>) => void;
   toggleChecklistItem: (cardId: string, sectionId: string, itemId: string) => void;
   applyTemplate: (cardId: string, type: ContentType) => void;
@@ -112,12 +114,46 @@ export const usePlanner = create<PlannerState>()(
         get().updateCard(id, { status });
       },
 
+      moveCards: (ids, status) => {
+        const pick = new Set(ids);
+        const affected = get().cards.filter((c) => pick.has(c.id) && c.status !== status);
+        if (!affected.length) return;
+        push({
+          kind: "patch",
+          patches: affected.map((c) => ({ id: c.id, patch: { status: c.status } })),
+        });
+        const now = new Date().toISOString();
+        set({
+          cards: get().cards.map((c) =>
+            pick.has(c.id) ? { ...c, status, updatedAt: now } : c
+          ),
+        });
+      },
+
       moveCardBucket: (id, bucketId) => {
         const card = get().cards.find((c) => c.id === id);
         if (card && card.bucketId !== bucketId) {
           push({ kind: "patch", patches: [{ id, patch: { bucketId: card.bucketId } }] });
         }
         get().updateCard(id, { bucketId });
+      },
+
+      moveCardsBucket: (ids, bucketId) => {
+        const pick = new Set(ids);
+        const affected = get().cards.filter(
+          (c) => pick.has(c.id) && c.bucketId !== bucketId
+        );
+        if (!affected.length) return;
+        push({
+          kind: "patch",
+          patches: affected.map((c) => ({ id: c.id, patch: { bucketId: c.bucketId } })),
+        });
+        const now = new Date().toISOString();
+        set({
+          cards: get().cards.map((c) =>
+            pick.has(c.id) ? { ...c, bucketId, updatedAt: now } : c
+          ),
+        });
       },
 
       updateSection: (cardId, sectionId, patch) =>

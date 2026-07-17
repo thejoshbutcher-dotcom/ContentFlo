@@ -1,5 +1,6 @@
 "use client";
 
+import type { MouseEvent } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { STATUS_COLORS, STATUSES } from "@/lib/seed";
 import { useProfile } from "@/lib/profile";
@@ -86,25 +87,40 @@ export default function CardItem({
   onOpen,
   showStatus,
   showBucket,
+  selected,
+  onToggleSelect,
 }: {
   card: ContentCard;
   onOpen: (id: string) => void;
   showStatus?: boolean;
   showBucket?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string, additive: boolean) => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: card.id,
   });
+
+  function handleClick(e: MouseEvent) {
+    // Cmd/Ctrl/Shift-click toggles selection; a plain click opens the card.
+    if (e.metaKey || e.ctrlKey || e.shiftKey) {
+      e.preventDefault();
+      onToggleSelect?.(card.id, true);
+    } else {
+      onOpen(card.id);
+    }
+  }
 
   return (
     <div
       ref={setNodeRef}
       {...listeners}
       {...attributes}
+      data-card-id={card.id}
       className={`content-card${isDragging ? " dragging" : ""}${
         card.thumbnail ? " has-thumb" : ""
-      }`}
-      onClick={() => onOpen(card.id)}
+      }${selected ? " selected" : ""}`}
+      onClick={handleClick}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {

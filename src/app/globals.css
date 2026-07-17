@@ -1964,6 +1964,28 @@ body {
   border-color: var(--amber);
 }
 
+.slate-goal-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--line-strong);
+  background: transparent;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font-body), sans-serif;
+  font-size: 13.5px;
+  padding: 6px 2px;
+  margin-bottom: 14px;
+  transition: border-color 150ms ease;
+}
+
+.slate-goal-input::placeholder {
+  color: var(--text-3);
+}
+
+.slate-goal-input:focus {
+  border-color: var(--amber);
+}
+
 .slate-actions {
   display: flex;
   gap: 10px;

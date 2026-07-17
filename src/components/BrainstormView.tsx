@@ -119,6 +119,7 @@ export default function BrainstormView({
   const brandName = useProfile((s) => s.brandName);
   const [pick, setPick] = useState<Pick>({ dest: "Short form" });
   const [title, setTitle] = useState("");
+  const [goal, setGoal] = useState("");
   const [sent, setSent] = useState<string | null>(null);
 
   // Direct set (chips toggle via the same path; a dropdown reports the exact choice).
@@ -171,10 +172,14 @@ export default function BrainstormView({
       who: pick.who,
       action: pick.action,
       feeling: pick.feeling,
+      goalOfVideo: goal.trim() || undefined,
       sections,
     });
     setSent(card.id);
     setTitle("");
+    setGoal("");
+    // Drop the user straight onto the board they sent it to.
+    onGoToBoard(pick.dest);
   }
 
   const resultBlock = (
@@ -184,6 +189,12 @@ export default function BrainstormView({
         placeholder={autoTitle ? autoTitle.toUpperCase() : "WORKING TITLE..."}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
+      />
+      <input
+        className="slate-goal-input"
+        placeholder="Goal of this video — what should it DO for the viewer?"
+        value={goal}
+        onChange={(e) => setGoal(e.target.value)}
       />
       {(
         [

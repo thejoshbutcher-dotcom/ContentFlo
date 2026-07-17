@@ -228,6 +228,65 @@ function SectionBlock({
   );
 }
 
+/** Long-form thumbnail: upload or paste one image; it drives the board card. */
+function ThumbnailField({ card }: { card: ContentCard }) {
+  const updateCard = usePlanner((s) => s.updateCard);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function setFromFiles(files: FileList | File[] | null) {
+    const img = [...(files ?? [])].find((f) => f.type.startsWith("image/"));
+    if (!img) return;
+    updateCard(card.id, { thumbnail: await compressImage(img) });
+  }
+
+  async function onPaste(e: React.ClipboardEvent) {
+    const files = [...e.clipboardData.items]
+      .filter((it) => it.type.startsWith("image/"))
+      .map((it) => it.getAsFile())
+      .filter((f): f is File => f !== null);
+    if (!files.length) return;
+    e.preventDefault();
+    await setFromFiles(files);
+  }
+
+  return (
+    <div className="section-block thumb-field" onPaste={onPaste}>
+      <div className="section-head">
+        <span className="section-title">Thumbnail</span>
+        <span className="section-hint">
+          Upload or paste your video thumbnail — it becomes the card on the board
+        </span>
+      </div>
+      {card.thumbnail ? (
+        <div className="thumb-preview">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={card.thumbnail} alt="Video thumbnail" />
+          <button
+            className="thumb-remove"
+            aria-label="Remove thumbnail"
+            onClick={() => updateCard(card.id, { thumbnail: undefined })}
+          >
+            <X size={13} />
+          </button>
+        </div>
+      ) : (
+        <button className="thumb-drop" onClick={() => fileRef.current?.click()}>
+          <ImagePlus size={20} />
+          <span>Upload a thumbnail</span>
+          <span className="thumb-drop-sub">or click here and paste from clipboard</span>
+        </button>
+      )}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(e) => setFromFiles(e.target.files)}
+      />
+    </div>
+  );
+}
+
 export default function CardModal({
   cardId,
   onClose,
@@ -380,6 +439,9 @@ export default function CardModal({
         {tab === "plan" && (
           <div className="modal-body">
             <div className="modal-sections">
+              {card.contentType === "Long form" && (
+                <ThumbnailField card={card} />
+              )}
               {planSections.map((sec) =>
                 sec.title === "Goal of Video" ? (
                   <SectionBlock

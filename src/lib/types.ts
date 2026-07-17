@@ -38,6 +38,8 @@ export interface ContentCard {
   ctaLink?: string;
   series?: string;
   referenceUrl?: string;
+  // Long-form video thumbnail (compressed JPEG data URL); shown on the board.
+  thumbnail?: string;
   // Ideation flow fields
   topic?: string;
   pillar?: string;

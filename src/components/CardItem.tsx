@@ -43,6 +43,12 @@ export function CardBody({
 
   return (
     <>
+      {card.thumbnail && (
+        <div className="card-thumb">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={card.thumbnail} alt="" />
+        </div>
+      )}
       <div className="card-title">{card.title || "Untitled"}</div>
       <div className="card-meta">
         {card.contentType && (
@@ -95,7 +101,9 @@ export default function CardItem({
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className={`content-card${isDragging ? " dragging" : ""}`}
+      className={`content-card${isDragging ? " dragging" : ""}${
+        card.thumbnail ? " has-thumb" : ""
+      }`}
       onClick={() => onOpen(card.id)}
       role="button"
       tabIndex={0}

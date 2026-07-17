@@ -47,7 +47,7 @@ export function cardToRow(
   card: ContentCard,
   userId: string,
   profileId: string
-): Omit<CardRow, "deleted_at"> {
+): CardRow {
   return {
     id: card.id,
     profile_id: profileId,
@@ -60,6 +60,9 @@ export function cardToRow(
     posting_date: card.postingDate ? card.postingDate : null,
     body: card,
     updated_at: card.updatedAt ?? new Date().toISOString(),
+    // Any upsert clears the tombstone — a live/restored card is not deleted.
+    // This is what lets Cmd+Z bring a deleted card back in the cloud too.
+    deleted_at: null,
   };
 }
 

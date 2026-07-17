@@ -318,6 +318,7 @@ export default function CardModal({
   const card = usePlanner((s) => s.cards.find((c) => c.id === cardId));
   const updateCard = usePlanner((s) => s.updateCard);
   const deleteCard = usePlanner((s) => s.deleteCard);
+  const moveCard = usePlanner((s) => s.moveCard);
   const applyTemplate = usePlanner((s) => s.applyTemplate);
   const buckets = useProfile((s) => s.buckets);
   const profileTopics = useProfile((s) => s.topics);
@@ -385,7 +386,7 @@ export default function CardModal({
 
   function setStatus(statusId: string) {
     if (!card) return;
-    updateCard(card.id, { status: statusId });
+    moveCard(card.id, statusId); // undoable status change
     // Changing status jumps to the matching phase (packaged -> scripting shows Script).
     setTab(tabForStatus(statusId));
   }

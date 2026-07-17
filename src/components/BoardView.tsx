@@ -83,7 +83,7 @@ export default function BoardView({
 }) {
   const cards = usePlanner((s) => s.cards);
   const moveCard = usePlanner((s) => s.moveCard);
-  const updateCard = usePlanner((s) => s.updateCard);
+  const moveCardBucket = usePlanner((s) => s.moveCardBucket);
   const addCard = usePlanner((s) => s.addCard);
   const buckets = useProfile((s) => s.buckets);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -139,7 +139,7 @@ export default function BoardView({
     if (groupBy === "status") {
       moveCard(cardId, colId);
     } else {
-      updateCard(cardId, { bucketId: colId });
+      moveCardBucket(cardId, colId);
     }
   }
 

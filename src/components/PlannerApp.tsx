@@ -100,6 +100,23 @@ export default function PlannerApp() {
   const addCard = usePlanner((s) => s.addCard);
 
   useEffect(() => setMounted(true), []);
+
+  // Cmd/Ctrl+Z undoes the last card delete / move / duplicate. Skip it while a
+  // text field is focused so the browser's own text undo keeps working there.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const isZ = e.key === "z" || e.key === "Z";
+      if (!isZ || e.shiftKey || !(e.metaKey || e.ctrlKey)) return;
+      const el = document.activeElement as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || el?.isContentEditable) return;
+      e.preventDefault();
+      usePlanner.getState().undo();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   if (!mounted) {
     return (
       <div className="app-frame">

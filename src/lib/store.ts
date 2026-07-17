@@ -7,25 +7,43 @@ import { seedCards } from "./seed";
 import { newId, sectionsFor } from "./templates";
 import { ContentCard, ContentType, Section } from "./types";
 
+// Undo history for card-level actions (delete / move / duplicate). Each entry
+// knows how to reverse itself; kept small and never persisted.
+type UndoAction =
+  | { kind: "readd"; cards: ContentCard[] } // undo a delete
+  | { kind: "patch"; patches: { id: string; patch: Partial<ContentCard> }[] } // undo a move
+  | { kind: "remove"; ids: string[] }; // undo a duplicate
+
+const HISTORY_MAX = 50;
+
 interface PlannerState {
   cards: ContentCard[];
+  history: UndoAction[];
   addCard: (partial: Partial<ContentCard> & { title: string }) => ContentCard;
   updateCard: (id: string, patch: Partial<ContentCard>) => void;
   deleteCard: (id: string) => void;
   deleteCards: (ids: string[]) => void;
   duplicateCards: (ids: string[]) => string[];
   moveCard: (id: string, status: string) => void;
+  moveCardBucket: (id: string, bucketId: string) => void;
   updateSection: (cardId: string, sectionId: string, patch: Partial<Section>) => void;
   toggleChecklistItem: (cardId: string, sectionId: string, itemId: string) => void;
   applyTemplate: (cardId: string, type: ContentType) => void;
   importAll: (cards: ContentCard[]) => void;
   resetToSeed: () => void;
+  /** Reverse the most recent card delete / move / duplicate. */
+  undo: () => void;
 }
 
 export const usePlanner = create<PlannerState>()(
   persist(
-    (set, get) => ({
+    (set, get) => {
+      const push = (action: UndoAction) =>
+        set({ history: [...get().history, action].slice(-HISTORY_MAX) });
+
+      return {
       cards: seedCards(),
+      history: [],
 
       addCard: (partial) => {
         const now = new Date().toISOString();
@@ -48,10 +66,16 @@ export const usePlanner = create<PlannerState>()(
           ),
         }),
 
-      deleteCard: (id) => set({ cards: get().cards.filter((c) => c.id !== id) }),
+      deleteCard: (id) => {
+        const card = get().cards.find((c) => c.id === id);
+        if (card) push({ kind: "readd", cards: [card] });
+        set({ cards: get().cards.filter((c) => c.id !== id) });
+      },
 
       deleteCards: (ids) => {
         const kill = new Set(ids);
+        const removed = get().cards.filter((c) => kill.has(c.id));
+        if (removed.length) push({ kind: "readd", cards: removed });
         set({ cards: get().cards.filter((c) => !kill.has(c.id)) });
       },
 
@@ -76,10 +100,25 @@ export const usePlanner = create<PlannerState>()(
             updatedAt: now,
           }));
         set({ cards: [...copies, ...get().cards] });
+        push({ kind: "remove", ids: copies.map((c) => c.id) });
         return copies.map((c) => c.id);
       },
 
-      moveCard: (id, status) => get().updateCard(id, { status }),
+      moveCard: (id, status) => {
+        const card = get().cards.find((c) => c.id === id);
+        if (card && card.status !== status) {
+          push({ kind: "patch", patches: [{ id, patch: { status: card.status } }] });
+        }
+        get().updateCard(id, { status });
+      },
+
+      moveCardBucket: (id, bucketId) => {
+        const card = get().cards.find((c) => c.id === id);
+        if (card && card.bucketId !== bucketId) {
+          push({ kind: "patch", patches: [{ id, patch: { bucketId: card.bucketId } }] });
+        }
+        get().updateCard(id, { bucketId });
+      },
 
       updateSection: (cardId, sectionId, patch) =>
         set({
@@ -126,10 +165,44 @@ export const usePlanner = create<PlannerState>()(
       importAll: (cards) => set({ cards }),
 
       resetToSeed: () => set({ cards: seedCards() }),
-    }),
+
+      undo: () => {
+        const h = get().history;
+        if (!h.length) return;
+        const action = h[h.length - 1];
+        set({ history: h.slice(0, -1) });
+        const now = new Date().toISOString();
+
+        if (action.kind === "readd") {
+          // Bump updatedAt so the restore wins last-write-wins and clears the
+          // cloud tombstone (via cardToRow's deleted_at: null on the upsert).
+          const restored = action.cards.map((c) => ({ ...c, updatedAt: now }));
+          const existing = new Set(get().cards.map((c) => c.id));
+          set({
+            cards: [
+              ...restored.filter((c) => !existing.has(c.id)),
+              ...get().cards,
+            ],
+          });
+        } else if (action.kind === "patch") {
+          const byId = new Map(action.patches.map((p) => [p.id, p.patch]));
+          set({
+            cards: get().cards.map((c) =>
+              byId.has(c.id) ? { ...c, ...byId.get(c.id), updatedAt: now } : c
+            ),
+          });
+        } else {
+          const rm = new Set(action.ids);
+          set({ cards: get().cards.filter((c) => !rm.has(c.id)) });
+        }
+      },
+      };
+    },
     {
       name: plannerKey(activeAccountId()),
       version: 2,
+      // Never persist the undo history — it resets each session.
+      partialize: (state) => ({ cards: state.cards }),
       migrate: (persisted) => {
         const state = persisted as PlannerState;
         const IDEA_LANES: Record<string, string> = {

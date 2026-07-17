@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BookOpen, ImagePlus, Trash2, X } from "lucide-react";
 import { usePlanner } from "@/lib/store";
 import { useProfile } from "@/lib/profile";
@@ -27,6 +27,14 @@ const TAB_LABELS: { id: Tab; label: string }[] = [
   { id: "script", label: "Script" },
   { id: "post", label: "Post" },
 ];
+
+/** Which tab a card's production status should surface. */
+function tabForStatus(status: string): Tab {
+  if (status === "ready" || status === "posted") return "post";
+  if (status === "scripting" || status === "filming" || status === "editing")
+    return "script";
+  return "plan"; // ideas, up-next, packaged
+}
 
 function sectionsAreEmpty(card: ContentCard) {
   return card.sections.every(
@@ -81,6 +89,52 @@ function SectionBlock({
   const toggleChecklistItem = usePlanner((s) => s.toggleChecklistItem);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const bound = onValueChange !== undefined;
+
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const pendingCursor = useRef<number | null>(null);
+
+  // Restore the caret after a programmatic edit (controlled value resets it).
+  useLayoutEffect(() => {
+    if (pendingCursor.current !== null && taRef.current) {
+      taRef.current.selectionStart = taRef.current.selectionEnd =
+        pendingCursor.current;
+      pendingCursor.current = null;
+    }
+  });
+
+  function writeContent(value: string, cursor?: number) {
+    if (cursor !== undefined) pendingCursor.current = cursor;
+    if (bound) onValueChange!(value);
+    else updateSection(cardId, sec.id, { content: value });
+  }
+
+  // Markdown-style list continuation: Enter after "- x" or "1. x" starts the
+  // next item; Enter on an empty item leaves the list.
+  function handleTextareaKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
+    const ta = e.currentTarget;
+    if (ta.selectionStart !== ta.selectionEnd) return;
+    const pos = ta.selectionStart;
+    const value = ta.value;
+    if (pos !== value.length && value[pos] !== "\n") return; // only at line end
+    const lineStart = value.lastIndexOf("\n", pos - 1) + 1;
+    const line = value.slice(lineStart, pos);
+    const bullet = line.match(/^(\s*)([-*])\s+(.*)$/);
+    const numbered = bullet ? null : line.match(/^(\s*)(\d+)\.\s+(.*)$/);
+    if (!bullet && !numbered) return;
+    e.preventDefault();
+    const m = (bullet ?? numbered)!;
+    if (m[3].trim() === "") {
+      // Empty item — drop the marker and exit the list.
+      writeContent(value.slice(0, lineStart) + value.slice(pos), lineStart);
+      return;
+    }
+    const marker = bullet
+      ? `${m[1]}${bullet[2]} `
+      : `${m[1]}${parseInt(numbered![2], 10) + 1}. `;
+    const insert = `\n${marker}`;
+    writeContent(value.slice(0, pos) + insert + value.slice(pos), pos + insert.length);
+  }
 
   async function handlePaste(e: React.ClipboardEvent) {
     const files = [...e.clipboardData.items]
@@ -151,9 +205,11 @@ function SectionBlock({
         </div>
       ) : (
         <textarea
+          ref={taRef}
           className="section-textarea"
           value={bound ? valueOverride ?? "" : sec.content}
           placeholder="Write here... (you can paste images too)"
+          onKeyDown={handleTextareaKey}
           onChange={(e) =>
             bound
               ? onValueChange!(e.target.value)
@@ -189,11 +245,8 @@ export default function CardModal({
   const profileFeelings = useProfile((s) => s.feelings);
   const profileActions = useProfile((s) => s.actions);
   const socials = useProfile((s) => s.socials);
-  // Cards ready to post / already posted open on the Post tab; everything else
-  // opens straight into the script.
-  const [tab, setTab] = useState<Tab>(() =>
-    card?.status === "ready" || card?.status === "posted" ? "post" : "script"
-  );
+  // Open on the tab that matches the card's production status.
+  const [tab, setTab] = useState<Tab>(() => tabForStatus(card?.status ?? "ideas"));
   const [showRef, setShowRef] = useState(false);
 
   useEffect(() => {
@@ -253,6 +306,8 @@ export default function CardModal({
   function setStatus(statusId: string) {
     if (!card) return;
     updateCard(card.id, { status: statusId });
+    // Changing status jumps to the matching phase (packaged -> scripting shows Script).
+    setTab(tabForStatus(statusId));
   }
 
   return (

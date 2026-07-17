@@ -1411,6 +1411,14 @@ body {
   padding: 18px 22px 40px;
 }
 
+/* Keep the Plan/Post text boxes at a comfortable typing width instead of
+   stretching across a full-screen modal. */
+.modal-sections .section-block {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .modal-props {
   border-left: 1px solid var(--line-strong);
   background: var(--ink);

@@ -300,13 +300,8 @@ function ThumbnailField({ card }: { card: ContentCard }) {
   }
 
   return (
-    <div className="section-block thumb-field" onPaste={onPaste}>
-      <div className="section-head">
-        <span className="section-title">Thumbnail</span>
-        <span className="section-hint">
-          Upload or paste your video thumbnail — it becomes the card on the board
-        </span>
-      </div>
+    <div className="prop-thumb" onPaste={onPaste}>
+      <div className="prop-label t-eyebrow">Thumbnail</div>
       {card.thumbnail ? (
         <div className="thumb-preview">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -321,9 +316,9 @@ function ThumbnailField({ card }: { card: ContentCard }) {
         </div>
       ) : (
         <button className="thumb-drop" onClick={() => fileRef.current?.click()}>
-          <ImagePlus size={20} />
-          <span>Upload a thumbnail</span>
-          <span className="thumb-drop-sub">or click here and paste from clipboard</span>
+          <ImagePlus size={18} />
+          <span>Upload</span>
+          <span className="thumb-drop-sub">or click + paste from clipboard</span>
         </button>
       )}
       <input
@@ -489,9 +484,6 @@ export default function CardModal({
         {tab === "plan" && (
           <div className="modal-body">
             <div className="modal-sections">
-              {card.contentType === "Long form" && (
-                <ThumbnailField card={card} />
-              )}
               {planSections.map((sec) =>
                 sec.title === "Goal of Video" ? (
                   <SectionBlock
@@ -595,6 +587,8 @@ export default function CardModal({
                 placeholder="e.g. You ever notice?"
                 onChange={(e) => updateCard(card.id, { series: e.target.value })}
               />
+
+              {card.contentType === "Long form" && <ThumbnailField card={card} />}
 
               <div className="props-divider">
                 <div className="t-eyebrow" style={{ color: "var(--amber)" }}>

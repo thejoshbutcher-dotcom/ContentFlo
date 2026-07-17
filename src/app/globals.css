@@ -1503,21 +1503,25 @@ body {
   min-height: 200px;
 }
 
-/* ————— Long-form thumbnail field (Plan tab) ————— */
+/* ————— Long-form thumbnail field (Plan sidebar, under Series) ————— */
+.prop-thumb {
+  margin-top: 14px;
+}
+
 .thumb-drop {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 3px;
-  width: calc(100% - 32px);
-  margin: 4px 16px 14px;
-  padding: 22px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 16px 12px;
   border: 1px dashed var(--line-strong);
-  border-radius: var(--radius-btn);
+  border-radius: var(--radius-input);
   background: transparent;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   transition: border-color 150ms ease, color 150ms ease;
@@ -1529,16 +1533,17 @@ body {
 }
 
 .thumb-drop-sub {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 400;
   color: var(--text-3);
+  text-align: center;
 }
 
 .thumb-preview {
   position: relative;
-  margin: 4px 16px 14px;
+  margin-top: 6px;
   aspect-ratio: 16 / 9;
-  border-radius: var(--radius-btn);
+  border-radius: var(--radius-input);
   overflow: hidden;
   background: var(--ink);
 }

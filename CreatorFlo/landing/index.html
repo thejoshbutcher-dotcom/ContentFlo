@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CreatorFlo — The content OS for creators</title>
 <meta name="description" content="Never wonder what to post again. Plan, script, organize, and publish your content from one workspace built for creators. One-time $29.">
+<link rel="canonical" href="https://getcreatorflo.io/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://getcreatorflo.io/">
+<meta property="og:title" content="CreatorFlo — The content OS for creators">
+<meta property="og:description" content="Never wonder what to post again. Plan, script, organize, and publish your content from one workspace built for creators. One-time $29.">
+<meta property="og:image" content="https://getcreatorflo.io/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CreatorFlo — The content OS for creators">
+<meta name="twitter:description" content="Never wonder what to post again. One workspace for your entire content workflow. $29 once.">
+<meta name="twitter:image" content="https://getcreatorflo.io/assets/og.png">
 <link rel="icon" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,7 +48,7 @@
   --mono:"Geist Mono",ui-monospace,monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;scrollbar-gutter:stable}
 body{
   background:var(--paper);
   color:var(--text);
@@ -57,8 +69,8 @@ button{font-family:inherit;cursor:pointer}
   font-family:var(--mono);font-size:11px;font-weight:500;
   text-transform:uppercase;letter-spacing:.18em;color:var(--amber);
 }
-h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em}
-.lede{color:var(--text-2);font-size:18px;max-width:560px}
+h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em;text-wrap:balance}
+.lede{color:var(--text-2);font-size:18px;max-width:560px;text-wrap:pretty}
 
 /* ————— Buttons ————— */
 .btn{
@@ -108,7 +120,7 @@ h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em}
 .hero .eyebrow{display:inline-flex;align-items:center;gap:10px}
 .hero .eyebrow::before,.hero .eyebrow::after{content:"";width:26px;height:1px;background:var(--border)}
 .hero h1{
-  font-size:clamp(44px,7.4vw,86px);font-weight:800;letter-spacing:-.045em;
+  font-size:clamp(44px,7.4vw,86px);font-weight:800;letter-spacing:-.035em;
   margin:22px auto 18px;max-width:14ch;
 }
 .hero h1 .flo{color:var(--amber)}
@@ -130,9 +142,9 @@ h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em}
 }
 .demo-hint .dot{width:7px;height:7px;border-radius:99px;background:var(--success);animation:pulse 2.2s ease infinite}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(50,213,131,.5)}50%{box-shadow:0 0 0 6px rgba(50,213,131,0)}}
-.demo-scene{perspective:1600px;padding-bottom:96px}
+.demo-scene{perspective:1600px;padding-bottom:96px;--dw:min(1240px,calc(100vw - 40px));width:var(--dw);margin-left:calc((100% - var(--dw)) / 2)}
 .demo-frame{
-  position:relative;max-width:1020px;margin:0 auto;text-align:left;
+  position:relative;max-width:100%;margin:0 auto;text-align:left;
   background:var(--ink);border:1px solid var(--border);border-radius:var(--radius);
   box-shadow:var(--shadow-lift),0 0 0 1px rgba(255,255,255,.02) inset,0 60px 140px -40px rgba(247,201,72,.13);
   transform:rotateX(9deg) scale(.985);transform-origin:50% 0;
@@ -155,7 +167,7 @@ h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em}
   font-family:var(--mono);font-size:11px;color:var(--text-3);
   background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:4px 12px;
 }
-.demo-body{display:grid;grid-template-columns:188px 1fr;height:580px}
+.demo-body{display:grid;grid-template-columns:204px 1fr;height:660px;position:relative}
 .demo-side{
   background:#101216;border-right:1px solid var(--line);
   padding:14px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;
@@ -190,7 +202,7 @@ h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em}
   border:none;border-radius:99px;padding:6px 13px;transition:background .15s ease;
 }
 .b-new:hover{background:#ffd45e}
-.cols{display:grid;grid-template-columns:repeat(6,minmax(142px,1fr));gap:10px;align-items:start;flex:1;overflow-x:auto;padding-bottom:4px}
+.cols{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;align-items:start;flex:1;overflow-x:auto;padding-bottom:4px}
 .col{display:flex;flex-direction:column;gap:8px;min-height:340px;border-radius:12px;padding:3px;transition:background .15s ease,outline-color .15s ease;outline:1px dashed transparent}
 .col.over{background:rgba(247,201,72,.05);outline-color:rgba(247,201,72,.55)}
 .col-h{display:flex;align-items:center;gap:6px;padding:0 2px 2px}
@@ -226,9 +238,13 @@ h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em}
 .knew:hover{border-color:var(--text-3);color:var(--text-2)}
 .kghost{
   position:fixed;z-index:100;pointer-events:none;width:190px;
-  transform:rotate(3deg) scale(1.04);opacity:.95;cursor:grabbing;
+  transform:rotate(var(--tilt,0deg)) scale(1.04);opacity:.95;cursor:grabbing;
   box-shadow:0 18px 40px rgba(0,0,0,.5);
+  transform-origin:50% 30%;
+  transition:transform 160ms cubic-bezier(.22,1,.36,1);
+  will-change:transform;
 }
+@media(prefers-reduced-motion:reduce){.kghost{transition:none;transform:scale(1.04)}}
 
 /* — calendar (matches Posting Schedule) — */
 .cal-top{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
@@ -266,7 +282,8 @@ h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em}
 .bs-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;flex-wrap:wrap}
 .bs-head .bulb{font-size:15px;line-height:1.5}
 .bs-title{font-size:15px;font-weight:700}
-.bs-sub{font-size:10px;color:var(--text-3);max-width:44ch;line-height:1.5}
+.bs-sub{font-size:10px;color:var(--text-3);max-width:52ch;line-height:1.5}
+.bs-flo{font-family:var(--mono);font-size:9px;letter-spacing:.02em;color:var(--amber);line-height:1.6;margin:16px 0 14px;max-width:none}
 .bs-btns{margin-left:auto;display:flex;gap:8px;align-items:center}
 .bs-brand{
   font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
@@ -277,7 +294,8 @@ h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em}
   font-weight:600;font-size:12px;padding:7px 15px;transition:background .15s ease;
 }
 .bs-shuffle:hover{background:#ffd45e}
-.bs-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;margin-bottom:14px}
+.bs-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px}
+.deck{margin-bottom:16px}
 .dim-h{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
 .dim-h em{font-style:normal;text-transform:none;letter-spacing:.02em;color:var(--text-3);margin-left:6px}
 .picks{display:flex;flex-wrap:wrap;gap:5px}
@@ -288,14 +306,29 @@ h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em}
 }
 .pick:hover{border-color:var(--text-3);color:var(--text)}
 .pick.on{border-color:var(--amber);color:var(--amber);background:rgba(247,201,72,.08)}
+.pick-select{
+  width:100%;max-width:260px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  color:var(--text-2);font-family:var(--font);font-size:11px;font-weight:500;
+  padding:7px 10px;outline:none;cursor:pointer;
+}
+.pick-select:focus{border-color:var(--amber)}
 .deck{
   border:1px solid rgba(247,201,72,.55);border-radius:14px;padding:14px 16px;flex:none;
 }
-.deck .wt{
-  font-size:13.5px;font-weight:700;letter-spacing:-.01em;min-height:1.5em;
-  border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:10px;
+.wt-input{
+  width:100%;background:none;border:none;outline:none;color:var(--text);
+  font-family:var(--font);font-size:14px;font-weight:800;letter-spacing:-.01em;
+  border-bottom:1px solid var(--line);padding:0 0 9px;margin-bottom:11px;
 }
-.deck .wt.empty{color:var(--text-3);font-weight:600}
+.wt-input::placeholder{color:var(--text-3);font-weight:700}
+.goal-input{
+  width:100%;background:none;border:none;outline:none;color:var(--text);
+  font-family:var(--font);font-size:11.5px;
+  border-bottom:1px solid var(--line);padding:0 0 9px;margin-bottom:11px;
+}
+.goal-input::placeholder{color:var(--text-3)}
+.wt-input:focus,.goal-input:focus{border-bottom-color:var(--amber)}
 .deck-rows{display:flex;flex-direction:column;gap:5px}
 .drow{display:grid;grid-template-columns:86px 1fr;gap:10px;align-items:baseline}
 .drow .l{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--text-3);text-transform:uppercase}
@@ -318,6 +351,42 @@ h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em}
 }
 .add-pipe:hover{transform:translateY(-1px)}
 
+/* — card editor (matches Script view) — */
+.editor{
+  position:absolute;inset:0;z-index:4;background:var(--paper);
+  display:none;flex-direction:column;min-width:0;
+}
+.editor.on{display:flex;animation:viewin .3s ease}
+.ed-top{display:flex;align-items:center;gap:8px;padding:12px 16px;flex-wrap:wrap}
+.ed-title{
+  font-size:14px;font-weight:800;letter-spacing:-.01em;margin-right:auto;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46%;
+}
+.ed-tabs{display:flex;gap:2px;background:var(--surface);border-radius:99px;padding:3px;flex:none}
+.ed-tab{font-size:10.5px;font-weight:600;padding:4px 13px;border-radius:99px;color:var(--text-3);background:none;border:none;font-family:var(--font);transition:color .15s ease}
+.ed-tab:hover{color:var(--text)}
+.ed-tab.on{background:var(--amber);color:#181a20}
+.ed-guides{
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--amber);border:1px solid var(--border);border-radius:99px;padding:6px 12px;background:none;
+}
+.ed-trash{background:none;border:none;font-size:12px;color:var(--error);padding:4px}
+.ed-close{
+  width:26px;height:26px;border-radius:99px;border:1px solid var(--border);
+  background:none;color:var(--text);font-size:10px;line-height:1;flex:none;
+}
+.ed-close:hover{border-color:var(--text-3)}
+.ed-body{flex:1;overflow:auto;padding:14px 18px 20px;display:flex;flex-direction:column;gap:12px;width:100%;max-width:600px;margin:0 auto}
+.ed-sec{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 15px;display:flex;flex-direction:column}
+.ed-sec-t{font-size:12.5px;font-weight:700}
+.ed-sec-h{font-size:9.5px;color:var(--text-3);margin:3px 0 8px;line-height:1.5}
+.ed-ta{
+  width:100%;background:none;border:none;resize:vertical;outline:none;
+  color:var(--text);font-family:var(--font);font-size:12px;line-height:1.6;min-height:58px;
+}
+.ed-sec:focus-within{border-color:var(--amber);box-shadow:0 0 0 3px rgba(247,201,72,.14)}
+.ed-ta::placeholder{color:var(--text-3)}
+
 /* demo toast */
 .toast{
   position:absolute;left:50%;bottom:18px;transform:translate(-50%,16px);
@@ -331,13 +400,15 @@ h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em}
 .toast b{color:var(--amber)}
 
 @media(max-width:860px){
+  .demo-scene{width:100%;margin-left:0}
   .demo-body{grid-template-columns:1fr;height:auto}
   .demo-side{flex-direction:row;overflow-x:auto;border-right:none;border-bottom:1px solid var(--line);align-items:center;gap:4px;padding:10px}
   .demo-side img{margin:0 8px 0 2px}
   .demo-side .grp{display:none}
   .demo-side button{width:auto;white-space:nowrap;padding:6px 10px}
   .demo-side button .ct{display:none}
-  .demo-view{max-height:520px}
+  .demo-view{max-height:560px}
+  .cols{grid-template-columns:repeat(6,158px)}
   .bs-grid{grid-template-columns:1fr}
   .day{min-height:52px}
 }
@@ -594,7 +665,7 @@ footer{border-top:1px solid var(--line);background:var(--ink);padding:56px 0 40p
       <a href="#pricing">Pricing</a>
     </nav>
     <div class="nav-right">
-      <a class="nav-login" href="https://app.creatorflo.io/login">Log in</a>
+      <a class="nav-login" href="https://creatorflo.io/">Log in</a>
       <a class="btn btn-amber" href="#pricing">Get CreatorFlo — $29</a>
     </div>
   </div>
@@ -610,12 +681,12 @@ footer{border-top:1px solid var(--line);background:var(--ink);padding:56px 0 40p
     <div class="hero-cta rise d3">
       <a class="btn btn-amber" href="#pricing">Get CreatorFlo — $29 once</a>
       <a class="btn btn-ghost" href="#how">See how it works</a>
-      <p class="note">No subscription. Already bought it? <a href="https://app.creatorflo.io/login">Log in</a></p>
+      <p class="note">No subscription. Already bought it? <a href="https://creatorflo.io/">Log in</a></p>
     </div>
 
     <!-- ————— Live interactive demo ————— -->
     <div class="rise d4">
-      <p class="demo-hint"><span class="dot"></span>LIVE DEMO — a simplified version of the app · stack the deck, drag a card</p>
+      <p class="demo-hint"><span class="dot"></span>LIVE DEMO — a simplified version of the app · stack the deck, drag a card, click one to script</p>
     </div>
     <div class="demo-scene rise d4">
       <div class="demo-frame" id="demo">
@@ -672,19 +743,19 @@ footer{border-top:1px solid var(--line);background:var(--ink);padding:56px 0 40p
                 <span class="bulb">💡</span>
                 <div>
                   <p class="bs-title">Brainstorm</p>
-                  <p class="bs-sub">relatable topic → through the lens of a bucket → who → what they should feel → format. Stack the deck or shuffle it.</p>
+                  <p class="bs-sub">Create a new idea for your next piece of content. Follow the Flo to generate a new idea from scratch or shuffle things up for some random inspiration!</p>
                 </div>
                 <div class="bs-btns">
                   <button class="bs-brand">⚙ Brand Setup</button>
                   <button class="bs-shuffle" id="bs-shuffle">🎲 Shuffle</button>
                 </div>
               </div>
-              <div class="bs-grid" id="bs-grid"></div>
               <div class="deck">
-                <p class="wt empty" id="deck-title">Working title…</p>
+                <input class="wt-input" id="deck-title" placeholder="WORKING TITLE…" autocomplete="off" aria-label="Working title">
+                <input class="goal-input" id="deck-goal" placeholder="Goal of this video — what should it DO for the viewer?" autocomplete="off" aria-label="Goal of this video">
                 <div class="deck-rows">
                   <div class="drow"><span class="l">Topic</span><span class="v none" data-deck="topic">—</span></div>
-                  <div class="drow"><span class="l">Lens</span><span class="v none" data-deck="lens">—</span></div>
+                  <div class="drow"><span class="l">Bucket</span><span class="v none" data-deck="lens">—</span></div>
                   <div class="drow"><span class="l">Who</span><span class="v none" data-deck="who">—</span></div>
                   <div class="drow"><span class="l">Feel → Do</span><span class="v none" data-deck="feeldo">—</span></div>
                   <div class="drow"><span class="l">Format</span><span class="v none" data-deck="format">—</span></div>
@@ -693,11 +764,31 @@ footer{border-top:1px solid var(--line);background:var(--ink);padding:56px 0 40p
                   <span class="sa">Send as</span>
                   <button class="send on" data-send="short">Short form</button>
                   <button class="send" data-send="long">Long form</button>
+                  <button class="send" data-send="podcast">Podcast</button>
+                  <button class="send" data-send="carousel">Carousel</button>
                   <button class="add-pipe" id="bs-add">✈ Add to pipeline</button>
                 </div>
               </div>
+              <p class="bs-flo">Flo: relatable topic → through the lens of your content bucket → who → what they should feel → format</p>
+              <div class="bs-grid" id="bs-grid"></div>
             </div>
 
+          </div>
+
+          <!-- Card editor (Script view) -->
+          <div class="editor" id="editor">
+            <div class="ed-top">
+              <span class="ed-title" id="ed-title">My idea</span>
+              <div class="ed-tabs">
+                <button class="ed-tab" data-tab="plan">Plan</button>
+                <button class="ed-tab on" data-tab="script">Script</button>
+                <button class="ed-tab" data-tab="post">Post</button>
+              </div>
+              <button class="ed-guides" id="ed-guides">📖 Hooks &amp; Guides</button>
+              <button class="ed-trash" id="ed-trash" aria-label="Delete card">🗑</button>
+              <button class="ed-close" id="ed-close" aria-label="Close card">✕</button>
+            </div>
+            <div class="ed-body" id="ed-body"></div>
           </div>
         </div>
         <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -776,26 +867,10 @@ footer{border-top:1px solid var(--line);background:var(--ink);padding:56px 0 40p
               <span class="s-btn ghostb">⚙ Brand Setup</span>
               <span class="s-btn" style="margin-left:0">🎲 Shuffle</span>
             </div>
-            <div class="s-dim">
-              <p class="dim-h">01 · Relatable Topic <em>what they're living through</em></p>
-              <div class="s-picks">
-                <span class="s-pick">Overthinking</span>
-                <span class="s-pick on">Shiny object syndrome</span>
-                <span class="s-pick">Comparing to others</span>
-                <span class="s-pick">Millennial career crisis</span>
-              </div>
-            </div>
-            <div class="s-dim">
-              <p class="dim-h">02 · Through The Lens Of <em>your content bucket</em></p>
-              <div class="s-picks">
-                <span class="s-pick">Content Creation</span>
-                <span class="s-pick">AI Tools/Workflows</span>
-                <span class="s-pick on">Online solo biz life</span>
-              </div>
-            </div>
-            <div class="s-deck">
-              <p class="wt">You don't have shiny object syndrome — you have no filter</p>
-              <div class="s-drow"><span class="l">Topic</span><span class="v">Shiny object syndrome</span></div>
+            <div class="s-deck" style="margin:0 0 12px">
+              <p class="wt">You don't have imposter syndrome — you have no reps yet</p>
+              <div class="s-drow"><span class="l">Topic</span><span class="v">Imposter syndrome</span></div>
+              <div class="s-drow"><span class="l">Bucket</span><span class="v">Personal / BTS</span></div>
               <div class="s-drow"><span class="l">Who</span><span class="v">TOF</span></div>
               <div class="s-drow"><span class="l">Feel → Do</span><span class="v">Understood / seen → Follow</span></div>
               <div class="s-drow"><span class="l">Format</span><span class="v">Hot take / opinion</span></div>
@@ -804,6 +879,23 @@ footer{border-top:1px solid var(--line);background:var(--ink);padding:56px 0 40p
                 <span class="s-send on">Short form</span>
                 <span class="s-send">Long form</span>
                 <span class="s-add">✈ Add to pipeline</span>
+              </div>
+            </div>
+            <div class="s-dim">
+              <p class="dim-h">01 · Relatable Topic <em>what they're living through</em></p>
+              <div class="s-picks">
+                <span class="s-pick">Feeling overwhelmed by options</span>
+                <span class="s-pick on">Imposter syndrome</span>
+                <span class="s-pick">Procrastination</span>
+                <span class="s-pick">Burnout</span>
+              </div>
+            </div>
+            <div class="s-dim" style="margin-bottom:0">
+              <p class="dim-h">02 · Through The Lens Of <em>your content bucket</em></p>
+              <div class="s-picks">
+                <span class="s-pick">Educational</span>
+                <span class="s-pick on">Personal / BTS</span>
+                <span class="s-pick">Authority</span>
               </div>
             </div>
           </div>
@@ -1012,7 +1104,7 @@ footer{border-top:1px solid var(--line);background:var(--ink);padding:56px 0 40p
       </ul>
       <a class="btn btn-amber" href="https://buy.stripe.com/8x2fZhaQA416a7SaOl18c02" id="buy">Buy CreatorFlo — $29</a>
       <p class="price-fine">Instant access · works on desktop &amp; mobile</p>
-      <p class="price-login">Already purchased? <a href="https://app.creatorflo.io/login">Log in to your workspace →</a></p>
+      <p class="price-login">Already purchased? <a href="https://creatorflo.io/">Log in to your workspace →</a></p>
     </div>
   </div>
 </section>
@@ -1047,8 +1139,8 @@ footer{border-top:1px solid var(--line);background:var(--ink);padding:56px 0 40p
       <div>
         <h4>Already purchased?</h4>
         <ul>
-          <li><a href="https://app.creatorflo.io/login">Log in</a></li>
-          <li><a href="https://app.creatorflo.io">Open CreatorFlo</a></li>
+          <li><a href="https://creatorflo.io/">Log in</a></li>
+          <li><a href="https://creatorflo.io/">Open CreatorFlo</a></li>
           <li><a href="mailto:support@creatorflo.io">Support</a></li>
           <li><a href="mailto:support@creatorflo.io?subject=Restore%20my%20purchase">Restore purchase</a></li>
         </ul>
@@ -1135,10 +1227,11 @@ $("#b-new").addEventListener("click", ()=>{
 
 /* ————— Pointer drag (mouse + touch) ————— */
 let drag = null;
+const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
 function startDrag(e, id, el){
   if(e.button !== undefined && e.button !== 0) return;
-  drag = {id, el, x0:e.clientX, y0:e.clientY, ghost:null, moved:false};
-  el.setPointerCapture?.(e.pointerId);
+  drag = {id, el, x0:e.clientX, y0:e.clientY, lx:e.clientX, settle:null, ghost:null, moved:false};
+  try{ el.setPointerCapture?.(e.pointerId); }catch(_){}
   window.addEventListener("pointermove", moveDrag);
   window.addEventListener("pointerup", endDrag, {once:true});
 }
@@ -1156,6 +1249,14 @@ function moveDrag(e){
   }
   drag.ghost.style.left = (e.clientX - drag.ghost.offsetWidth/2) + "px";
   drag.ghost.style.top  = (e.clientY - 20) + "px";
+  if(!REDUCED_MOTION){
+    // Lean into the direction of movement; settle upright when the pointer slows.
+    const vx = e.clientX - drag.lx;
+    drag.lx = e.clientX;
+    drag.ghost.style.setProperty("--tilt", Math.max(-9, Math.min(9, vx * .55)) + "deg");
+    clearTimeout(drag.settle);
+    drag.settle = setTimeout(()=>{ drag?.ghost?.style.setProperty("--tilt", "0deg"); }, 90);
+  }
   document.querySelectorAll(".col").forEach(c=>c.classList.remove("over"));
   const under = document.elementFromPoint(e.clientX, e.clientY);
   under?.closest(".col")?.classList.add("over");
@@ -1165,7 +1266,7 @@ function endDrag(e){
   if(!drag) return;
   const {id, el, ghost, moved} = drag;
   drag = null;
-  if(!moved) return;
+  if(!moved){ openCard(id); return; }
   ghost?.remove();
   el.classList.remove("lift");
   const under = document.elementFromPoint(e.clientX, e.clientY);
@@ -1214,17 +1315,17 @@ function renderCal(){
 
 /* ————— Brainstorm (matches the real deck) ————— */
 const DIMS = [
-  {key:"topic", num:"01", label:"Relatable Topic", hint:"what they're living through",
-   opts:["Overthinking","Feeling alone/isolated","Lack of consistency","Comparing to others","Millennial career crisis","Too many interests — multi-passionate","Shiny object syndrome","Phobia of commitment","Procrastination king","Anxious"]},
-  {key:"lens", num:"02", label:"Through The Lens Of", hint:"your content bucket",
-   opts:["Content Creation","AI Tools/Workflows","Millennial Money Mindset","Online solo biz life"]},
-  {key:"who", num:"03", label:"Who", hint:"how deep we getting",
+  {key:"topic", num:"01", label:"Relatable Topic", hint:"what they're living through", type:"select",
+   opts:["Feeling overwhelmed by options","Never enough time","Fear of getting started","Procrastination","Comparing yourself to others","Imposter syndrome","Perfectionism holding you back","Burnout","Losing motivation","Information overload","Feeling stuck","Wanting results faster","Self-doubt"]},
+  {key:"lens", num:"02", label:"Through The Lens Of", hint:"your content bucket", type:"chips",
+   opts:["Millennial Money","Online Business Life","AI Tools","Content Creation"]},
+  {key:"who", num:"03", label:"Who", hint:"how deep we getting", type:"chips",
    opts:["TOF","MOF","BOF"]},
-  {key:"action", num:"04", label:"Goal Action", hint:"what they should do",
+  {key:"action", num:"04", label:"Goal Action", hint:"what they should do", type:"select",
    opts:["Follow","Share","Save","Comment","Click the link"]},
-  {key:"feel", num:"05", label:"Need Them To Feel", hint:"feeling > action",
+  {key:"feel", num:"05", label:"Need Them To Feel", hint:"feeling > action", type:"select",
    opts:["Inspired","Motivated","Understood / seen","Curious","Entertained","Surprised","Empowered","Reassured"]},
-  {key:"format", num:"06", label:"Format", hint:"the structure of the piece",
+  {key:"format", num:"06", label:"Format", hint:"the structure of the piece", type:"select",
    opts:["Quick tip","How-to / tutorial","Story time","List / top picks","Hot take / opinion","Myth busting","Behind the scenes","Review / reaction","Skit / entertainment","Carousel"]}
 ];
 const SEL = {topic:null,lens:null,who:null,action:null,feel:null,format:null};
@@ -1237,28 +1338,45 @@ const TITLES = [
   t=>`Stop romanticizing ${t.toLowerCase()}`,
   t=>`${t}: read this before you post today`
 ];
-let workingTitle = null;
-
 function renderDims(){
   const grid = $("#bs-grid");
   grid.innerHTML = "";
   DIMS.forEach(dim=>{
     const box = document.createElement("div");
     box.innerHTML = `<p class="dim-h">${dim.num} · ${dim.label} <em>${dim.hint}</em></p>`;
-    const picks = document.createElement("div");
-    picks.className = "picks";
-    dim.opts.forEach(o=>{
-      const btn = document.createElement("button");
-      btn.className = "pick" + (SEL[dim.key]===o ? " on" : "");
-      btn.textContent = o;
-      btn.addEventListener("click", ()=>{
-        SEL[dim.key] = SEL[dim.key]===o ? null : o;
-        if(dim.key==="topic") workingTitle = SEL.topic ? pick(TITLES)(SEL.topic) : null;
-        renderDims(); renderDeck();
+    if(dim.type==="select"){
+      const sel = document.createElement("select");
+      sel.className = "pick-select";
+      sel.setAttribute("aria-label", dim.label);
+      const any = document.createElement("option");
+      any.value = ""; any.textContent = "— Any —";
+      sel.appendChild(any);
+      dim.opts.forEach(o=>{
+        const opt = document.createElement("option");
+        opt.value = o; opt.textContent = o;
+        if(SEL[dim.key]===o) opt.selected = true;
+        sel.appendChild(opt);
       });
-      picks.appendChild(btn);
-    });
-    box.appendChild(picks);
+      sel.addEventListener("change", ()=>{
+        SEL[dim.key] = sel.value || null;
+        renderDeck();
+      });
+      box.appendChild(sel);
+    } else {
+      const picks = document.createElement("div");
+      picks.className = "picks";
+      dim.opts.forEach(o=>{
+        const btn = document.createElement("button");
+        btn.className = "pick" + (SEL[dim.key]===o ? " on" : "");
+        btn.textContent = o;
+        btn.addEventListener("click", ()=>{
+          SEL[dim.key] = SEL[dim.key]===o ? null : o;
+          renderDims(); renderDeck();
+        });
+        picks.appendChild(btn);
+      });
+      box.appendChild(picks);
+    }
     grid.appendChild(box);
   });
 }
@@ -1273,9 +1391,6 @@ function renderDeck(){
   set("who", SEL.who);
   set("feeldo", SEL.feel && SEL.action ? `${SEL.feel} → ${SEL.action}` : (SEL.feel || SEL.action));
   set("format", SEL.format);
-  const wt = $("#deck-title");
-  wt.textContent = workingTitle || "Working title…";
-  wt.classList.toggle("empty", !workingTitle);
 }
 function shuffleDeck(){
   DIMS.forEach((dim,i)=>{
@@ -1285,11 +1400,17 @@ function shuffleDeck(){
       SEL[dim.key] = pick(dim.opts);
       el.classList.remove("spin");
       if(i===DIMS.length-1){
-        workingTitle = pick(TITLES)(SEL.topic);
+        $("#deck-title").value = pick(TITLES)(SEL.topic);
         renderDims(); renderDeck();
       }
     }, 380 + i*120);
   });
+}
+function resetDeck(){
+  Object.keys(SEL).forEach(k=>SEL[k]=null);
+  $("#deck-title").value = "";
+  $("#deck-goal").value = "";
+  renderDims(); renderDeck();
 }
 $("#bs-shuffle").addEventListener("click", shuffleDeck);
 document.querySelectorAll(".send").forEach(b=>{
@@ -1299,18 +1420,82 @@ document.querySelectorAll(".send").forEach(b=>{
   });
 });
 $("#bs-add").addEventListener("click", ()=>{
-  if(!SEL.topic){
-    toast("Pick a topic — or hit <b>Shuffle</b>");
+  const typed = $("#deck-title").value.trim();
+  if(!typed && !SEL.topic){
+    toast("Type a title or pick a topic — or hit <b>Shuffle</b>");
     return;
   }
-  if(!workingTitle) workingTitle = pick(TITLES)(SEL.topic);
-  const card = {id:nextId++, board:sendAs, col:"ideas", who:SEL.who||"TOF", title:workingTitle};
+  if(sendAs!=="short" && sendAs!=="long"){
+    toast("Podcast &amp; Carousel pipelines are in the full app — send as <b>Short or Long form</b>");
+    return;
+  }
+  const title = typed || pick(TITLES)(SEL.topic);
+  const card = {id:nextId++, board:sendAs, col:"ideas", who:SEL.who||"TOF", title, goal:$("#deck-goal").value.trim()};
   CARDS.unshift(card);
   toast(`Added to <b>${sendAs==="short"?"Short":"Long"} Form → Ideas</b>`);
   setTimeout(()=>{
     activeBoard = sendAs;
     switchView("board", card.id);
+    resetDeck();
   }, 500);
+});
+
+/* ————— Card editor (Script view) ————— */
+const SCRIPT_SECTIONS = {
+  short:[
+    {key:"vhook",  t:"Visual Hook", h:"Summarize in 3–7 key words · at least one POWER word · graphic that previews value, borrows interest, or shows before→after", rows:3},
+    {key:"script", t:"My Script ✍️", h:"Hook → Build Up → Value → Resolution → CTA → Loop Back", rows:7}
+  ],
+  long:[
+    {key:"outline", t:"Outline", h:"", rows:4},
+    {key:"hook",    t:"🪝 Hook", h:"Explain the video in one sentence", rows:3},
+    {key:"intro",   t:"💬 Intro", h:"Why watch THIS video?", rows:3},
+    {key:"value",   t:"💰 Value", h:"", rows:4},
+    {key:"outro",   t:"↪ Outro", h:"Link to the next video", rows:3}
+  ]
+};
+let openCardId = null;
+function openCard(id){
+  const card = CARDS.find(k=>k.id===id);
+  if(!card) return;
+  openCardId = id;
+  card.notes = card.notes || {};
+  $("#ed-title").textContent = card.title;
+  const body = $("#ed-body");
+  body.innerHTML = "";
+  SCRIPT_SECTIONS[card.board].forEach(sec=>{
+    const box = document.createElement("div");
+    box.className = "ed-sec";
+    box.innerHTML = `<p class="ed-sec-t">${sec.t}</p>` + (sec.h ? `<p class="ed-sec-h">${sec.h}</p>` : "");
+    const ta = document.createElement("textarea");
+    ta.className = "ed-ta";
+    ta.rows = sec.rows;
+    ta.placeholder = "Write here… (you can paste images too)";
+    ta.value = card.notes[sec.key] || "";
+    ta.addEventListener("input", ()=>{ card.notes[sec.key] = ta.value; });
+    box.appendChild(ta);
+    body.appendChild(box);
+  });
+  $("#editor").classList.add("on");
+}
+function closeCard(){
+  $("#editor").classList.remove("on");
+  openCardId = null;
+}
+$("#ed-close").addEventListener("click", closeCard);
+document.addEventListener("keydown", e=>{
+  if(e.key==="Escape" && openCardId!==null) closeCard();
+});
+document.querySelectorAll(".ed-tab").forEach(t=>{
+  t.addEventListener("click", ()=>{
+    if(t.dataset.tab!=="script") toast("Plan &amp; Post tabs are in the full app — <b>this demo scripts</b>");
+  });
+});
+$("#ed-guides").addEventListener("click", ()=>{
+  toast("Viral hook formulas &amp; guides ship with <b>the full app</b>");
+});
+$("#ed-trash").addEventListener("click", ()=>{
+  toast("Careful — in the real app that deletes the card");
 });
 
 /* ————— View switching ————— */

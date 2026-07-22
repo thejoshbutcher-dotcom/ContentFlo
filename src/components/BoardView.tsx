@@ -114,6 +114,7 @@ export default function BoardView({
   // direction of movement and settles upright when the pointer slows.
   const [tilt, setTilt] = useState(0);
   const lastDragX = useRef(0);
+  const smoothVx = useRef(0);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reducedMotion = useRef(false);
   useEffect(() => {
@@ -260,6 +261,7 @@ export default function BoardView({
     const id = String(e.active.id);
     setActiveId(id);
     lastDragX.current = 0;
+    smoothVx.current = 0;
     setTilt(0);
     if (selected.has(id) && selected.size > 1) {
       dragGroup.current = [...selected];
@@ -271,13 +273,19 @@ export default function BoardView({
 
   function handleDragMove(e: DragMoveEvent) {
     if (reducedMotion.current) return;
-    // Per-event horizontal velocity, mapped to a clamped lean. The CSS
-    // transition smooths between updates; a short timer settles it upright.
+    // Raw per-event velocity is spiky, so low-pass filter it before mapping to
+    // a gentle lean; the CSS transition then glides between the filtered
+    // values and a timer eases the card upright once the pointer rests.
     const vx = e.delta.x - lastDragX.current;
     lastDragX.current = e.delta.x;
-    setTilt(Math.max(-8, Math.min(8, vx * 0.55)));
+    smoothVx.current = smoothVx.current * 0.75 + vx * 0.25;
+    const next = Math.max(-4.5, Math.min(4.5, smoothVx.current * 0.3));
+    setTilt((prev) => (Math.abs(prev - next) < 0.4 ? prev : next));
     if (settleTimer.current) clearTimeout(settleTimer.current);
-    settleTimer.current = setTimeout(() => setTilt(0), 90);
+    settleTimer.current = setTimeout(() => {
+      smoothVx.current = 0;
+      setTilt(0);
+    }, 120);
   }
 
   function handleDragEnd(e: DragEndEvent) {

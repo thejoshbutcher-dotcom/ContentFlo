@@ -241,7 +241,7 @@ h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em;text-wrap:balanc
   transform:rotate(var(--tilt,0deg)) scale(1.04);opacity:.95;cursor:grabbing;
   box-shadow:0 18px 40px rgba(0,0,0,.5);
   transform-origin:50% 30%;
-  transition:transform 160ms cubic-bezier(.22,1,.36,1);
+  transition:transform 280ms cubic-bezier(.22,1,.36,1);
   will-change:transform;
 }
 @media(prefers-reduced-motion:reduce){.kghost{transition:none;transform:scale(1.04)}}
@@ -1230,7 +1230,7 @@ let drag = null;
 const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
 function startDrag(e, id, el){
   if(e.button !== undefined && e.button !== 0) return;
-  drag = {id, el, x0:e.clientX, y0:e.clientY, lx:e.clientX, settle:null, ghost:null, moved:false};
+  drag = {id, el, x0:e.clientX, y0:e.clientY, lx:e.clientX, sv:0, settle:null, ghost:null, moved:false};
   try{ el.setPointerCapture?.(e.pointerId); }catch(_){}
   window.addEventListener("pointermove", moveDrag);
   window.addEventListener("pointerup", endDrag, {once:true});
@@ -1250,12 +1250,13 @@ function moveDrag(e){
   drag.ghost.style.left = (e.clientX - drag.ghost.offsetWidth/2) + "px";
   drag.ghost.style.top  = (e.clientY - 20) + "px";
   if(!REDUCED_MOTION){
-    // Lean into the direction of movement; settle upright when the pointer slows.
+    // Low-pass filter the velocity for a gentle lean; settle upright on pause.
     const vx = e.clientX - drag.lx;
     drag.lx = e.clientX;
-    drag.ghost.style.setProperty("--tilt", Math.max(-9, Math.min(9, vx * .55)) + "deg");
+    drag.sv = drag.sv * .75 + vx * .25;
+    drag.ghost.style.setProperty("--tilt", Math.max(-4.5, Math.min(4.5, drag.sv * .3)) + "deg");
     clearTimeout(drag.settle);
-    drag.settle = setTimeout(()=>{ drag?.ghost?.style.setProperty("--tilt", "0deg"); }, 90);
+    drag.settle = setTimeout(()=>{ if(drag){ drag.sv = 0; drag.ghost?.style.setProperty("--tilt", "0deg"); } }, 120);
   }
   document.querySelectorAll(".col").forEach(c=>c.classList.remove("over"));
   const under = document.elementFromPoint(e.clientX, e.clientY);

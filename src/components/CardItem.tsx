@@ -88,6 +88,7 @@ export default function CardItem({
   showStatus,
   showBucket,
   selected,
+  preselected,
   onToggleSelect,
 }: {
   card: ContentCard;
@@ -95,6 +96,8 @@ export default function CardItem({
   showStatus?: boolean;
   showBucket?: boolean;
   selected?: boolean;
+  /** Inside the marquee mid-drag; a lighter highlight than selected. */
+  preselected?: boolean;
   onToggleSelect?: (id: string, additive: boolean) => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -119,7 +122,9 @@ export default function CardItem({
       data-card-id={card.id}
       className={`content-card${isDragging ? " dragging" : ""}${
         card.thumbnail ? " has-thumb" : ""
-      }${selected ? " selected" : ""}`}
+      }${selected ? " selected" : ""}${
+        preselected && !selected ? " pre-selected" : ""
+      }`}
       onClick={handleClick}
       role="button"
       tabIndex={0}

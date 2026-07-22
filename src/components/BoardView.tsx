@@ -36,6 +36,7 @@ function Column({
   onOpen,
   onAdd,
   selected,
+  pending,
   onToggleSelect,
 }: {
   col: ColumnDef;
@@ -44,6 +45,7 @@ function Column({
   onOpen: (id: string) => void;
   onAdd: (colId: string) => void;
   selected: Set<string>;
+  pending: Set<string>;
   onToggleSelect: (id: string, additive: boolean) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.id });
@@ -69,6 +71,7 @@ function Column({
             showStatus={groupBy === "bucket"}
             showBucket={groupBy === "status"}
             selected={selected.has(c.id)}
+            preselected={pending.has(c.id)}
             onToggleSelect={onToggleSelect}
           />
         ))}
@@ -106,6 +109,9 @@ export default function BoardView({
   const buckets = useProfile((s) => s.buckets);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Cards currently inside the marquee while it's still being dragged — shown
+  // with a lighter highlight, committed to `selected` on release.
+  const [pending, setPending] = useState<Set<string>>(new Set());
   const [marquee, setMarquee] = useState<Marquee | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // The set of cards a drag should move (captured at drag start).
@@ -143,6 +149,25 @@ export default function BoardView({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  // Delete / Backspace removes the selection (Cmd/Ctrl+Z brings it back).
+  // Ignored while typing or while any dialog / card editor is open.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Delete" && e.key !== "Backspace") return;
+      if (!selected.size) return;
+      const el = document.activeElement as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable)
+        return;
+      if (document.querySelector(".modal-overlay")) return;
+      e.preventDefault();
+      deleteCards([...selected]);
+      setSelected(new Set());
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selected, deleteCards]);
 
   const visible = cards.filter(
     (c) =>
@@ -195,6 +220,30 @@ export default function BoardView({
   }
 
   // ————— Marquee (drag a box over empty space to select cards) —————
+  function hitsInBox(x1: number, y1: number, x2: number, y2: number): Set<string> {
+    const box = {
+      left: Math.min(x1, x2),
+      top: Math.min(y1, y2),
+      right: Math.max(x1, x2),
+      bottom: Math.max(y1, y2),
+    };
+    const hits = new Set<string>();
+    document
+      .querySelectorAll<HTMLElement>(".board .content-card[data-card-id]")
+      .forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (
+          r.left < box.right &&
+          r.right > box.left &&
+          r.top < box.bottom &&
+          r.bottom > box.top
+        ) {
+          hits.add(el.dataset.cardId!);
+        }
+      });
+    return hits;
+  }
+
   function onBoardMouseDown(e: ReactMouseEvent) {
     if (e.button !== 0) return;
     const t = e.target as HTMLElement;
@@ -217,38 +266,24 @@ export default function BoardView({
         width: Math.abs(ev.clientX - startX),
         height: Math.abs(ev.clientY - startY),
       });
+      // Live preview of what the box will select.
+      if (moved) setPending(hitsInBox(startX, startY, ev.clientX, ev.clientY));
     };
 
     const onUp = (ev: MouseEvent) => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
       setMarquee(null);
+      setPending(new Set());
       if (!moved) {
         if (!additive) setSelected(new Set());
         return;
       }
-      const box = {
-        left: Math.min(startX, ev.clientX),
-        top: Math.min(startY, ev.clientY),
-        right: Math.max(startX, ev.clientX),
-        bottom: Math.max(startY, ev.clientY),
-      };
+      const hits = hitsInBox(startX, startY, ev.clientX, ev.clientY);
       setSelected((prev) => {
-        const hits = new Set(additive ? prev : []);
-        document
-          .querySelectorAll<HTMLElement>(".board .content-card[data-card-id]")
-          .forEach((el) => {
-            const r = el.getBoundingClientRect();
-            if (
-              r.left < box.right &&
-              r.right > box.left &&
-              r.top < box.bottom &&
-              r.bottom > box.top
-            ) {
-              hits.add(el.dataset.cardId!);
-            }
-          });
-        return hits;
+        const next = new Set(additive ? prev : []);
+        hits.forEach((id) => next.add(id));
+        return next;
       });
     };
 
@@ -339,6 +374,7 @@ export default function BoardView({
               onOpen={onOpen}
               onAdd={handleAdd}
               selected={selected}
+              pending={pending}
               onToggleSelect={toggleSelect}
             />
           ))}

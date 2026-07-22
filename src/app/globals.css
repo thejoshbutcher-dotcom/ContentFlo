@@ -763,6 +763,12 @@ body {
   box-shadow: 0 0 0 1px var(--amber), var(--shadow-card);
 }
 
+/* Inside the marquee but not yet released — a soft preview of the selection. */
+.content-card.pre-selected {
+  border-color: rgba(247, 201, 72, 0.5);
+  background: #262a32;
+}
+
 .marquee {
   position: fixed;
   z-index: 40;

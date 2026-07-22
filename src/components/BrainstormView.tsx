@@ -216,24 +216,27 @@ export default function BrainstormView({
       {beat && <div className="beat-strip">▶ {beat}</div>}
 
       <div className="slate-actions">
-        <span className="t-eyebrow" style={{ color: "var(--text-3)" }}>
-          Send as
-        </span>
-        {DESTS.map((d) => (
-          <Chip
-            key={d}
-            label={d}
-            on={pick.dest === d}
-            onClick={() => {
-              setPick((p) => ({ ...p, dest: d }));
-              setSent(null);
-            }}
-          />
-        ))}
-        <div style={{ flex: 1 }} />
-        <button className="btn btn-primary" data-tour="add-to-pipeline" onClick={send}>
-          <Send size={14} /> Add to pipeline
-        </button>
+        <div className="send-as">
+          <span className="t-eyebrow" style={{ color: "var(--text-3)" }}>
+            Send as
+          </span>
+          {DESTS.map((d) => (
+            <Chip
+              key={d}
+              label={d}
+              on={pick.dest === d}
+              onClick={() => {
+                setPick((p) => ({ ...p, dest: d }));
+                setSent(null);
+              }}
+            />
+          ))}
+        </div>
+        <div className="send-cta">
+          <button className="btn btn-primary" data-tour="add-to-pipeline" onClick={send}>
+            <Send size={14} /> Add to pipeline
+          </button>
+        </div>
       </div>
 
       {sent && (

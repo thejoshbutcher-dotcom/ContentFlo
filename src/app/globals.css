@@ -774,6 +774,9 @@ body {
 
 .drag-preview {
   position: relative;
+  transform-origin: 50% 30%;
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
 }
 
 .drag-count {
@@ -2162,6 +2165,20 @@ body {
   flex-wrap: wrap;
 }
 
+.send-as {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.send-cta {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .beat-strip {
   margin-top: 6px;
   font-family: var(--font-mono-ui), monospace;
@@ -2657,6 +2674,24 @@ summary:focus-visible {
   .data-table th:nth-child(2),
   .data-table td:nth-child(2) {
     min-width: 180px;
+  }
+
+  /* Send-as chips get their own section; the CTA sits below a divider. */
+  .slate-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .send-cta {
+    justify-content: stretch;
+    border-top: 1px solid var(--line-strong);
+    padding-top: 14px;
+    margin-top: 4px;
+  }
+
+  .send-cta .btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .column {

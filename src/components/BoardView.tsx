@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 
 import {
   DndContext,
   DragEndEvent,
+  DragMoveEvent,
   DragOverlay,
   DragStartEvent,
   MouseSensor,
@@ -109,6 +110,17 @@ export default function BoardView({
   const [confirmDelete, setConfirmDelete] = useState(false);
   // The set of cards a drag should move (captured at drag start).
   const dragGroup = useRef<string[] | null>(null);
+  // Velocity-reactive tilt on the drag preview: the card leans into the
+  // direction of movement and settles upright when the pointer slows.
+  const [tilt, setTilt] = useState(0);
+  const lastDragX = useRef(0);
+  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reducedMotion = useRef(false);
+  useEffect(() => {
+    reducedMotion.current = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+  }, []);
 
   // Touch needs a press-and-hold to start a drag, otherwise it hijacks scrolling
   const sensors = useSensors(
@@ -247,6 +259,8 @@ export default function BoardView({
   function handleDragStart(e: DragStartEvent) {
     const id = String(e.active.id);
     setActiveId(id);
+    lastDragX.current = 0;
+    setTilt(0);
     if (selected.has(id) && selected.size > 1) {
       dragGroup.current = [...selected];
     } else {
@@ -255,8 +269,21 @@ export default function BoardView({
     }
   }
 
+  function handleDragMove(e: DragMoveEvent) {
+    if (reducedMotion.current) return;
+    // Per-event horizontal velocity, mapped to a clamped lean. The CSS
+    // transition smooths between updates; a short timer settles it upright.
+    const vx = e.delta.x - lastDragX.current;
+    lastDragX.current = e.delta.x;
+    setTilt(Math.max(-8, Math.min(8, vx * 0.55)));
+    if (settleTimer.current) clearTimeout(settleTimer.current);
+    settleTimer.current = setTimeout(() => setTilt(0), 90);
+  }
+
   function handleDragEnd(e: DragEndEvent) {
     setActiveId(null);
+    setTilt(0);
+    if (settleTimer.current) clearTimeout(settleTimer.current);
     const group = dragGroup.current;
     dragGroup.current = null;
     if (!e.over) return;
@@ -287,7 +314,12 @@ export default function BoardView({
     activeId && selected.has(activeId) && selected.size > 1 ? selected.size : 1;
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
+      onDragEnd={handleDragEnd}
+    >
       <div className="board-scroll" onMouseDown={onBoardMouseDown}>
         <div className="board" data-tour="board">
           {columns.map((col) => (
@@ -371,7 +403,13 @@ export default function BoardView({
 
       <DragOverlay>
         {activeCard ? (
-          <div className="content-card drag-preview" style={{ boxShadow: "var(--shadow-lift)" }}>
+          <div
+            className="content-card drag-preview"
+            style={{
+              boxShadow: "var(--shadow-lift)",
+              transform: `rotate(${tilt}deg) scale(1.03)`,
+            }}
+          >
             <CardBody card={activeCard} showBucket={groupBy === "status"} />
             {dragCount > 1 && <span className="drag-count">{dragCount}</span>}
           </div>

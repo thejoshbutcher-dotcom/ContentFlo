@@ -2559,6 +2559,44 @@ body {
   border-radius: 99px;
 }
 
+/* ————— Accessibility & interaction states ————— */
+
+/* Keyboard focus: a consistent amber ring on every operable control. */
+button:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+/* Text-entry fields already signal focus with their border/height treatment;
+   a ring on top would double up. */
+.search-input:focus-visible,
+.prop-input:focus-visible,
+.modal-title-input:focus-visible,
+.slate-title-input:focus-visible,
+.slate-goal-input:focus-visible,
+.section-textarea:focus-visible {
+  outline: none;
+}
+
+/* Pressed feedback on every button (the transition already exists on .btn). */
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Disabled buttons must read as disabled. */
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
@@ -2613,6 +2651,12 @@ body {
   .table-wrap,
   .slate-wrap {
     padding: 12px 14px;
+  }
+
+  /* Give titles room in the scrollable table so they don't wrap word-per-line. */
+  .data-table th:nth-child(2),
+  .data-table td:nth-child(2) {
+    min-width: 180px;
   }
 
   .column {

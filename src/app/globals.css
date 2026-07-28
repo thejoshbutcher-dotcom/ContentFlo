@@ -1583,7 +1583,10 @@ body {
 /* ————— Rich block editor (card sections) ————— */
 .rich-editor {
   position: relative;
-  padding: 8px 16px 14px;
+  /* Left gutter is the drag handle's lane — without it the handle overlaps the
+     text and gets pinned against the clipped section edge, which is what makes
+     it fiddly to grab. */
+  padding: 8px 16px 14px 40px;
 }
 
 .rich-editor .cf-prose {
@@ -1596,7 +1599,7 @@ body {
 }
 
 .rich-editor.large {
-  padding: 12px 22px 18px;
+  padding: 12px 22px 18px 44px;
 }
 
 .rich-editor.large .cf-prose {
@@ -1818,19 +1821,27 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 24px;
-  margin-right: 2px;
+  width: 26px;
+  height: 28px;
   border-radius: 6px;
   color: var(--text-3);
   cursor: grab;
   background: transparent;
-  transition: background 150ms ease, color 150ms ease;
+  /* Snappy, not soft — the handle should feel rigid under the cursor. */
+  transition: background 80ms linear, color 80ms linear;
+  touch-action: none;
+  user-select: none;
 }
 
 .cf-drag-handle:hover {
   background: var(--ink);
   color: var(--text);
+}
+
+.cf-drag-handle:active {
+  cursor: grabbing;
+  background: var(--ink-3);
+  color: var(--amber);
 }
 
 .cf-drag-handle:active {

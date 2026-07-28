@@ -1652,12 +1652,26 @@ body {
   background: rgba(247, 201, 72, 0.12);
 }
 
-/* Live lasso feedback: blocks light up while the box is still being dragged,
-   then hand over to the real selection on release. */
+/* Live lasso feedback: blocks light up while the box is still being dragged. */
 .cf-prose .lasso-hit {
-  background: rgba(247, 201, 72, 0.16);
-  box-shadow: 0 0 0 2px rgba(247, 201, 72, 0.4);
-  border-radius: 4px;
+  background: rgba(247, 201, 72, 0.14);
+  box-shadow: 0 0 0 4px rgba(247, 201, 72, 0.14);
+  border-radius: 5px;
+}
+
+/* A block selected as an OBJECT (grip click or lasso). Deliberately different
+   from a text highlight: the whole block gets a solid card-like treatment so
+   it reads as a movable thing, not selected characters. */
+.cf-prose .block-selected {
+  background: rgba(247, 201, 72, 0.15);
+  box-shadow: 0 0 0 5px rgba(247, 201, 72, 0.15), 0 0 0 1.5px var(--amber);
+  border-radius: 5px;
+}
+
+/* Don't double up: a picked block shouldn't also show text highlighting. */
+.cf-prose .block-selected ::selection,
+.cf-prose .block-selected::selection {
+  background: transparent;
 }
 
 .cf-prose h1,

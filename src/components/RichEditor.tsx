@@ -159,6 +159,11 @@ export default function RichEditor({
   // Position of the block the drag handle is currently pointing at, so clicking
   // the handle can select that whole block as a unit.
   const handlePos = useRef<number | null>(null);
+  // Block selection is its own thing, separate from text selection: these are
+  // indices of top-level blocks picked as whole objects (grip click or lasso).
+  const [selBlocks, setSelBlocks] = useState<number[]>([]);
+  const selBlocksRef = useRef<number[]>([]);
+  selBlocksRef.current = selBlocks;
   const [lasso, setLasso] = useState<{
     left: number;
     top: number;
@@ -301,12 +306,53 @@ export default function RichEditor({
     collapseTimer.current = setTimeout(() => setExpanded(false), 220);
   }
 
-  /** Clicking the grip selects that whole block, so it can be tabbed,
-   *  copied, or deleted as one unit. */
-  function selectHandleBlock() {
+  /** Range in the document covered by a top-level block index. */
+  const blockRange = useCallback(
+    (index: number) => {
+      if (!editor) return null;
+      const doc = editor.state.doc;
+      if (index < 0 || index >= doc.childCount) return null;
+      let from = 0;
+      for (let i = 0; i < index; i += 1) from += doc.child(i).nodeSize;
+      return { from, to: from + doc.child(index).nodeSize };
+    },
+    [editor]
+  );
+
+  /** Paint the block-selected class onto the matching DOM children. */
+  useEffect(() => {
+    const prose = wrapRef.current?.querySelector(".cf-prose");
+    if (!prose) return;
+    prose
+      .querySelectorAll(".block-selected")
+      .forEach((el) => el.classList.remove("block-selected"));
+    selBlocks.forEach((i) => {
+      const el = prose.children[i];
+      if (el) el.classList.add("block-selected");
+    });
+  }, [selBlocks, editor]);
+
+  /** Clicking the grip picks that whole block as an object. */
+  function selectHandleBlock(e: ReactMouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
     const pos = handlePos.current;
-    if (!editor || pos === null) return;
-    editor.chain().focus().setNodeSelection(pos).run();
+    const prose = wrapRef.current?.querySelector(".cf-prose");
+    if (!editor || pos === null || !prose) return;
+    // Map the handle's document position back to a top-level block index.
+    const doc = editor.state.doc;
+    let acc = 0;
+    let index = 0;
+    for (let i = 0; i < doc.childCount; i += 1) {
+      const size = doc.child(i).nodeSize;
+      if (pos >= acc && pos < acc + size) {
+        index = i;
+        break;
+      }
+      acc += size;
+      index = i + 1;
+    }
+    setSelBlocks([Math.min(index, doc.childCount - 1)]);
   }
 
   /**
@@ -381,15 +427,10 @@ export default function RichEditor({
         );
         if (!hits.length) return;
 
-        try {
-          const view = editor.view;
-          const from = view.posAtDOM(hits[0], 0);
-          const last = hits[hits.length - 1];
-          const to = view.posAtDOM(last, last.childNodes.length);
-          editor.chain().focus().setTextSelection({ from, to }).run();
-        } catch {
-          /* position lookup can fail mid-edit; just skip the selection */
-        }
+        // Select the blocks as objects — deliberately NOT a text selection, so
+        // it reads as "these blocks are picked", not "this text is highlighted".
+        const children = [...proseEl.children];
+        setSelBlocks(hits.map((el) => children.indexOf(el)).filter((i) => i >= 0));
       };
 
       window.addEventListener("mousemove", onMove);
@@ -398,14 +439,83 @@ export default function RichEditor({
     [editor]
   );
 
-  // Listen on the whole section block, not just the editor, so the lasso can be
-  // started from a much larger area around the text.
+  // Listen on the section block AND the scrolling pane, so the lasso can be
+  // started from the empty space well outside the text box.
   useEffect(() => {
-    const host = wrapRef.current?.closest(".section-block");
-    if (!host) return;
-    host.addEventListener("mousedown", startLasso as EventListener);
-    return () => host.removeEventListener("mousedown", startLasso as EventListener);
+    const hosts = [
+      wrapRef.current?.closest(".section-block"),
+      wrapRef.current?.closest(".modal-sections"),
+      wrapRef.current?.closest(".script-pane"),
+    ].filter(Boolean) as HTMLElement[];
+    hosts.forEach((h) => h.addEventListener("mousedown", startLasso as EventListener));
+    return () =>
+      hosts.forEach((h) =>
+        h.removeEventListener("mousedown", startLasso as EventListener)
+      );
   }, [startLasso]);
+
+  /** Keys that act on a block selection: delete them, indent them, or clear. */
+  useEffect(() => {
+    if (!selBlocks.length || !editor) return;
+    function onKey(e: KeyboardEvent) {
+      const picks = selBlocksRef.current;
+      if (!picks.length || !editor) return;
+
+      if (e.key === "Escape") {
+        setSelBlocks([]);
+        return;
+      }
+
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        let tr = editor.state.tr;
+        // Delete from the bottom up so earlier positions stay valid.
+        [...picks]
+          .sort((a, b) => b - a)
+          .forEach((i) => {
+            const r = blockRange(i);
+            if (r) tr = tr.delete(tr.mapping.map(r.from), tr.mapping.map(r.to));
+          });
+        editor.view.dispatch(tr);
+        setSelBlocks([]);
+        return;
+      }
+
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const delta = e.shiftKey ? -1 : 1;
+        let tr = editor.state.tr;
+        let changed = false;
+        picks.forEach((i) => {
+          const r = blockRange(i);
+          if (!r) return;
+          const node = editor.state.doc.nodeAt(r.from);
+          if (!node || node.attrs.indent === undefined) return;
+          const next = Math.min(8, Math.max(0, (Number(node.attrs.indent) || 0) + delta));
+          if (next !== (Number(node.attrs.indent) || 0)) {
+            tr = tr.setNodeMarkup(r.from, undefined, { ...node.attrs, indent: next });
+            changed = true;
+          }
+        });
+        if (changed) editor.view.dispatch(tr);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selBlocks, editor, blockRange]);
+
+  // Typing or clicking into the text drops the block selection.
+  useEffect(() => {
+    if (!selBlocks.length) return;
+    const prose = wrapRef.current?.querySelector(".cf-prose");
+    const clear = () => setSelBlocks([]);
+    prose?.addEventListener("mousedown", clear);
+    prose?.addEventListener("keydown", clear);
+    return () => {
+      prose?.removeEventListener("mousedown", clear);
+      prose?.removeEventListener("keydown", clear);
+    };
+  }, [selBlocks]);
 
   // Track "/" typed at the start of an empty block and drive the block menu.
   useEffect(() => {

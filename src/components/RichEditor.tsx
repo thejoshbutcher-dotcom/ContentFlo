@@ -310,65 +310,102 @@ export default function RichEditor({
   }
 
   /**
-   * Lasso: drag in the gutter (left of the text) to rubber-band whole blocks.
-   * The covered blocks become one selection, so Tab / Delete / drag apply to
-   * all of them at once.
+   * Lasso: drag anywhere around the text — the gutter, the padding, the space
+   * below the last block — to rubber-band whole blocks. Blocks light up live as
+   * the box passes over them and commit to a real selection on release, so Tab
+   * / Delete / drag then apply to all of them.
    */
-  function startLasso(e: ReactMouseEvent) {
-    if (e.button !== 0 || !editor) return;
-    const target = e.target as HTMLElement;
-    // Only from empty gutter space — never steal a click on text or the grip.
-    if (target.closest(".cf-prose") || target.closest(".cf-drag-handle")) return;
-    const proseEl = wrapRef.current?.querySelector(".cf-prose");
-    if (!proseEl) return;
-
-    e.preventDefault();
-    const startX = e.clientX;
-    const startY = e.clientY;
-    let moved = false;
-
-    const onMove = (ev: MouseEvent) => {
-      if (Math.abs(ev.clientX - startX) > 3 || Math.abs(ev.clientY - startY) > 3) {
-        moved = true;
+  const startLasso = useCallback(
+    (e: MouseEvent) => {
+      if (e.button !== 0 || !editor) return;
+      const target = e.target as HTMLElement;
+      // Never steal a click on the text itself, the grip, or a control.
+      if (
+        target.closest(".cf-prose") ||
+        target.closest(".cf-drag-handle") ||
+        target.closest("button, input, select, textarea, a, .slash-menu")
+      ) {
+        return;
       }
-      setLasso({
-        left: Math.min(startX, ev.clientX),
-        top: Math.min(startY, ev.clientY),
-        width: Math.abs(ev.clientX - startX),
-        height: Math.abs(ev.clientY - startY),
-      });
-    };
+      const proseEl = wrapRef.current?.querySelector(".cf-prose");
+      if (!proseEl) return;
 
-    const onUp = (ev: MouseEvent) => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      setLasso(null);
-      if (!moved) return;
+      e.preventDefault();
+      const startX = e.clientX;
+      const startY = e.clientY;
+      let moved = false;
 
-      const top = Math.min(startY, ev.clientY);
-      const bottom = Math.max(startY, ev.clientY);
-      const hits: HTMLElement[] = [];
-      proseEl.childNodes.forEach((n) => {
-        if (!(n instanceof HTMLElement)) return;
-        const r = n.getBoundingClientRect();
-        if (r.top < bottom && r.bottom > top) hits.push(n);
-      });
-      if (!hits.length) return;
+      const blocksIn = (top: number, bottom: number) => {
+        const hits: HTMLElement[] = [];
+        proseEl.childNodes.forEach((n) => {
+          if (!(n instanceof HTMLElement)) return;
+          const r = n.getBoundingClientRect();
+          if (r.top < bottom && r.bottom > top) hits.push(n);
+        });
+        return hits;
+      };
 
-      try {
-        const view = editor.view;
-        const from = view.posAtDOM(hits[0], 0);
-        const last = hits[hits.length - 1];
-        const to = view.posAtDOM(last, last.childNodes.length);
-        editor.chain().focus().setTextSelection({ from, to }).run();
-      } catch {
-        /* position lookup can fail mid-edit; just skip the selection */
-      }
-    };
+      const paint = (hits: HTMLElement[]) => {
+        proseEl
+          .querySelectorAll(".lasso-hit")
+          .forEach((el) => el.classList.remove("lasso-hit"));
+        hits.forEach((el) => el.classList.add("lasso-hit"));
+      };
 
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  }
+      const onMove = (ev: MouseEvent) => {
+        if (Math.abs(ev.clientX - startX) > 3 || Math.abs(ev.clientY - startY) > 3) {
+          moved = true;
+        }
+        setLasso({
+          left: Math.min(startX, ev.clientX),
+          top: Math.min(startY, ev.clientY),
+          width: Math.abs(ev.clientX - startX),
+          height: Math.abs(ev.clientY - startY),
+        });
+        if (moved) {
+          // Live feedback: show what will be selected before releasing.
+          paint(blocksIn(Math.min(startY, ev.clientY), Math.max(startY, ev.clientY)));
+        }
+      };
+
+      const onUp = (ev: MouseEvent) => {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+        setLasso(null);
+        paint([]); // clear the preview; the real selection takes over
+        if (!moved) return;
+
+        const hits = blocksIn(
+          Math.min(startY, ev.clientY),
+          Math.max(startY, ev.clientY)
+        );
+        if (!hits.length) return;
+
+        try {
+          const view = editor.view;
+          const from = view.posAtDOM(hits[0], 0);
+          const last = hits[hits.length - 1];
+          const to = view.posAtDOM(last, last.childNodes.length);
+          editor.chain().focus().setTextSelection({ from, to }).run();
+        } catch {
+          /* position lookup can fail mid-edit; just skip the selection */
+        }
+      };
+
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    },
+    [editor]
+  );
+
+  // Listen on the whole section block, not just the editor, so the lasso can be
+  // started from a much larger area around the text.
+  useEffect(() => {
+    const host = wrapRef.current?.closest(".section-block");
+    if (!host) return;
+    host.addEventListener("mousedown", startLasso as EventListener);
+    return () => host.removeEventListener("mousedown", startLasso as EventListener);
+  }, [startLasso]);
 
   // Track "/" typed at the start of an empty block and drive the block menu.
   useEffect(() => {
@@ -421,7 +458,6 @@ export default function RichEditor({
       ref={wrapRef}
       onFocus={handleFocusIn}
       onBlur={handleFocusOut}
-      onMouseDown={startLasso}
     >
       {editor && (
         <DragHandle

@@ -763,10 +763,12 @@ body {
   box-shadow: 0 0 0 1px var(--amber), var(--shadow-card);
 }
 
-/* Inside the marquee but not yet released — a soft preview of the selection. */
+/* Inside the marquee but not yet released — has to read clearly at a glance,
+   so it's a visible amber wash and ring, just lighter than the committed one. */
 .content-card.pre-selected {
-  border-color: rgba(247, 201, 72, 0.5);
-  background: #262a32;
+  border-color: var(--amber);
+  background: #2f2a1e;
+  box-shadow: 0 0 0 2px rgba(247, 201, 72, 0.45);
 }
 
 .marquee {
@@ -1642,9 +1644,19 @@ body {
   background: rgba(247, 201, 72, 0.28);
 }
 
+/* A block selected on its own (grip click) — clearly picked out. */
 .cf-prose .ProseMirror-selectednode {
   outline: 2px solid var(--amber);
-  outline-offset: 2px;
+  outline-offset: 3px;
+  border-radius: 4px;
+  background: rgba(247, 201, 72, 0.12);
+}
+
+/* Live lasso feedback: blocks light up while the box is still being dragged,
+   then hand over to the real selection on release. */
+.cf-prose .lasso-hit {
+  background: rgba(247, 201, 72, 0.16);
+  box-shadow: 0 0 0 2px rgba(247, 201, 72, 0.4);
   border-radius: 4px;
 }
 
@@ -1918,10 +1930,13 @@ body {
   color: var(--text);
 }
 
+/* Pressing the grip must feel like a real button press. */
 .cf-drag-handle:active {
   cursor: grabbing;
-  background: var(--ink-3);
-  color: var(--amber);
+  background: var(--amber);
+  color: #181a20;
+  transform: scale(0.9);
+  transition: none;
 }
 
 .cf-drag-handle:active {

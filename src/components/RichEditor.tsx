@@ -30,6 +30,7 @@ import {
   Type,
 } from "lucide-react";
 import { toEditorHtml } from "@/lib/richtext";
+import { Indent } from "@/lib/indent";
 import CodeBlockView from "./CodeBlockView";
 
 const MENU_W = 252;
@@ -205,6 +206,7 @@ export default function RichEditor({
       Blockquote.extend({ addInputRules: () => [] }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      Indent,
       CodeBlock.extend({
         addNodeView: () => ReactNodeViewRenderer(CodeBlockView),
       }),

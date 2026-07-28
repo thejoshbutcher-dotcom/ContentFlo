@@ -1636,6 +1636,18 @@ body {
   margin-top: 0.6em;
 }
 
+/* Dragging across blocks selects them all (ProseMirror handles this natively);
+   an amber highlight makes a multi-block selection obvious. */
+.cf-prose ::selection {
+  background: rgba(247, 201, 72, 0.28);
+}
+
+.cf-prose .ProseMirror-selectednode {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 .cf-prose h1,
 .cf-prose h2,
 .cf-prose h3 {

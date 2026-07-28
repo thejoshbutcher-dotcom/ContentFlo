@@ -1608,9 +1608,14 @@ body {
   line-height: 1.75;
 }
 
-/* The box you're writing in expands to fill the view, so it becomes the
-   focus of the screen instead of one cramped box among several. */
-.section-block:has(.ProseMirror-focused) .cf-prose {
+/* The box you're writing in expands to fill the view, so it becomes the focus
+   of the screen instead of one cramped box among several.
+   Two triggers on purpose: the live focus state handles the common case, and
+   the debounced `.expanded` class keeps it open across the brief blur caused by
+   clicking a toggle or other widget inside the editor (which otherwise made the
+   box flicker small/big on every click). */
+.rich-editor:has(.ProseMirror-focused) .cf-prose,
+.rich-editor.expanded .cf-prose {
   min-height: calc(100vh - 240px);
 }
 

@@ -12,8 +12,11 @@ type Status = "idle" | "checking" | "sending" | "sent" | "denied";
 const DEV = process.env.NODE_ENV === "development";
 const DEV_EMAIL = process.env.NEXT_PUBLIC_DEV_LOGIN_EMAIL ?? "";
 // Only show the Google button once the provider is actually configured in
-// Supabase — otherwise clicking it just errors.
-const GOOGLE_AUTH = process.env.NEXT_PUBLIC_ENABLE_GOOGLE_AUTH === "true";
+// Supabase — otherwise clicking it just errors. Tolerant of casing/whitespace
+// so "True" or " true " from a hosting panel still works.
+const GOOGLE_AUTH =
+  (process.env.NEXT_PUBLIC_ENABLE_GOOGLE_AUTH ?? "").trim().toLowerCase() ===
+  "true";
 
 function GoogleMark() {
   return (

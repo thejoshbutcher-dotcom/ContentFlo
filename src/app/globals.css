@@ -1657,6 +1657,69 @@ body {
 .cf-prose ol { list-style: decimal; }
 .cf-prose li::marker { color: var(--text-3); }
 
+/* To-do lists */
+.cf-prose ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.cf-prose ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.cf-prose ul[data-type="taskList"] li > label {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 1.65em;
+  user-select: none;
+}
+
+.cf-prose ul[data-type="taskList"] li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.cf-prose ul[data-type="taskList"] input[type="checkbox"] {
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 120ms linear, border-color 120ms linear;
+}
+
+.cf-prose ul[data-type="taskList"] input[type="checkbox"]:hover {
+  border-color: var(--amber-deep);
+}
+
+.cf-prose ul[data-type="taskList"] input[type="checkbox"]:checked {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+
+/* Tick mark */
+.cf-prose ul[data-type="taskList"] input[type="checkbox"]:checked::after {
+  content: "";
+  display: block;
+  width: 4px;
+  height: 8px;
+  margin: 0 auto;
+  transform: translateY(-1px) rotate(45deg);
+  border: solid #181a20;
+  border-width: 0 2px 2px 0;
+}
+
+.cf-prose ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: var(--text-3);
+  text-decoration: line-through;
+}
+
 .cf-prose blockquote {
   border-left: 2px solid var(--amber-deep);
   padding-left: 0.9em;

@@ -11,6 +11,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { InputRule } from "@tiptap/core";
 import { CodeBlock } from "@tiptap/extension-code-block";
 import { Blockquote } from "@tiptap/extension-blockquote";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { Placeholder } from "@tiptap/extensions";
 import { Details, DetailsContent, DetailsSummary } from "@tiptap/extension-details";
 import DragHandle from "@tiptap/extension-drag-handle-react";
@@ -22,6 +23,7 @@ import {
   Heading2,
   Heading3,
   List,
+  ListChecks,
   ListOrdered,
   Minus,
   Quote,
@@ -83,6 +85,13 @@ const SLASH_ITEMS: SlashItem[] = [
     icon: <ListOrdered size={15} />,
     keywords: "number ordered list ol steps",
     run: (e) => e.chain().focus().toggleOrderedList().run(),
+  },
+  {
+    title: "To-do list",
+    hint: "Checkboxes you can tick",
+    icon: <ListChecks size={15} />,
+    keywords: "todo task checklist checkbox check tick",
+    run: (e) => e.chain().focus().toggleTaskList().run(),
   },
   {
     title: "Toggle",
@@ -181,6 +190,8 @@ export default function RichEditor({
         blockquote: false,
       }),
       Blockquote.extend({ addInputRules: () => [] }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
       CodeBlock.extend({
         addNodeView: () => ReactNodeViewRenderer(CodeBlockView),
       }),

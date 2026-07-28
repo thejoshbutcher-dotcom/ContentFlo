@@ -12,6 +12,10 @@ export async function GET() {
   const report: Record<string, unknown> = {
     supabaseConfigured: isSupabaseConfigured(),
     loginWallEnabled: isAuthEnabled(),
+    // Raw value so a missing/misspelled env var is obvious. NOTE: this is the
+    // *runtime* value; the login button uses the value inlined at BUILD time,
+    // so if this says "true" but no button shows, the app needs a rebuild.
+    googleAuthEnvRaw: process.env.NEXT_PUBLIC_ENABLE_GOOGLE_AUTH ?? null,
   };
 
   const supabase = await createSupabaseServer();

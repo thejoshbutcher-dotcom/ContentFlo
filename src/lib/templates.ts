@@ -1,6 +1,5 @@
 import { isBlankContent, toEditorHtml } from "./richtext";
 import {
-  ChecklistItem,
   ContentCard,
   ContentType,
   Section,
@@ -32,20 +31,30 @@ function post(title: string, hint?: string, content = ""): Section {
   return text(title, hint, content, "post");
 }
 
+/** Editor markup for a to-do list, so checklists are ordinary editable blocks. */
+export function taskListHtml(
+  items: { text: string; done?: boolean }[]
+): string {
+  const rows = items
+    .map(
+      (it) =>
+        `<li data-type="taskItem" data-checked="${it.done ? "true" : "false"}">` +
+        `<p>${escapeHtml(it.text)}</p></li>`
+    )
+    .join("");
+  return `<ul data-type="taskList">${rows}</ul>`;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
+ * Checklists are plain text sections holding a to-do list, not a special kind,
+ * so every item can be edited, reordered, or deleted like any other block.
+ */
 function checklist(title: string, items: string[]): Section {
-  const list: ChecklistItem[] = items.map((t) => ({
-    id: newId("chk"),
-    text: t,
-    done: false,
-  }));
-  return {
-    id: newId("sec"),
-    title,
-    kind: "checklist",
-    phase: "post",
-    content: "",
-    items: list,
-  };
+  return text(title, undefined, taskListHtml(items.map((t) => ({ text: t }))), "post");
 }
 
 // Fallbacks for cards saved before sections carried a phase
@@ -260,11 +269,30 @@ function migrateLongForm(old: Section[]): Section[] | null {
   });
 }
 
+/**
+ * Old checklist-kind sections become normal text sections holding a to-do list,
+ * carrying over which boxes were already ticked.
+ */
+function convertChecklists(sections: Section[]): Section[] | null {
+  if (!sections.some((s) => s.kind === "checklist")) return null;
+  return sections.map((s) => {
+    if (s.kind !== "checklist") return s;
+    const html = taskListHtml(
+      (s.items ?? []).map((it) => ({ text: it.text, done: it.done }))
+    );
+    return { ...s, kind: "text" as const, content: html, items: undefined };
+  });
+}
+
 /** Returns reconciled sections for a card, or null if it's already current. */
 export function migrateCardSections(card: ContentCard): Section[] | null {
-  if (card.contentType === "Short form") return migrateShortForm(card.sections);
-  if (card.contentType === "Long form") return migrateLongForm(card.sections);
-  return null;
+  let next: Section[] | null = null;
+  if (card.contentType === "Short form") next = migrateShortForm(card.sections);
+  else if (card.contentType === "Long form") next = migrateLongForm(card.sections);
+
+  // Runs for every content type — podcasts have checklists too.
+  const converted = convertChecklists(next ?? card.sections);
+  return converted ?? next;
 }
 
 // ————— Reference library (the collapsible guides inside the Notion templates) —————

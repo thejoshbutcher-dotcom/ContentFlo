@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 import {
   EditorContent,
   ReactNodeViewRenderer,
@@ -150,6 +156,15 @@ export default function RichEditor({
   // widget) briefly blurs the editor, so collapsing is delayed and cancelled if
   // focus comes right back — otherwise the box flickers small/big on every click.
   const [expanded, setExpanded] = useState(false);
+  // Position of the block the drag handle is currently pointing at, so clicking
+  // the handle can select that whole block as a unit.
+  const handlePos = useRef<number | null>(null);
+  const [lasso, setLasso] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const expandedRef = useRef(false);
   expandedRef.current = expanded;
@@ -286,6 +301,75 @@ export default function RichEditor({
     collapseTimer.current = setTimeout(() => setExpanded(false), 220);
   }
 
+  /** Clicking the grip selects that whole block, so it can be tabbed,
+   *  copied, or deleted as one unit. */
+  function selectHandleBlock() {
+    const pos = handlePos.current;
+    if (!editor || pos === null) return;
+    editor.chain().focus().setNodeSelection(pos).run();
+  }
+
+  /**
+   * Lasso: drag in the gutter (left of the text) to rubber-band whole blocks.
+   * The covered blocks become one selection, so Tab / Delete / drag apply to
+   * all of them at once.
+   */
+  function startLasso(e: ReactMouseEvent) {
+    if (e.button !== 0 || !editor) return;
+    const target = e.target as HTMLElement;
+    // Only from empty gutter space — never steal a click on text or the grip.
+    if (target.closest(".cf-prose") || target.closest(".cf-drag-handle")) return;
+    const proseEl = wrapRef.current?.querySelector(".cf-prose");
+    if (!proseEl) return;
+
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let moved = false;
+
+    const onMove = (ev: MouseEvent) => {
+      if (Math.abs(ev.clientX - startX) > 3 || Math.abs(ev.clientY - startY) > 3) {
+        moved = true;
+      }
+      setLasso({
+        left: Math.min(startX, ev.clientX),
+        top: Math.min(startY, ev.clientY),
+        width: Math.abs(ev.clientX - startX),
+        height: Math.abs(ev.clientY - startY),
+      });
+    };
+
+    const onUp = (ev: MouseEvent) => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      setLasso(null);
+      if (!moved) return;
+
+      const top = Math.min(startY, ev.clientY);
+      const bottom = Math.max(startY, ev.clientY);
+      const hits: HTMLElement[] = [];
+      proseEl.childNodes.forEach((n) => {
+        if (!(n instanceof HTMLElement)) return;
+        const r = n.getBoundingClientRect();
+        if (r.top < bottom && r.bottom > top) hits.push(n);
+      });
+      if (!hits.length) return;
+
+      try {
+        const view = editor.view;
+        const from = view.posAtDOM(hits[0], 0);
+        const last = hits[hits.length - 1];
+        const to = view.posAtDOM(last, last.childNodes.length);
+        editor.chain().focus().setTextSelection({ from, to }).run();
+      } catch {
+        /* position lookup can fail mid-edit; just skip the selection */
+      }
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }
+
   // Track "/" typed at the start of an empty block and drive the block menu.
   useEffect(() => {
     if (!editor) return;
@@ -337,6 +421,7 @@ export default function RichEditor({
       ref={wrapRef}
       onFocus={handleFocusIn}
       onBlur={handleFocusOut}
+      onMouseDown={startLasso}
     >
       {editor && (
         <DragHandle
@@ -344,14 +429,35 @@ export default function RichEditor({
           // Blocks inside toggles (and lists) get their own handle, not just
           // top-level ones. Cursor near the left edge grabs the container.
           nested={{ edgeDetection: "left" }}
+          onNodeChange={({ pos }) => {
+            handlePos.current = pos;
+          }}
         >
-          <span className="cf-drag-handle" aria-hidden="true">
+          <span
+            className="cf-drag-handle"
+            role="button"
+            tabIndex={-1}
+            title="Drag to move · click to select the block"
+            onClick={selectHandleBlock}
+          >
             <GripVertical size={14} />
           </span>
         </DragHandle>
       )}
 
       <EditorContent editor={editor} />
+
+      {lasso && (
+        <div
+          className="marquee"
+          style={{
+            left: lasso.left,
+            top: lasso.top,
+            width: lasso.width,
+            height: lasso.height,
+          }}
+        />
+      )}
 
       {slash && matches.length > 0 && (
         <div

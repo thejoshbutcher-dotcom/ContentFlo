@@ -1,3 +1,4 @@
+import { isBlankContent, toEditorHtml } from "./richtext";
 import {
   ChecklistItem,
   ContentCard,
@@ -224,9 +225,9 @@ function migrateShortForm(old: Section[]): Section[] | null {
 
   // "Notes" is gone from the layout — don't silently drop anything written in it.
   const notes = find("Notes");
-  if (notes?.content.trim()) {
+  if (notes && !isBlankContent(notes.content)) {
     const outline = next.find((s) => s.title === "Outline");
-    if (outline && !outline.content.trim()) outline.content = notes.content;
+    if (outline && isBlankContent(outline.content)) outline.content = notes.content;
   }
   return next;
 }
@@ -236,19 +237,24 @@ function migrateLongForm(old: Section[]): Section[] | null {
 
   const find = (t: string) => old.find((s) => s.title === t);
 
-  // Fold anything written in the old Hook/Intro/Value/Outro boxes into Script.
+  // Fold anything written in the old Hook/Intro/Value/Outro boxes into Script,
+  // keeping each one's heading so the folded script stays readable.
   const folded = Object.entries(LEGACY_LONG_SCRIPT)
     .map(([title, label]) => {
       const s = find(title);
-      return s?.content.trim() ? `${label}\n${s.content.trim()}` : null;
+      if (!s || isBlankContent(s.content)) return null;
+      return `<h3>${label}</h3>${toEditorHtml(s.content)}`;
     })
     .filter(Boolean)
-    .join("\n\n");
+    .join("");
 
   return longFormSections().map((t) => {
     if (t.title === "Script") {
-      const existing = find("Script")?.content.trim();
-      return { ...t, content: existing || folded };
+      const existing = find("Script")?.content;
+      return {
+        ...t,
+        content: existing && !isBlankContent(existing) ? existing : folded,
+      };
     }
     return carryContent(t, find(t.title));
   });

@@ -11,6 +11,8 @@ import {
   REFERENCE_LIBRARY,
   sectionPhase,
 } from "@/lib/templates";
+import { htmlToText } from "@/lib/richtext";
+import RichEditor from "./RichEditor";
 import { ContentCard, ContentType, Section, Who } from "@/lib/types";
 
 const CONTENT_TYPES: ContentType[] = [
@@ -37,16 +39,18 @@ function tabForStatus(status: string): Tab {
 }
 
 function sectionsAreEmpty(card: ContentCard) {
-  return card.sections.every(
-    (s) =>
-      ((!s.content.trim() ||
-        s.content === "1. \n2. \n3. " ||
-        s.content.startsWith("Slide 2:") ||
-        s.content.startsWith("Reference video title:") ||
-        s.content.startsWith("00:00") ||
-        s.content.startsWith("Subject:")) &&
-        (!s.images || s.images.length === 0))
-  );
+  // Compare on the text behind the markup — sections may hold editor HTML.
+  return card.sections.every((s) => {
+    const text = htmlToText(s.content).trim();
+    const untouched =
+      !text ||
+      /^1\.\s*2\.\s*3\.$/.test(text.replace(/[\n•]/g, " ").replace(/\s+/g, " ").trim()) ||
+      text.startsWith("Slide 2:") ||
+      text.startsWith("Reference video title:") ||
+      text.startsWith("00:00") ||
+      text.startsWith("Subject:");
+    return untouched && (!s.images || s.images.length === 0);
+  });
 }
 
 // Downscale pasted screenshots so a handful of them fit in localStorage
@@ -90,77 +94,11 @@ function SectionBlock({
   const [lightbox, setLightbox] = useState<string | null>(null);
   const bound = onValueChange !== undefined;
 
-  const INDENT = "  ";
-
-  // Smart lists + indent, applied through the browser's own editing engine
-  // (execCommand) instead of a React state write, so every change stays on the
-  // native undo stack and Cmd/Ctrl+Z works. The insert/delete fire input events
-  // that keep the store in sync via onChange.
-  function handleTextareaKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.nativeEvent.isComposing) return;
-    const ta = e.currentTarget;
-    const value = ta.value;
-    const selStart = ta.selectionStart;
-    const selEnd = ta.selectionEnd;
-
-    // Tab indents (Shift+Tab outdents) every line the selection touches.
-    if (e.key === "Tab") {
-      e.preventDefault();
-      const firstLineStart = value.lastIndexOf("\n", selStart - 1) + 1;
-      const lines = value.slice(firstLineStart, selEnd).split("\n");
-      let firstDelta = 0;
-      let totalDelta = 0;
-      const out = lines.map((ln, i) => {
-        if (e.shiftKey) {
-          const r = ln.match(/^ {1,2}/)?.[0].length ?? 0;
-          if (i === 0) firstDelta = -r;
-          totalDelta -= r;
-          return ln.slice(r);
-        }
-        if (i === 0) firstDelta = INDENT.length;
-        totalDelta += INDENT.length;
-        return INDENT + ln;
-      });
-      ta.setSelectionRange(firstLineStart, selEnd);
-      document.execCommand("insertText", false, out.join("\n"));
-      ta.setSelectionRange(
-        Math.max(firstLineStart, selStart + firstDelta),
-        selEnd + totalDelta
-      );
-      return;
-    }
-
-    if (selStart !== selEnd) return; // the rest only applies to a plain caret
-    const pos = selStart;
-    const lineStart = value.lastIndexOf("\n", pos - 1) + 1;
-
-    // Space right after a lone dash/asterisk -> turn it into a real bullet.
-    if (e.key === " ") {
-      if (!value.slice(lineStart, pos).match(/^\s*[-*]$/)) return;
-      e.preventDefault();
-      ta.setSelectionRange(pos - 1, pos); // select the dash
-      document.execCommand("insertText", false, "• ");
-      return;
-    }
-
-    if (e.key !== "Enter" || e.shiftKey) return;
-    if (pos !== value.length && value[pos] !== "\n") return; // only at line end
-    const line = value.slice(lineStart, pos);
-    const bullet = line.match(/^(\s*)([-*•])\s+(.*)$/);
-    const numbered = bullet ? null : line.match(/^(\s*)(\d+)\.\s+(.*)$/);
-    if (!bullet && !numbered) return;
-    e.preventDefault();
-    const m = (bullet ?? numbered)!;
-    if (m[3].trim() === "") {
-      // Empty item — drop the marker and exit the list.
-      ta.setSelectionRange(lineStart, pos);
-      document.execCommand("delete");
-      return;
-    }
-    const marker = bullet
-      ? `${m[1]}• `
-      : `${m[1]}${parseInt(numbered![2], 10) + 1}. `;
-    document.execCommand("insertText", false, `\n${marker}`);
+  async function addImages(files: File[]) {
+    const dataUrls = await Promise.all(files.map(compressImage));
+    updateSection(cardId, sec.id, {
+      images: [...(sec.images ?? []), ...dataUrls],
+    });
   }
 
   async function handlePaste(e: React.ClipboardEvent) {
@@ -170,10 +108,7 @@ function SectionBlock({
       .filter((f): f is File => f !== null);
     if (files.length === 0) return;
     e.preventDefault();
-    const dataUrls = await Promise.all(files.map(compressImage));
-    updateSection(cardId, sec.id, {
-      images: [...(sec.images ?? []), ...dataUrls],
-    });
+    await addImages(files);
   }
 
   function removeImage(idx: number) {
@@ -230,17 +165,26 @@ function SectionBlock({
             </label>
           ))}
         </div>
-      ) : (
+      ) : bound ? (
+        // The Goal of Video box mirrors a plain sidebar input, so it stays
+        // plain text — rich markup would leak into that field and the script
+        // context bar.
         <textarea
           className="section-textarea"
-          value={bound ? valueOverride ?? "" : sec.content}
-          placeholder="Write here... (you can paste images too)"
-          onKeyDown={handleTextareaKey}
-          onChange={(e) =>
-            bound
-              ? onValueChange!(e.target.value)
-              : updateSection(cardId, sec.id, { content: e.target.value })
-          }
+          value={valueOverride ?? ""}
+          placeholder="Write here…"
+          onChange={(e) => onValueChange!(e.target.value)}
+        />
+      ) : (
+        <RichEditor
+          key={sec.id}
+          content={sec.content}
+          large={large}
+          onChange={(html) => updateSection(cardId, sec.id, { content: html })}
+          onImagePaste={(files) => {
+            void addImages(files);
+            return true;
+          }}
         />
       )}
 

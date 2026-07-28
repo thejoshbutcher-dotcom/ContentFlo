@@ -1,0 +1,67 @@
+<!-- CreatorFlo — Supabase "Magic Link" template (returning users).
+     Paste into: Supabase → Authentication → Email Templates → Magic Link
+     Note: punctuation uses HTML entities so it renders correctly in every client. -->
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#14161b;margin:0;padding:32px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <tr>
+    <td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:#22252c;border:1px solid #30343c;border-radius:20px;overflow:hidden;">
+
+        <tr>
+          <td align="center" style="padding:34px 32px 8px;">
+            <img src="https://creatorflo.io/brand/logo-white.png" width="150" alt="CreatorFlo"
+                 style="display:block;border:0;height:auto;width:150px;">
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding:16px 32px 0;">
+            <h1 style="margin:0;color:#ffffff;font-size:23px;line-height:1.3;font-weight:700;">
+              Your sign-in link
+            </h1>
+            <p style="margin:12px 0 0;color:#b7bdc6;font-size:15px;line-height:1.6;">
+              Tap the button below and you&rsquo;ll be signed in to CreatorFlo.
+              No password to remember.
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding:28px 32px 4px;">
+            <a href="{{ .ConfirmationURL }}"
+               style="display:inline-block;background:#f7c948;color:#181a20;font-size:15px;font-weight:700;text-decoration:none;padding:14px 30px;border-radius:14px;">
+              Sign in to CreatorFlo
+            </a>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding:22px 32px 0;">
+            <p style="margin:0;color:#8a9099;font-size:12px;line-height:1.6;">
+              Button not working? Paste this into your browser:
+            </p>
+            <p style="margin:8px 0 0;word-break:break-all;">
+              <a href="{{ .ConfirmationURL }}" style="color:#f7c948;font-size:12px;text-decoration:underline;">{{ .ConfirmationURL }}</a>
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:26px 32px 30px;">
+            <div style="border-top:1px solid #30343c;padding-top:18px;">
+              <p style="margin:0;color:#8a9099;font-size:12px;line-height:1.6;">
+                This link expires shortly and can only be used once. If you didn&rsquo;t request it,
+                you can safely ignore this email &mdash; nobody can access your account without it.
+              </p>
+            </div>
+          </td>
+        </tr>
+
+      </table>
+
+      <p style="margin:20px 0 0;color:#6b7280;font-size:11px;">
+        CreatorFlo &mdash; the content OS for creators &middot;
+        <a href="https://creatorflo.io" style="color:#8a9099;text-decoration:none;">creatorflo.io</a>
+      </p>
+    </td>
+  </tr>
+</table>

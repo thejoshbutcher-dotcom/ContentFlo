@@ -152,14 +152,15 @@ export default function BrainstormView({
     const sections = sectionsFor(pick.dest);
     const scriptSection = sections.find((s) => s.title.startsWith("My Script"));
     if (scriptSection) {
-      scriptSection.content = [
+      // Seed the script as editor HTML: the beats and the feel→do line as a
+      // collapsible note, then an empty paragraph to start writing in.
+      const notes = [
         beat ? `BEATS: ${beat}` : null,
         pick.feeling ? `FEEL: ${pick.feeling} → ${pick.action ?? "action"}` : null,
-        "",
-        "",
-      ]
-        .filter((l) => l !== null)
-        .join("\n");
+      ].filter((l): l is string => l !== null);
+      scriptSection.content = notes.length
+        ? `${notes.map((n) => `<p>${n}</p>`).join("")}<p></p>`
+        : "";
     }
     const card = addCard({
       title: finalTitle,

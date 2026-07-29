@@ -1644,28 +1644,23 @@ body {
   background: rgba(247, 201, 72, 0.28);
 }
 
-/* A block selected on its own (grip click) — clearly picked out. */
-.cf-prose .ProseMirror-selectednode {
-  outline: 2px solid var(--amber);
-  outline-offset: 3px;
-  border-radius: 4px;
-  background: rgba(247, 201, 72, 0.12);
-}
-
-/* Live lasso feedback: blocks light up while the box is still being dragged. */
-.cf-prose .lasso-hit {
-  background: rgba(247, 201, 72, 0.14);
-  box-shadow: 0 0 0 4px rgba(247, 201, 72, 0.14);
-  border-radius: 5px;
-}
-
-/* A block selected as an OBJECT (grip click or lasso). Deliberately different
-   from a text highlight: the whole block gets a solid card-like treatment so
-   it reads as a movable thing, not selected characters. */
+/* A block selected as an OBJECT — grip click (native node selection) or lasso.
+   Deliberately different from a text highlight: the whole block gets a bold
+   card-like wash + amber ring so it unmistakably reads as a movable thing. */
+.cf-prose .ProseMirror-selectednode,
 .cf-prose .block-selected {
-  background: rgba(247, 201, 72, 0.15);
-  box-shadow: 0 0 0 5px rgba(247, 201, 72, 0.15), 0 0 0 1.5px var(--amber);
-  border-radius: 5px;
+  background: rgba(247, 201, 72, 0.22);
+  outline: 2px solid var(--amber);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+/* Live lasso feedback: blocks wash amber while the box is still being dragged,
+   then keep the ring once released. */
+.cf-prose .lasso-hit {
+  background: rgba(247, 201, 72, 0.22);
+  box-shadow: 0 0 0 5px rgba(247, 201, 72, 0.22);
+  border-radius: 6px;
 }
 
 /* Don't double up: a picked block shouldn't also show text highlighting. */

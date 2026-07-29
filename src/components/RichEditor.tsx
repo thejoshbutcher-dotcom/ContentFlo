@@ -332,27 +332,16 @@ export default function RichEditor({
     });
   }, [selBlocks, editor]);
 
-  /** Clicking the grip picks that whole block as an object. */
+  /** Clicking the grip picks that whole block as an object — a native
+   *  ProseMirror node selection, so it can be dragged, copied, or deleted as a
+   *  unit, and it works on nested blocks (list items, toggles) too. */
   function selectHandleBlock(e: ReactMouseEvent) {
     e.preventDefault();
     e.stopPropagation();
     const pos = handlePos.current;
-    const prose = wrapRef.current?.querySelector(".cf-prose");
-    if (!editor || pos === null || !prose) return;
-    // Map the handle's document position back to a top-level block index.
-    const doc = editor.state.doc;
-    let acc = 0;
-    let index = 0;
-    for (let i = 0; i < doc.childCount; i += 1) {
-      const size = doc.child(i).nodeSize;
-      if (pos >= acc && pos < acc + size) {
-        index = i;
-        break;
-      }
-      acc += size;
-      index = i + 1;
-    }
-    setSelBlocks([Math.min(index, doc.childCount - 1)]);
+    if (!editor || pos === null) return;
+    setSelBlocks([]);
+    editor.chain().focus().setNodeSelection(pos).run();
   }
 
   /**

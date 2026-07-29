@@ -11,7 +11,7 @@ import {
   REFERENCE_LIBRARY,
   sectionPhase,
 } from "@/lib/templates";
-import { htmlToText } from "@/lib/richtext";
+import { htmlToText, textToHtml, toEditorHtml } from "@/lib/richtext";
 import RichEditor from "./RichEditor";
 import { ContentCard, ContentType, Section, Who } from "@/lib/types";
 
@@ -80,14 +80,17 @@ function SectionBlock({
   large,
   valueOverride,
   onValueChange,
+  rev,
 }: {
   cardId: string;
   sec: Section;
   large?: boolean;
-  // When provided, the textarea reads/writes this instead of the section's own
-  // content — used to link the "Goal of Video" box to the card.goalOfVideo field.
+  // When provided, the editor also mirrors a plain-text copy outward — used to
+  // link the "Goal of Video" box to the card.goalOfVideo field.
   valueOverride?: string;
   onValueChange?: (value: string) => void;
+  /** Bump to remount the editor when the mirrored field is edited elsewhere. */
+  rev?: number;
 }) {
   const updateSection = usePlanner((s) => s.updateSection);
   const toggleChecklistItem = usePlanner((s) => s.toggleChecklistItem);
@@ -166,14 +169,20 @@ function SectionBlock({
           ))}
         </div>
       ) : bound ? (
-        // The Goal of Video box mirrors a plain sidebar input, so it stays
-        // plain text — rich markup would leak into that field and the script
-        // context bar.
-        <textarea
-          className="section-textarea"
-          value={valueOverride ?? ""}
-          placeholder="Write here…"
-          onChange={(e) => onValueChange!(e.target.value)}
+        // Bound sections (Goal of Video) are block editors like everything
+        // else; a plain-text copy is kept in sync for the sidebar field and
+        // the script context bar.
+        <RichEditor
+          key={`${sec.id}:${rev ?? 0}`}
+          content={sec.content || toEditorHtml(valueOverride ?? "")}
+          onChange={(html) => {
+            updateSection(cardId, sec.id, { content: html });
+            onValueChange!(htmlToText(html));
+          }}
+          onImagePaste={(files) => {
+            void addImages(files);
+            return true;
+          }}
         />
       ) : (
         <RichEditor
@@ -264,6 +273,9 @@ export default function CardModal({
   const deleteCard = usePlanner((s) => s.deleteCard);
   const moveCard = usePlanner((s) => s.moveCard);
   const applyTemplate = usePlanner((s) => s.applyTemplate);
+  const updateSectionMain = usePlanner((s) => s.updateSection);
+  // Remounts the Goal of Video editor when the sidebar field edits the same value.
+  const [goalRev, setGoalRev] = useState(0);
   const buckets = useProfile((s) => s.buckets);
   const profileTopics = useProfile((s) => s.topics);
   const profileFormats = useProfile((s) => s.formats);
@@ -411,6 +423,7 @@ export default function CardModal({
                     key={sec.id}
                     cardId={card.id}
                     sec={sec}
+                    rev={goalRev}
                     valueOverride={card.goalOfVideo ?? ""}
                     onValueChange={(v) =>
                       updateCard(card.id, { goalOfVideo: v })
@@ -498,7 +511,20 @@ export default function CardModal({
                 className="prop-input"
                 value={card.goalOfVideo ?? ""}
                 placeholder="What should this DO for the viewer?"
-                onChange={(e) => updateCard(card.id, { goalOfVideo: e.target.value })}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  updateCard(card.id, { goalOfVideo: v });
+                  // Keep the Plan tab's Goal editor in sync (it remounts on rev).
+                  const goalSec = card.sections.find(
+                    (s) => s.title === "Goal of Video"
+                  );
+                  if (goalSec) {
+                    updateSectionMain(card.id, goalSec.id, {
+                      content: textToHtml(v),
+                    });
+                  }
+                  setGoalRev((r) => r + 1);
+                }}
               />
 
               <div className="prop-label t-eyebrow">Series</div>

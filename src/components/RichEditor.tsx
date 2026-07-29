@@ -15,6 +15,7 @@ import {
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { InputRule } from "@tiptap/core";
+import type { Transaction as PMTransaction } from "@tiptap/pm/state";
 import { CodeBlock } from "@tiptap/extension-code-block";
 import { Blockquote } from "@tiptap/extension-blockquote";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
@@ -162,8 +163,6 @@ export default function RichEditor({
   // Block selection is its own thing, separate from text selection: these are
   // indices of top-level blocks picked as whole objects (grip click or lasso).
   const [selBlocks, setSelBlocks] = useState<number[]>([]);
-  const selBlocksRef = useRef<number[]>([]);
-  selBlocksRef.current = selBlocks;
   const [lasso, setLasso] = useState<{
     left: number;
     top: number;
@@ -306,19 +305,6 @@ export default function RichEditor({
     collapseTimer.current = setTimeout(() => setExpanded(false), 220);
   }
 
-  /** Range in the document covered by a top-level block index. */
-  const blockRange = useCallback(
-    (index: number) => {
-      if (!editor) return null;
-      const doc = editor.state.doc;
-      if (index < 0 || index >= doc.childCount) return null;
-      let from = 0;
-      for (let i = 0; i < index; i += 1) from += doc.child(i).nodeSize;
-      return { from, to: from + doc.child(index).nodeSize };
-    },
-    [editor]
-  );
-
   /** Paint the block-selected class onto the matching DOM children. */
   useEffect(() => {
     const prose = wrapRef.current?.querySelector(".cf-prose");
@@ -416,10 +402,22 @@ export default function RichEditor({
         );
         if (!hits.length) return;
 
-        // Select the blocks as objects — deliberately NOT a text selection, so
-        // it reads as "these blocks are picked", not "this text is highlighted".
+        // Show the blocks as picked objects…
         const children = [...proseEl.children];
         setSelBlocks(hits.map((el) => children.indexOf(el)).filter((i) => i >= 0));
+        // …while quietly backing them with a real editor selection (character
+        // highlighting is suppressed inside picked blocks), so native behaviour
+        // applies: drag them anywhere — including into another section's editor
+        // — copy them, delete them, or Tab-indent them together.
+        try {
+          const view = editor.view;
+          const from = view.posAtDOM(hits[0], 0);
+          const last = hits[hits.length - 1];
+          const to = view.posAtDOM(last, last.childNodes.length);
+          editor.chain().focus().setTextSelection({ from, to }).run();
+        } catch {
+          /* position lookup can fail mid-edit; the overlay still shows */
+        }
       };
 
       window.addEventListener("mousemove", onMove);
@@ -443,68 +441,38 @@ export default function RichEditor({
       );
   }, [startLasso]);
 
-  /** Keys that act on a block selection: delete them, indent them, or clear. */
+  // The picked blocks are backed by a real editor selection, so Delete, Tab,
+  // copy, and drag are all native. This effect only maintains the overlay:
+  // Escape drops it, and any actual edit clears it.
   useEffect(() => {
     if (!selBlocks.length || !editor) return;
-    function onKey(e: KeyboardEvent) {
-      const picks = selBlocksRef.current;
-      if (!picks.length || !editor) return;
-
-      if (e.key === "Escape") {
-        setSelBlocks([]);
-        return;
-      }
-
-      if (e.key === "Delete" || e.key === "Backspace") {
-        e.preventDefault();
-        let tr = editor.state.tr;
-        // Delete from the bottom up so earlier positions stay valid.
-        [...picks]
-          .sort((a, b) => b - a)
-          .forEach((i) => {
-            const r = blockRange(i);
-            if (r) tr = tr.delete(tr.mapping.map(r.from), tr.mapping.map(r.to));
-          });
-        editor.view.dispatch(tr);
-        setSelBlocks([]);
-        return;
-      }
-
-      if (e.key === "Tab") {
-        e.preventDefault();
-        const delta = e.shiftKey ? -1 : 1;
-        let tr = editor.state.tr;
-        let changed = false;
-        picks.forEach((i) => {
-          const r = blockRange(i);
-          if (!r) return;
-          const node = editor.state.doc.nodeAt(r.from);
-          if (!node || node.attrs.indent === undefined) return;
-          const next = Math.min(8, Math.max(0, (Number(node.attrs.indent) || 0) + delta));
-          if (next !== (Number(node.attrs.indent) || 0)) {
-            tr = tr.setNodeMarkup(r.from, undefined, { ...node.attrs, indent: next });
-            changed = true;
-          }
-        });
-        if (changed) editor.view.dispatch(tr);
-      }
-    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelBlocks([]);
+    };
+    const onTx = ({ transaction }: { transaction: PMTransaction }) => {
+      if (transaction.docChanged) setSelBlocks([]);
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [selBlocks, editor, blockRange]);
+    editor.on("transaction", onTx);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      editor.off("transaction", onTx);
+    };
+  }, [selBlocks.length, editor]);
 
-  // Typing or clicking into the text drops the block selection.
+  // Clicking into unselected text drops the overlay; pressing on a picked
+  // block does not, so it can be dragged to move the whole selection.
   useEffect(() => {
     if (!selBlocks.length) return;
     const prose = wrapRef.current?.querySelector(".cf-prose");
-    const clear = () => setSelBlocks([]);
-    prose?.addEventListener("mousedown", clear);
-    prose?.addEventListener("keydown", clear);
-    return () => {
-      prose?.removeEventListener("mousedown", clear);
-      prose?.removeEventListener("keydown", clear);
+    const clear = (e: Event) => {
+      const t = e.target as HTMLElement;
+      if (t?.closest?.(".block-selected")) return;
+      setSelBlocks([]);
     };
-  }, [selBlocks]);
+    prose?.addEventListener("mousedown", clear);
+    return () => prose?.removeEventListener("mousedown", clear);
+  }, [selBlocks.length]);
 
   // Track "/" typed at the start of an empty block and drive the block menu.
   useEffect(() => {

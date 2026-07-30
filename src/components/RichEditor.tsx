@@ -17,7 +17,7 @@ import StarterKit from "@tiptap/starter-kit";
 import { Extension, InputRule } from "@tiptap/core";
 import { NodeSelection, Plugin } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import type { ResolvedPos } from "@tiptap/pm/model";
+import type { Node as PMNode, ResolvedPos } from "@tiptap/pm/model";
 
 // Every mounted editor registers its DOM here, so a custom pointer drag can
 // resolve which editor a drop lands in — the same technique as the kanban
@@ -59,6 +59,28 @@ function unitEndPos($p: ResolvedPos): number {
     if (name === "listItem" || name === "taskItem") return $p.after(d);
   }
   return $p.depth >= 1 ? $p.after(1) : $p.pos;
+}
+
+/**
+ * A list must keep at least one item, so deleting a range that covers ALL of
+ * a list's items silently regenerates an empty item instead of removing the
+ * list. When the range spans a whole list, widen it to take the list node
+ * itself (repeating upward for nested lists).
+ */
+function expandListBounds(
+  doc: PMNode,
+  from: number,
+  to: number
+): { from: number; to: number } {
+  for (;;) {
+    const $f = doc.resolve(from);
+    const d = $f.depth;
+    if (d < 1 || !LIST_TYPES.has($f.node(d).type.name)) break;
+    if ($f.index(d) !== 0 || to !== $f.after(d) - 1) break;
+    from = $f.before(d);
+    to = $f.after(d);
+  }
+  return { from, to };
 }
 
 /**
@@ -411,37 +433,126 @@ export default function RichEditor({
         return;
       }
 
+      // Serialize NOW, while every unit is still attached. ProseMirror's DOM
+      // observer can redraw rows mid-drag and orphan these references, so
+      // nothing after this point may rely on units[] still being in the tree.
+      const parts = units.map((el) => {
+        const clone = el.cloneNode(true) as HTMLElement;
+        clone.classList.remove("block-selected");
+        clone
+          .querySelectorAll("br.ProseMirror-trailingBreak")
+          .forEach((br) => br.remove());
+        const parent = el.parentElement;
+        const isLi = el.tagName === "LI" && !!parent;
+        return {
+          isLi,
+          html: clone.outerHTML,
+          listEl: isLi ? parent : null, // identity only, for grouping
+          listTag: isLi ? parent!.tagName : "",
+          listAttrs: isLi
+            ? [...parent!.attributes]
+                .filter((a) => a.name !== "class")
+                .map((a) => [a.name, a.value] as const)
+            : [],
+          // The item's real number, so a dragged "2." doesn't preview as "1."
+          listStart:
+            isLi && parent!.tagName === "OL"
+              ? [...parent!.children].indexOf(el) +
+                (parseInt(parent!.getAttribute("start") ?? "1", 10) || 1)
+              : 1,
+        };
+      });
+      type Part = (typeof parts)[number];
+
+      /** Rebuild HTML for the moved units: consecutive items from the same
+       *  source list get one shared list wrapper; loose items get their own. */
+      const buildHtml = (
+        arr: Part[],
+        opts: { intoList: boolean; keepNumbering: boolean }
+      ) => {
+        const out: string[] = [];
+        let i = 0;
+        while (i < arr.length) {
+          const p = arr[i];
+          if (!p.isLi || opts.intoList) {
+            out.push(p.html);
+            i += 1;
+            continue;
+          }
+          const listWrap = document.createElement(p.listTag);
+          p.listAttrs.forEach(([n, v]) => listWrap.setAttribute(n, v));
+          if (opts.keepNumbering && p.listStart > 1) {
+            listWrap.setAttribute("start", String(p.listStart));
+          }
+          let inner = "";
+          while (i < arr.length && arr[i].isLi && arr[i].listEl === p.listEl) {
+            inner += arr[i].html;
+            i += 1;
+          }
+          listWrap.innerHTML = inner;
+          out.push(listWrap.outerHTML);
+        }
+        return out.join("");
+      };
+      const unitSet = new Set<Element>(units);
+
       e.preventDefault();
       e.stopPropagation();
       const startX = e.clientX;
       const startY = e.clientY;
+      const ghostW = Math.min(420, units[0].offsetWidth || 320);
       let lifted = false;
       let ghost: HTMLElement | null = null;
       let line: HTMLElement | null = null;
+      let dim: HTMLElement | null = null;
       let target: { ed: Editor; pos: number } | null = null;
+
+      // The source rows dim while the drag is in flight — via an overlay, the
+      // same trick as the lasso glow, because adding a class to the editor's
+      // own DOM makes ProseMirror redraw (and replace) the row.
+      const drawDim = () => {
+        if (!dim) {
+          dim = document.createElement("div");
+          dim.className = "cf-lasso-paint";
+          document.body.appendChild(dim);
+        }
+        dim.innerHTML = "";
+        units.forEach((u) => {
+          if (!u.isConnected) return;
+          const r = u.getBoundingClientRect();
+          const b = document.createElement("div");
+          b.className = "cf-drag-dim";
+          b.style.left = `${r.left - 4}px`;
+          b.style.top = `${r.top - 2}px`;
+          b.style.width = `${r.width + 8}px`;
+          b.style.height = `${r.height + 4}px`;
+          dim!.appendChild(b);
+        });
+      };
 
       const lift = () => {
         lifted = true;
         ghost = document.createElement("div");
         ghost.className = "cf-drag-ghost";
         ghost.style.position = "fixed";
-        ghost.style.width = `${Math.min(420, units[0].offsetWidth || 320)}px`;
-        units.slice(0, 4).forEach((el) => {
-          const c = el.cloneNode(true) as HTMLElement;
-          c.classList.remove("block-selected", "cf-dragging-src");
-          ghost!.appendChild(c);
+        ghost.style.width = `${ghostW}px`;
+        // List items keep their list wrapper (and number) in the preview, so
+        // a dragged "2." looks like "2.", not an orphaned bullet.
+        ghost.innerHTML = buildHtml(parts.slice(0, 4), {
+          intoList: false,
+          keepNumbering: true,
         });
         if (units.length > 4) {
           const more = document.createElement("div");
           more.className = "cf-ghost-more";
           more.textContent = `+${units.length - 4} more`;
-          ghost!.appendChild(more);
+          ghost.appendChild(more);
         }
-        document.body.appendChild(ghost!);
+        document.body.appendChild(ghost);
         line = document.createElement("div");
         line.className = "cf-drop-line";
         document.body.appendChild(line);
-        units.forEach((u) => u.classList.add("cf-dragging-src"));
+        drawDim();
       };
 
       const onMove = (ev: MouseEvent) => {
@@ -452,6 +563,7 @@ export default function RichEditor({
         }
         ghost!.style.left = `${ev.clientX + 14}px`;
         ghost!.style.top = `${ev.clientY + 10}px`;
+        drawDim();
 
         target = null;
         line!.style.display = "none";
@@ -461,9 +573,7 @@ export default function RichEditor({
         const destEd = editorByDom.get(destProse);
         if (!destEd) return;
 
-        const destUnits = domUnits(destProse).filter(
-          (u) => !u.classList.contains("cf-dragging-src")
-        );
+        const destUnits = domUnits(destProse).filter((u) => !unitSet.has(u));
         const pr = destProse.getBoundingClientRect();
         let gapY = pr.top + 4;
         let pos: number | null = null;
@@ -496,7 +606,7 @@ export default function RichEditor({
       const cleanup = () => {
         ghost?.remove();
         line?.remove();
-        units.forEach((u) => u.classList.remove("cf-dragging-src"));
+        dim?.remove();
         window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
         window.removeEventListener("keydown", onKey);
@@ -534,42 +644,29 @@ export default function RichEditor({
         }
         if (!t) return;
 
-        // Serialize the moved units; list items stay raw when dropping into a
-        // list, otherwise they get wrapped back into their list container.
+        // List items stay raw when dropping into a list (they join it);
+        // otherwise they get their list wrapper back. Built from the HTML
+        // captured at mousedown — the live rows may be orphaned twins by now.
         const $t = t.ed.state.doc.resolve(
           Math.min(t.pos, t.ed.state.doc.content.size)
         );
         const intoList = LIST_TYPES.has($t.parent.type.name);
-        const html = units
-          .map((el) => {
-            const clone = el.cloneNode(true) as HTMLElement;
-            clone.classList.remove("block-selected", "cf-dragging-src");
-            if (el.tagName === "LI" && !intoList) {
-              const parent = el.parentElement!;
-              const wrap = document.createElement(parent.tagName);
-              [...parent.attributes].forEach((a) => {
-                if (a.name !== "class") wrap.setAttribute(a.name, a.value);
-              });
-              wrap.appendChild(clone);
-              return wrap.outerHTML;
-            }
-            return clone.outerHTML;
-          })
-          .join("");
+        const html = buildHtml(parts, { intoList, keepNumbering: false });
 
+        const del = expandListBounds(editor.state.doc, from, to);
         if (t.ed === editor) {
           let insertPos = t.pos;
-          if (insertPos >= to) insertPos -= to - from;
-          else if (insertPos > from) return; // dropped inside the dragged range
+          if (insertPos >= del.to) insertPos -= del.to - del.from;
+          else if (insertPos > del.from) return; // dropped inside the dragged range
           editor
             .chain()
             .focus()
-            .deleteRange({ from, to })
+            .deleteRange(del)
             .insertContentAt(insertPos, html)
             .run();
         } else {
           t.ed.chain().focus().insertContentAt(t.pos, html).run();
-          editor.commands.deleteRange({ from, to });
+          editor.commands.deleteRange(del);
         }
       };
 

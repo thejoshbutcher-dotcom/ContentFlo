@@ -1665,9 +1665,13 @@ body {
   caret-color: transparent;
 }
 
-/* The source blocks dim while their drag is in flight. */
-.cf-prose .cf-dragging-src {
-  opacity: 0.3;
+/* The source rows dim while their drag is in flight. Painted as overlay boxes
+   (inside .cf-lasso-paint) rather than a class on the rows themselves —
+   ProseMirror replaces nodes whose DOM we touch. */
+.cf-drag-dim {
+  position: absolute;
+  background: rgba(24, 26, 32, 0.7);
+  border-radius: 6px;
 }
 
 /* Solid drag preview: a card-styled stack of the dragged blocks. */
@@ -1690,6 +1694,17 @@ body {
 
 .cf-drag-ghost > * + * {
   margin-top: 0.4em;
+}
+
+/* Dragged list items keep their marker (number or bullet) in the preview. */
+.cf-drag-ghost ol,
+.cf-drag-ghost ul {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.cf-drag-ghost li > p {
+  margin: 0;
 }
 
 .cf-ghost-more {

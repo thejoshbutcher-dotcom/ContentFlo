@@ -14,8 +14,53 @@ import {
   type Editor,
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { InputRule } from "@tiptap/core";
-import type { Transaction as PMTransaction } from "@tiptap/pm/state";
+import { Extension, InputRule } from "@tiptap/core";
+import { Plugin } from "@tiptap/pm/state";
+import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
+
+// The editor view a drag started from. A drop into a DIFFERENT section's
+// editor completes the move by deleting the dragged blocks from the source —
+// otherwise ProseMirror treats cross-editor drags as a copy (or worse,
+// depending on the browser), which is where blocks were getting lost.
+let dragSourceView: EditorView | null = null;
+
+/**
+ * Marks every top-level block a multi-block selection touches with
+ * .block-selected — via ProseMirror decorations, which survive the editor's
+ * own rendering (externally-mutated classes get wiped on redraw).
+ */
+const BlockPick = Extension.create({
+  name: "blockPick",
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        props: {
+          decorations(state) {
+            const { doc, selection } = state;
+            if (selection.empty || doc.childCount === 0) return null;
+            const fromIdx = doc.resolve(selection.from).index(0);
+            const toIdx = doc
+              .resolve(Math.max(selection.from, selection.to - 1))
+              .index(0);
+            if (toIdx <= fromIdx) return null;
+            const decos: Decoration[] = [];
+            let pos = 0;
+            for (let i = 0; i < doc.childCount; i += 1) {
+              const size = doc.child(i).nodeSize;
+              if (i >= fromIdx && i <= toIdx) {
+                decos.push(
+                  Decoration.node(pos, pos + size, { class: "block-selected" })
+                );
+              }
+              pos += size;
+            }
+            return DecorationSet.create(doc, decos);
+          },
+        },
+      }),
+    ];
+  },
+});
 import { CodeBlock } from "@tiptap/extension-code-block";
 import { Blockquote } from "@tiptap/extension-blockquote";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
@@ -213,6 +258,7 @@ export default function RichEditor({
       TaskList,
       TaskItem.configure({ nested: true }),
       Indent,
+      BlockPick,
       CodeBlock.extend({
         addNodeView: () => ReactNodeViewRenderer(CodeBlockView),
       }),
@@ -260,6 +306,22 @@ export default function RichEditor({
         }
         return false;
       },
+      handleDrop: (view, event) => {
+        // A drop arriving from one of our OTHER editors: let ProseMirror parse
+        // and insert the HTML normally, then finish the move by deleting the
+        // dragged blocks from the source (unless Alt is held to copy).
+        const src = dragSourceView;
+        if (src && src !== view && !event.altKey) {
+          window.setTimeout(() => {
+            try {
+              src.dispatch(src.state.tr.deleteSelection().scrollIntoView());
+            } catch {
+              /* source may have unmounted; the drop still succeeded */
+            }
+          }, 0);
+        }
+        return false;
+      },
       handlePaste: (_view, event) => {
         const files = [...(event.clipboardData?.items ?? [])]
           .filter((it) => it.type.startsWith("image/"))
@@ -272,19 +334,12 @@ export default function RichEditor({
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
 
-  /** Paint the block-selected class onto the matching DOM children, and hide
-   *  the native character selection while blocks are picked so the pick reads
-   *  as objects, never as highlighted text. */
+  /** While blocks are picked (the BlockPick decoration paints them), hide the
+   *  native character selection so the pick reads as objects, never as
+   *  highlighted text. */
   useEffect(() => {
     const prose = wrapRef.current?.querySelector(".cf-prose");
     if (!prose) return;
-    prose
-      .querySelectorAll(".block-selected")
-      .forEach((el) => el.classList.remove("block-selected"));
-    selBlocks.forEach((i) => {
-      const el = prose.children[i];
-      if (el) el.classList.add("block-selected");
-    });
     prose.classList.toggle("ProseMirror-hideselection", selBlocks.length > 0);
   }, [selBlocks, editor]);
 
@@ -332,13 +387,16 @@ export default function RichEditor({
       window.setTimeout(() => ghost.remove(), 0);
 
       els.forEach((el) => el.classList.add("cf-dragging-src"));
+      dragSourceView = editor.view;
       const clear = () => {
         els.forEach((el) => el.classList.remove("cf-dragging-src"));
+        // Cleared on the next tick so a drop handler still sees the source.
+        window.setTimeout(() => {
+          dragSourceView = null;
+        }, 0);
         window.removeEventListener("dragend", clear);
-        window.removeEventListener("drop", clear);
       };
       window.addEventListener("dragend", clear);
-      window.addEventListener("drop", clear);
     };
 
     host.addEventListener("dragstart", onDragStart, true);
@@ -421,7 +479,24 @@ export default function RichEditor({
         window.removeEventListener("mouseup", onUp);
         setLasso(null);
         paint([]); // clear the preview; the real selection takes over
-        if (!moved) return;
+
+        if (!moved) {
+          // Plain click in the gutter: instantly pick the block on that row —
+          // no waiting for the floating grip to materialise.
+          const rowHits = blocksIn(startY - 2, startY + 2);
+          const idx = rowHits.length
+            ? [...proseEl.children].indexOf(rowHits[0])
+            : -1;
+          if (idx >= 0) {
+            let acc = 0;
+            const doc = editor.state.doc;
+            for (let i = 0; i < idx && i < doc.childCount; i += 1) {
+              acc += doc.child(i).nodeSize;
+            }
+            editor.chain().focus().setNodeSelection(acc).run();
+          }
+          return;
+        }
 
         const hits = blocksIn(
           Math.min(startY, ev.clientY),
@@ -429,13 +504,8 @@ export default function RichEditor({
         );
         if (!hits.length) return;
 
-        // Show the blocks as picked objects…
-        const children = [...proseEl.children];
-        setSelBlocks(hits.map((el) => children.indexOf(el)).filter((i) => i >= 0));
-        // …while quietly backing them with a real editor selection (character
-        // highlighting is suppressed inside picked blocks), so native behaviour
-        // applies: drag them anywhere — including into another section's editor
-        // — copy them, delete them, or Tab-indent them together.
+        // Back the picked blocks with a real editor selection; the overlay is
+        // derived from it, so drag / copy / delete / Tab all behave natively.
         try {
           const view = editor.view;
           const from = view.posAtDOM(hits[0], 0);
@@ -443,7 +513,7 @@ export default function RichEditor({
           const to = view.posAtDOM(last, last.childNodes.length);
           editor.chain().focus().setTextSelection({ from, to }).run();
         } catch {
-          /* position lookup can fail mid-edit; the overlay still shows */
+          /* position lookup can fail mid-edit */
         }
       };
 
@@ -468,38 +538,86 @@ export default function RichEditor({
       );
   }, [startLasso]);
 
-  // The picked blocks are backed by a real editor selection, so Delete, Tab,
-  // copy, and drag are all native. This effect only maintains the overlay:
-  // Escape drops it, and any actual edit clears it.
+  // Dev-only: expose editor instances so interaction logic can be exercised
+  // through the real API in tests. Stripped from production builds.
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development" || !editor) return;
+    const w = window as unknown as { __cfEditors?: Set<unknown> };
+    (w.__cfEditors ??= new Set()).add(editor);
+    return () => {
+      w.__cfEditors?.delete(editor);
+    };
+  }, [editor]);
+
+  // The overlay is DERIVED from the editor's own selection: whenever the
+  // selection spans more than one top-level block, those blocks render as
+  // picked objects (and the character highlight is hidden). This means simply
+  // dragging through text across blocks — the most natural gesture — becomes
+  // block selection, exactly like Notion. One source of truth, no stale state.
+  useEffect(() => {
+    if (!editor) return;
+    const compute = () => {
+      const { doc, selection } = editor.state;
+      if (selection.empty || doc.childCount === 0) {
+        setSelBlocks([]);
+        return;
+      }
+      const fromIdx = doc.resolve(selection.from).index(0);
+      const toIdx = doc
+        .resolve(Math.max(selection.from, selection.to - 1))
+        .index(0);
+      if (toIdx > fromIdx) {
+        const picks: number[] = [];
+        for (let i = fromIdx; i <= toIdx; i += 1) picks.push(i);
+        setSelBlocks(picks);
+      } else {
+        setSelBlocks([]);
+      }
+    };
+    editor.on("selectionUpdate", compute);
+    return () => {
+      editor.off("selectionUpdate", compute);
+    };
+  }, [editor]);
+
+  // On release, a multi-block selection snaps outward to whole-block
+  // boundaries, so what you picked is complete blocks — never half a block.
+  useEffect(() => {
+    if (!editor) return;
+    const onUp = () => {
+      window.setTimeout(() => {
+        if (!editor || editor.isDestroyed || !editor.view.hasFocus()) return;
+        const { doc, selection } = editor.state;
+        if (selection.empty || doc.childCount === 0) return;
+        const fromIdx = doc.resolve(selection.from).index(0);
+        const toIdx = doc
+          .resolve(Math.max(selection.from, selection.to - 1))
+          .index(0);
+        if (toIdx <= fromIdx) return;
+        let start = 0;
+        for (let i = 0; i < fromIdx; i += 1) start += doc.child(i).nodeSize;
+        let end = start;
+        for (let i = fromIdx; i <= toIdx; i += 1) end += doc.child(i).nodeSize;
+        if (selection.from !== start + 1 || selection.to !== end - 1) {
+          editor.commands.setTextSelection({ from: start + 1, to: end - 1 });
+        }
+      }, 0);
+    };
+    window.addEventListener("mouseup", onUp);
+    return () => window.removeEventListener("mouseup", onUp);
+  }, [editor]);
+
+  // Escape releases a block pick by collapsing the selection.
   useEffect(() => {
     if (!selBlocks.length || !editor) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSelBlocks([]);
-    };
-    const onTx = ({ transaction }: { transaction: PMTransaction }) => {
-      if (transaction.docChanged) setSelBlocks([]);
+      if (e.key === "Escape") {
+        editor.commands.setTextSelection(editor.state.selection.from);
+      }
     };
     window.addEventListener("keydown", onKey);
-    editor.on("transaction", onTx);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      editor.off("transaction", onTx);
-    };
+    return () => window.removeEventListener("keydown", onKey);
   }, [selBlocks.length, editor]);
-
-  // Clicking into unselected text drops the overlay; pressing on a picked
-  // block does not, so it can be dragged to move the whole selection.
-  useEffect(() => {
-    if (!selBlocks.length) return;
-    const prose = wrapRef.current?.querySelector(".cf-prose");
-    const clear = (e: Event) => {
-      const t = e.target as HTMLElement;
-      if (t?.closest?.(".block-selected")) return;
-      setSelBlocks([]);
-    };
-    prose?.addEventListener("mousedown", clear);
-    return () => prose?.removeEventListener("mousedown", clear);
-  }, [selBlocks.length]);
 
   // Track "/" typed at the start of an empty block and drive the block menu.
   useEffect(() => {

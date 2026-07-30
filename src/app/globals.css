@@ -1699,12 +1699,35 @@ body {
   padding-top: 4px;
 }
 
-/* Live lasso feedback: blocks wash amber while the box is still being dragged,
-   then keep the ring once released. */
-.cf-prose .lasso-hit {
-  background: rgba(247, 201, 72, 0.22);
-  box-shadow: 0 0 0 5px rgba(247, 201, 72, 0.22);
+/* Live lasso feedback: a fixed overlay paints a glow box over every block the
+   lasso is touching, updated on each mouse move. It lives on <body>, outside
+   the editor's DOM, so the editor's own rendering can never wipe it. On
+   release the overlay is removed and the real selection's ring takes over. */
+.cf-lasso-paint {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+}
+
+.cf-lasso-box {
+  position: absolute;
+  background: rgba(247, 201, 72, 0.2);
+  border: 2px solid var(--amber);
   border-radius: 6px;
+  box-shadow: 0 0 14px rgba(247, 201, 72, 0.3);
+}
+
+/* The drop indicator for block drags: an amber bar marking the exact gap the
+   blocks will land in. Fixed on <body>, positioned by the drag handler. */
+.cf-drop-line {
+  position: fixed;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--amber);
+  box-shadow: 0 0 10px rgba(247, 201, 72, 0.55);
+  z-index: 9999;
+  pointer-events: none;
 }
 
 /* Don't double up: a picked block shouldn't also show text highlighting. */
@@ -1961,39 +1984,42 @@ body {
   margin-top: 0.6em;
 }
 
-/* Drag handle (block reordering) */
-.cf-drag-handle {
+/* The block grip (six dots): our own element, absolutely positioned in the
+   editor's left gutter on the hovered row. Always grabbable the instant the
+   row is hovered — no floating-plugin latency, nothing to "wait" for. */
+.cf-grip {
+  position: absolute;
+  left: 8px;
+  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 26px;
-  height: 28px;
+  height: 26px;
+  padding: 0;
+  border: none;
   border-radius: 6px;
   color: var(--text-3);
   cursor: grab;
   background: transparent;
-  /* Snappy, not soft — the handle should feel rigid under the cursor. */
+  /* Snappy, not soft — the grip should feel rigid under the cursor. */
   transition: background 80ms linear, color 80ms linear;
   touch-action: none;
   user-select: none;
 }
 
-.cf-drag-handle:hover {
+.cf-grip:hover {
   background: var(--ink);
   color: var(--text);
 }
 
 /* Pressing the grip must feel like a real button press. */
-.cf-drag-handle:active {
+.cf-grip:active {
   cursor: grabbing;
   background: var(--amber);
   color: #181a20;
   transform: scale(0.9);
   transition: none;
-}
-
-.cf-drag-handle:active {
-  cursor: grabbing;
 }
 
 /* Slash command menu */

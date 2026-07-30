@@ -16,14 +16,30 @@ import {
 import StarterKit from "@tiptap/starter-kit";
 import { Extension, InputRule } from "@tiptap/core";
 import { NodeSelection, Plugin } from "@tiptap/pm/state";
-import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import type { ResolvedPos } from "@tiptap/pm/model";
 
-// The editor view a drag started from. A drop into a DIFFERENT section's
-// editor completes the move by deleting the dragged blocks from the source —
-// otherwise ProseMirror treats cross-editor drags as a copy (or worse,
-// depending on the browser), which is where blocks were getting lost.
-let dragSourceView: EditorView | null = null;
+// Every mounted editor registers its DOM here, so a custom pointer drag can
+// resolve which editor a drop lands in — the same technique as the kanban
+// board, with none of the native HTML5 drag-and-drop flakiness.
+const editorByDom = new Map<Element, Editor>();
+
+/** The draggable/pickable rows of an editor: list items individually,
+ *  otherwise the top-level block. */
+function domUnits(prose: Element): HTMLElement[] {
+  const units: HTMLElement[] = [];
+  prose.childNodes.forEach((n) => {
+    if (!(n instanceof HTMLElement)) return;
+    if (/^(UL|OL)$/.test(n.tagName)) {
+      [...n.children].forEach((li) => {
+        if (li instanceof HTMLElement) units.push(li);
+      });
+    } else {
+      units.push(n);
+    }
+  });
+  return units;
+}
 
 // "Units" are what picking operates on: list items count individually (like
 // Notion), everything else is the top-level block.
@@ -68,7 +84,7 @@ const BlockPick = Extension.create({
             // Selections inside a single unit stay ordinary text selections.
             if (unitStartPos($f) === unitStartPos($l)) return null;
 
-            const attrs = { class: "block-selected", draggable: "true" };
+            const attrs = { class: "block-selected" };
             const decos: Decoration[] = [];
             doc.forEach((node, pos) => {
               if (pos + node.nodeSize <= from || pos >= to) return;
@@ -94,7 +110,6 @@ import { Blockquote } from "@tiptap/extension-blockquote";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { Placeholder } from "@tiptap/extensions";
 import { Details, DetailsContent, DetailsSummary } from "@tiptap/extension-details";
-import DragHandle from "@tiptap/extension-drag-handle-react";
 import {
   ChevronRight,
   Code2,
@@ -226,11 +241,11 @@ export default function RichEditor({
   onImagePaste?: (files: File[]) => boolean;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
-  // Position of the block the drag handle is currently pointing at, so clicking
-  // the handle can select that whole block as a unit.
-  const handlePos = useRef<number | null>(null);
-  // Block selection is its own thing, separate from text selection: these are
-  // indices of top-level blocks picked as whole objects (grip click or lasso).
+  // Our own always-available grip: tracks the hovered row and renders in the
+  // gutter instantly, replacing the floating plugin handle that appeared late.
+  const [grip, setGrip] = useState<{ top: number } | null>(null);
+  const gripUnitRef = useRef<HTMLElement | null>(null);
+  // Non-empty while the selection spans multiple units (drives hideselection).
   const [selBlocks, setSelBlocks] = useState<number[]>([]);
   const [lasso, setLasso] = useState<{
     left: number;
@@ -334,22 +349,6 @@ export default function RichEditor({
         }
         return false;
       },
-      handleDrop: (view, event) => {
-        // A drop arriving from one of our OTHER editors: let ProseMirror parse
-        // and insert the HTML normally, then finish the move by deleting the
-        // dragged blocks from the source (unless Alt is held to copy).
-        const src = dragSourceView;
-        if (src && src !== view && !event.altKey) {
-          window.setTimeout(() => {
-            try {
-              src.dispatch(src.state.tr.deleteSelection().scrollIntoView());
-            } catch {
-              /* source may have unmounted; the drop still succeeded */
-            }
-          }, 0);
-        }
-        return false;
-      },
       handlePaste: (_view, event) => {
         const files = [...(event.clipboardData?.items ?? [])]
           .filter((it) => it.type.startsWith("image/"))
@@ -371,77 +370,215 @@ export default function RichEditor({
     prose.classList.toggle("ProseMirror-hideselection", selBlocks.length > 0);
   }, [selBlocks, editor]);
 
-  // Solid drag preview: the browser's default ghost is a translucent text
-  // smear. Build a card-styled clone of the dragged block(s) instead, so the
-  // whole block visibly moves, and dim the sources while the drag is live.
+  // Register this editor so drags from other sections can drop into it.
   useEffect(() => {
-    const host = wrapRef.current;
-    if (!host || !editor) return;
-
-    const onDragStart = (e: Event) => {
-      const de = e as DragEvent;
-      if (!de.dataTransfer) return;
-      const prose = host.querySelector(".cf-prose");
-      if (!prose) return;
-
-      let els = [...prose.querySelectorAll<HTMLElement>(".block-selected")];
-      if (!els.length) {
-        const selNode = prose.querySelector<HTMLElement>(".ProseMirror-selectednode");
-        if (selNode) els = [selNode];
-      }
-      if (!els.length) {
-        const target = de.target as HTMLElement | null;
-        const block = target?.closest?.(".cf-prose > *");
-        if (block instanceof HTMLElement) els = [block];
-      }
-      if (!els.length) return;
-
-      const ghost = document.createElement("div");
-      ghost.className = "cf-drag-ghost";
-      ghost.style.width = `${Math.min(420, els[0].offsetWidth || 320)}px`;
-      els.slice(0, 4).forEach((el) => {
-        const clone = el.cloneNode(true) as HTMLElement;
-        clone.classList.remove("block-selected", "lasso-hit", "cf-dragging-src");
-        ghost.appendChild(clone);
-      });
-      if (els.length > 4) {
-        const more = document.createElement("div");
-        more.className = "cf-ghost-more";
-        more.textContent = `+${els.length - 4} more`;
-        ghost.appendChild(more);
-      }
-      document.body.appendChild(ghost);
-      de.dataTransfer.setDragImage(ghost, 24, 18);
-      window.setTimeout(() => ghost.remove(), 0);
-
-      els.forEach((el) => el.classList.add("cf-dragging-src"));
-      dragSourceView = editor.view;
-      const clear = () => {
-        els.forEach((el) => el.classList.remove("cf-dragging-src"));
-        // Cleared on the next tick so a drop handler still sees the source.
-        window.setTimeout(() => {
-          dragSourceView = null;
-        }, 0);
-        window.removeEventListener("dragend", clear);
-      };
-      window.addEventListener("dragend", clear);
+    if (!editor) return;
+    const dom = editor.view.dom;
+    editorByDom.set(dom, editor);
+    return () => {
+      editorByDom.delete(dom);
     };
-
-    host.addEventListener("dragstart", onDragStart, true);
-    return () => host.removeEventListener("dragstart", onDragStart, true);
   }, [editor]);
 
-  /** Clicking the grip picks that whole block as an object — a native
-   *  ProseMirror node selection, so it can be dragged, copied, or deleted as a
-   *  unit, and it works on nested blocks (list items, toggles) too. */
-  function selectHandleBlock(e: ReactMouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    const pos = handlePos.current;
-    if (!editor || pos === null) return;
-    setSelBlocks([]);
-    editor.chain().focus().setNodeSelection(pos).run();
-  }
+  /**
+   * Custom pointer drag — the same technique as the kanban board, replacing
+   * native HTML5 drag entirely (which never initiated reliably here). Grabbing
+   * the grip or any picked row lifts a solid card ghost that follows the
+   * cursor, an amber line marks the exact drop gap in whichever editor is
+   * under the pointer, and release performs the move through the editor APIs.
+   */
+  const beginBlockDrag = useCallback(
+    (e: MouseEvent, originUnit: HTMLElement, origin: "grip" | "block") => {
+      if (!editor || e.button !== 0) return;
+      const prose = wrapRef.current?.querySelector(".cf-prose");
+      if (!prose) return;
+
+      const picked = [...prose.querySelectorAll<HTMLElement>(".block-selected")];
+      const units =
+        picked.length && originUnit.classList.contains("block-selected")
+          ? picked
+          : [originUnit];
+
+      let from: number;
+      let to: number;
+      try {
+        const v = editor.view;
+        from = unitStartPos(editor.state.doc.resolve(v.posAtDOM(units[0], 0)));
+        to = unitEndPos(
+          editor.state.doc.resolve(v.posAtDOM(units[units.length - 1], 0))
+        );
+      } catch {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      const startX = e.clientX;
+      const startY = e.clientY;
+      let lifted = false;
+      let ghost: HTMLElement | null = null;
+      let line: HTMLElement | null = null;
+      let target: { ed: Editor; pos: number } | null = null;
+
+      const lift = () => {
+        lifted = true;
+        ghost = document.createElement("div");
+        ghost.className = "cf-drag-ghost";
+        ghost.style.position = "fixed";
+        ghost.style.width = `${Math.min(420, units[0].offsetWidth || 320)}px`;
+        units.slice(0, 4).forEach((el) => {
+          const c = el.cloneNode(true) as HTMLElement;
+          c.classList.remove("block-selected", "cf-dragging-src");
+          ghost!.appendChild(c);
+        });
+        if (units.length > 4) {
+          const more = document.createElement("div");
+          more.className = "cf-ghost-more";
+          more.textContent = `+${units.length - 4} more`;
+          ghost!.appendChild(more);
+        }
+        document.body.appendChild(ghost!);
+        line = document.createElement("div");
+        line.className = "cf-drop-line";
+        document.body.appendChild(line);
+        units.forEach((u) => u.classList.add("cf-dragging-src"));
+      };
+
+      const onMove = (ev: MouseEvent) => {
+        if (!lifted) {
+          if (Math.abs(ev.clientX - startX) < 4 && Math.abs(ev.clientY - startY) < 4)
+            return;
+          lift();
+        }
+        ghost!.style.left = `${ev.clientX + 14}px`;
+        ghost!.style.top = `${ev.clientY + 10}px`;
+
+        target = null;
+        line!.style.display = "none";
+        const under = document.elementFromPoint(ev.clientX, ev.clientY);
+        const destProse = under?.closest?.(".cf-prose");
+        if (!destProse) return;
+        const destEd = editorByDom.get(destProse);
+        if (!destEd) return;
+
+        const destUnits = domUnits(destProse).filter(
+          (u) => !u.classList.contains("cf-dragging-src")
+        );
+        const pr = destProse.getBoundingClientRect();
+        let gapY = pr.top + 4;
+        let pos: number | null = null;
+        for (const u of destUnits) {
+          const r = u.getBoundingClientRect();
+          if (ev.clientY < r.top + r.height / 2) {
+            gapY = r.top - 2;
+            try {
+              pos = unitStartPos(
+                destEd.state.doc.resolve(destEd.view.posAtDOM(u, 0))
+              );
+            } catch {
+              return;
+            }
+            break;
+          }
+        }
+        if (pos === null) {
+          const lastU = destUnits[destUnits.length - 1];
+          gapY = lastU ? lastU.getBoundingClientRect().bottom + 2 : pr.top + 6;
+          pos = destEd.state.doc.content.size;
+        }
+        target = { ed: destEd, pos };
+        line!.style.display = "block";
+        line!.style.left = `${pr.left}px`;
+        line!.style.width = `${pr.width}px`;
+        line!.style.top = `${gapY}px`;
+      };
+
+      const cleanup = () => {
+        ghost?.remove();
+        line?.remove();
+        units.forEach((u) => u.classList.remove("cf-dragging-src"));
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+        window.removeEventListener("keydown", onKey);
+      };
+
+      const onKey = (ev: KeyboardEvent) => {
+        if (ev.key === "Escape") {
+          target = null;
+          cleanup();
+        }
+      };
+
+      const onUp = (ev: MouseEvent) => {
+        const t = target;
+        const wasLifted = lifted;
+        cleanup();
+
+        if (!wasLifted) {
+          // A plain click: the grip picks the row; a picked row takes the caret.
+          if (origin === "grip") {
+            try {
+              const pos = editor.view.posAtDOM(originUnit, 0);
+              const $p = editor.state.doc.resolve(pos);
+              const sel = NodeSelection.create(editor.state.doc, unitStartPos($p));
+              editor.view.dispatch(editor.state.tr.setSelection(sel));
+              editor.view.focus();
+            } catch {
+              /* row lookup can fail mid-edit */
+            }
+          } else {
+            const p = editor.view.posAtCoords({ left: ev.clientX, top: ev.clientY });
+            if (p) editor.chain().focus().setTextSelection(p.pos).run();
+          }
+          return;
+        }
+        if (!t) return;
+
+        // Serialize the moved units; list items stay raw when dropping into a
+        // list, otherwise they get wrapped back into their list container.
+        const $t = t.ed.state.doc.resolve(
+          Math.min(t.pos, t.ed.state.doc.content.size)
+        );
+        const intoList = LIST_TYPES.has($t.parent.type.name);
+        const html = units
+          .map((el) => {
+            const clone = el.cloneNode(true) as HTMLElement;
+            clone.classList.remove("block-selected", "cf-dragging-src");
+            if (el.tagName === "LI" && !intoList) {
+              const parent = el.parentElement!;
+              const wrap = document.createElement(parent.tagName);
+              [...parent.attributes].forEach((a) => {
+                if (a.name !== "class") wrap.setAttribute(a.name, a.value);
+              });
+              wrap.appendChild(clone);
+              return wrap.outerHTML;
+            }
+            return clone.outerHTML;
+          })
+          .join("");
+
+        if (t.ed === editor) {
+          let insertPos = t.pos;
+          if (insertPos >= to) insertPos -= to - from;
+          else if (insertPos > from) return; // dropped inside the dragged range
+          editor
+            .chain()
+            .focus()
+            .deleteRange({ from, to })
+            .insertContentAt(insertPos, html)
+            .run();
+        } else {
+          t.ed.chain().focus().insertContentAt(t.pos, html).run();
+          editor.commands.deleteRange({ from, to });
+        }
+      };
+
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+      window.addEventListener("keydown", onKey);
+    },
+    [editor]
+  );
 
   /**
    * Lasso: drag anywhere around the text — the gutter, the padding, the space
@@ -456,7 +593,7 @@ export default function RichEditor({
       // Never steal a click on the text itself, the grip, or a control.
       if (
         target.closest(".cf-prose") ||
-        target.closest(".cf-drag-handle") ||
+        target.closest(".cf-grip") ||
         target.closest("button, input, select, textarea, a, .slash-menu")
       ) {
         return;
@@ -471,29 +608,34 @@ export default function RichEditor({
 
       // Hit-testing operates on "units": list items individually, otherwise
       // the top-level block — matching how picking and Notion treat rows.
-      const blocksIn = (top: number, bottom: number) => {
-        const units: HTMLElement[] = [];
-        proseEl.childNodes.forEach((n) => {
-          if (!(n instanceof HTMLElement)) return;
-          if (/^(UL|OL)$/.test(n.tagName)) {
-            [...n.children].forEach((li) => {
-              if (li instanceof HTMLElement) units.push(li);
-            });
-          } else {
-            units.push(n);
-          }
-        });
-        return units.filter((el) => {
+      const blocksIn = (top: number, bottom: number) =>
+        domUnits(proseEl).filter((el) => {
           const r = el.getBoundingClientRect();
           return r.top < bottom && r.bottom > top;
         });
-      };
 
+      // Live feedback: fixed-position glow boxes over every unit the lasso
+      // touches. Drawn OUTSIDE the editor's DOM on purpose — classes added to
+      // ProseMirror-managed nodes can be wiped by its rendering, which is why
+      // earlier in-DOM highlighting never showed. This overlay can't be.
+      let hi: HTMLElement | null = null;
       const paint = (hits: HTMLElement[]) => {
-        proseEl
-          .querySelectorAll(".lasso-hit")
-          .forEach((el) => el.classList.remove("lasso-hit"));
-        hits.forEach((el) => el.classList.add("lasso-hit"));
+        if (!hi) {
+          hi = document.createElement("div");
+          hi.className = "cf-lasso-paint";
+          document.body.appendChild(hi);
+        }
+        hi.innerHTML = "";
+        hits.forEach((el) => {
+          const r = el.getBoundingClientRect();
+          const b = document.createElement("div");
+          b.className = "cf-lasso-box";
+          b.style.left = `${r.left - 6}px`;
+          b.style.top = `${r.top - 2}px`;
+          b.style.width = `${r.width + 12}px`;
+          b.style.height = `${r.height + 4}px`;
+          hi!.appendChild(b);
+        });
       };
 
       const onMove = (ev: MouseEvent) => {
@@ -516,26 +658,11 @@ export default function RichEditor({
         window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
         setLasso(null);
-        paint([]); // clear the preview; the real selection takes over
+        hi?.remove(); // clear the preview; the real selection takes over
 
-        if (!moved) {
-          // Plain click in the gutter: instantly pick the unit on that row —
-          // no waiting for the floating grip to materialise.
-          const rowHits = blocksIn(startY - 2, startY + 2);
-          if (rowHits.length) {
-            try {
-              const view = editor.view;
-              const pos = view.posAtDOM(rowHits[0], 0);
-              const $p = editor.state.doc.resolve(pos);
-              const sel = NodeSelection.create(editor.state.doc, unitStartPos($p));
-              view.dispatch(editor.state.tr.setSelection(sel));
-              view.focus();
-            } catch {
-              /* row lookup can fail mid-edit */
-            }
-          }
-          return;
-        }
+        // A plain gutter click selects nothing — only the grip or a real
+        // lasso drag picks blocks. Text clicks stay normal editing.
+        if (!moved) return;
 
         const hits = blocksIn(
           Math.min(startY, ev.clientY),
@@ -691,31 +818,55 @@ export default function RichEditor({
   );
   pickRef.current = pick;
 
+  /** Keep our own grip glued to the hovered row — always available, no
+   *  floating-plugin latency. */
+  function onWrapMouseMove(e: ReactMouseEvent) {
+    const prose = wrapRef.current?.querySelector(".cf-prose");
+    const wr = wrapRef.current?.getBoundingClientRect();
+    if (!prose || !wr) return;
+    const hit = domUnits(prose).find((u) => {
+      const r = u.getBoundingClientRect();
+      return e.clientY >= r.top && e.clientY <= r.bottom;
+    });
+    if (!hit) return;
+    gripUnitRef.current = hit;
+    const top = hit.getBoundingClientRect().top - wr.top + 2;
+    setGrip((prev) => (prev && Math.abs(prev.top - top) < 1 ? prev : { top }));
+  }
+
+  /** Pressing a picked row starts the block drag before the editor can turn
+   *  the press into a caret. Unpicked text is untouched — normal editing. */
+  function onWrapMouseDownCapture(e: ReactMouseEvent) {
+    const t = e.target as HTMLElement;
+    const unit = t.closest?.(".block-selected");
+    if (unit instanceof HTMLElement) beginBlockDrag(e.nativeEvent, unit, "block");
+  }
+
   return (
     <div
       className={`rich-editor${large ? " large" : ""}`}
       ref={wrapRef}
+      onMouseMove={onWrapMouseMove}
+      onMouseLeave={() => {
+        setGrip(null);
+        gripUnitRef.current = null;
+      }}
+      onMouseDownCapture={onWrapMouseDownCapture}
     >
-      {editor && (
-        <DragHandle
-          editor={editor}
-          // Blocks inside toggles (and lists) get their own handle, not just
-          // top-level ones. Cursor near the left edge grabs the container.
-          nested={{ edgeDetection: "left" }}
-          onNodeChange={({ pos }) => {
-            handlePos.current = pos;
+      {editor && grip && (
+        <button
+          type="button"
+          className="cf-grip"
+          style={{ top: grip.top }}
+          tabIndex={-1}
+          title="Drag to move · click to select the block"
+          onMouseDown={(e) => {
+            const u = gripUnitRef.current;
+            if (u) beginBlockDrag(e.nativeEvent, u, "grip");
           }}
         >
-          <span
-            className="cf-drag-handle"
-            role="button"
-            tabIndex={-1}
-            title="Drag to move · click to select the block"
-            onClick={selectHandleBlock}
-          >
-            <GripVertical size={14} />
-          </span>
-        </DragHandle>
+          <GripVertical size={14} />
+        </button>
       )}
 
       <EditorContent editor={editor} />

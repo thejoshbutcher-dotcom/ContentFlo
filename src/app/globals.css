@@ -1613,13 +1613,16 @@ body {
   scroll-margin-top: 12px;
 }
 
-/* Placeholder on the first empty block only. */
+/* Placeholder on the first empty block only. pre-line lets section scaffolds
+   ("1. / 2. / 3.", "Subject: / Body:") render as multi-line ghost guides that
+   vanish the moment anything real is typed or dropped in. */
 .cf-prose p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
   height: 0;
   pointer-events: none;
   color: var(--text-3);
+  white-space: pre-line;
 }
 
 .cf-prose > * + * {
@@ -1711,6 +1714,30 @@ body {
   font-size: 11.5px;
   font-weight: 600;
   padding-top: 4px;
+}
+
+/* The grip's block menu: same chrome as the slash menu, plus a section label
+   and a scroll cap since it lists every turn-into type. */
+.grip-menu {
+  width: 224px;
+  max-height: 332px;
+  overflow-y: auto;
+}
+
+.grip-menu-label {
+  padding: 8px 12px 4px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+}
+
+.slash-item.danger .slash-title {
+  color: #e5645e;
 }
 
 /* Option-drag duplicates: the ghost wears a "+" badge while ⌥ is held. */

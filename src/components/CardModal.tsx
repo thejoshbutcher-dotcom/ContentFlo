@@ -175,6 +175,7 @@ function SectionBlock({
         <RichEditor
           key={`${sec.id}:${rev ?? 0}`}
           content={sec.content || toEditorHtml(valueOverride ?? "")}
+          placeholder={sec.placeholder}
           onChange={(html) => {
             updateSection(cardId, sec.id, { content: html });
             onValueChange!(htmlToText(html));
@@ -188,6 +189,7 @@ function SectionBlock({
         <RichEditor
           key={sec.id}
           content={sec.content}
+          placeholder={sec.placeholder}
           large={large}
           onChange={(html) => updateSection(cardId, sec.id, { content: html })}
           onImagePaste={(files) => {

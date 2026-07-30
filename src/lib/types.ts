@@ -19,6 +19,9 @@ export interface Section {
   kind: SectionKind;
   phase?: SectionPhase;
   content: string;
+  /** Ghost guide text shown only while the box is completely empty —
+   *  scaffolds like "1. / 2. / 3." live here, never as real blocks. */
+  placeholder?: string;
   items?: ChecklistItem[];
   images?: string[];
 }

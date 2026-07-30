@@ -6,6 +6,8 @@ import {
   useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  type TouchEvent as ReactTouchEvent,
 } from "react";
 import {
   EditorContent,
@@ -15,7 +17,7 @@ import {
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Extension, InputRule } from "@tiptap/core";
-import { NodeSelection, Plugin } from "@tiptap/pm/state";
+import { NodeSelection, Plugin, TextSelection } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import type { Node as PMNode, ResolvedPos } from "@tiptap/pm/model";
 
@@ -127,6 +129,62 @@ const BlockPick = Extension.create({
     ];
   },
 });
+/**
+ * Keyboard block operations, Notion-style: ⌘⇧↑ / ⌘⇧↓ move the current unit
+ * (or every unit the selection touches) past its neighbor; ⌘D duplicates it
+ * in place. Works from a caret, a text selection, or a picked block.
+ */
+const BlockKeys = Extension.create({
+  name: "blockKeys",
+  addKeyboardShortcuts() {
+    const bounds = (editor: Editor) => {
+      const { doc, selection } = editor.state;
+      if (doc.childCount === 0) return null;
+      const $f = doc.resolve(selection.from);
+      const $l = doc.resolve(Math.max(selection.from, selection.to - 1));
+      return { start: unitStartPos($f), end: unitEndPos($l) };
+    };
+
+    const move =
+      (dir: -1 | 1) =>
+      ({ editor }: { editor: Editor }) => {
+        const b = bounds(editor);
+        if (!b) return false;
+        const { state, view } = editor;
+        const { doc, selection } = state;
+        const neighbor =
+          dir < 0 ? doc.resolve(b.start).nodeBefore : doc.resolve(b.end).nodeAfter;
+        if (!neighbor) return false;
+        const slice = doc.slice(b.start, b.end);
+        const dest = dir < 0 ? b.start - neighbor.nodeSize : b.start + neighbor.nodeSize;
+        let tr = state.tr.delete(b.start, b.end).insert(dest, slice.content);
+        const $a = tr.doc.resolve(
+          Math.min(dest + (selection.from - b.start), tr.doc.content.size)
+        );
+        const $b = tr.doc.resolve(
+          Math.min(dest + (selection.to - b.start), tr.doc.content.size)
+        );
+        tr = tr.setSelection(TextSelection.between($a, $b));
+        view.dispatch(tr.scrollIntoView());
+        return true;
+      };
+
+    const duplicate = ({ editor }: { editor: Editor }) => {
+      const b = bounds(editor);
+      if (!b) return false;
+      const { state, view } = editor;
+      const slice = state.doc.slice(b.start, b.end);
+      view.dispatch(state.tr.insert(b.end, slice.content).scrollIntoView());
+      return true;
+    };
+
+    return {
+      "Mod-Shift-ArrowUp": move(-1),
+      "Mod-Shift-ArrowDown": move(1),
+      "Mod-d": duplicate,
+    };
+  },
+});
 import { CodeBlock } from "@tiptap/extension-code-block";
 import { Blockquote } from "@tiptap/extension-blockquote";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
@@ -135,6 +193,7 @@ import { Details, DetailsContent, DetailsSummary } from "@tiptap/extension-detai
 import {
   ChevronRight,
   Code2,
+  Copy,
   GripVertical,
   Heading1,
   Heading2,
@@ -144,6 +203,7 @@ import {
   ListOrdered,
   Minus,
   Quote,
+  Trash2,
   Type,
 } from "lucide-react";
 import { toEditorHtml } from "@/lib/richtext";
@@ -269,6 +329,10 @@ export default function RichEditor({
   const gripUnitRef = useRef<HTMLElement | null>(null);
   // Tears down an in-flight block drag if the editor unmounts under it.
   const dragCleanupRef = useRef<(() => void) | null>(null);
+  // The grip's block menu (Turn into / Duplicate / Delete), opened on grip click.
+  const [gripMenu, setGripMenu] = useState<{ top: number; left: number } | null>(
+    null
+  );
   // Non-empty while the selection spans multiple units (drives hideselection).
   const [selBlocks, setSelBlocks] = useState<number[]>([]);
   const [lasso, setLasso] = useState<{
@@ -326,6 +390,7 @@ export default function RichEditor({
       TaskItem.configure({ nested: true }),
       Indent,
       BlockPick,
+      BlockKeys,
       CodeBlock.extend({
         addNodeView: () => ReactNodeViewRenderer(CodeBlockView),
       }),
@@ -385,6 +450,31 @@ export default function RichEditor({
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
 
+  // The editor is deliberately uncontrolled, but migration (and other outside
+  // writers) can rewrite a section AFTER its editor mounted. While unfocused,
+  // adopt outside changes; while typing, the editor owns the document.
+  useEffect(() => {
+    if (!editor || editor.isDestroyed || editor.isFocused) return;
+    const want = toEditorHtml(content);
+    if ((editor.isEmpty && !want) || editor.getHTML() === want) return;
+    editor.commands.setContent(want);
+  }, [editor, content]);
+
+  // Same for the ghost placeholder: swap the live option and repaint, so a
+  // migrated-in placeholder shows without remounting (which would drop focus).
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    const ext = editor.extensionManager.extensions.find(
+      (x) => x.name === "placeholder"
+    );
+    const want = placeholder ?? "Write here…  press / for blocks";
+    const opts = ext?.options as { placeholder?: string } | undefined;
+    if (opts && opts.placeholder !== want) {
+      opts.placeholder = want;
+      editor.view.dispatch(editor.state.tr);
+    }
+  }, [editor, placeholder]);
+
   /** While blocks are picked (the BlockPick decoration paints them), hide the
    *  native character selection so the pick reads as objects, never as
    *  highlighted text. */
@@ -412,7 +502,14 @@ export default function RichEditor({
    * under the pointer, and release performs the move through the editor APIs.
    */
   const beginBlockDrag = useCallback(
-    (e: MouseEvent, originUnit: HTMLElement, origin: "grip" | "block") => {
+    (
+      e: Pick<MouseEvent, "clientX" | "clientY" | "altKey" | "button"> & {
+        preventDefault(): void;
+        stopPropagation(): void;
+      },
+      originUnit: HTMLElement,
+      origin: "grip" | "block"
+    ) => {
       if (!editor || e.button !== 0) return;
       const prose = wrapRef.current?.querySelector(".cf-prose");
       if (!prose) return;
@@ -552,6 +649,7 @@ export default function RichEditor({
         }
         ghost.classList.toggle("cf-copying", copying);
         if (copying) document.body.style.cursor = "copy";
+        document.body.style.userSelect = "none";
         document.body.appendChild(ghost);
         line = document.createElement("div");
         line.className = "cf-drop-line";
@@ -636,7 +734,7 @@ export default function RichEditor({
         }
       };
 
-      const onMove = (ev: MouseEvent) => {
+      const onMove = (ev: PointerEvent) => {
         lastX = ev.clientX;
         lastY = ev.clientY;
         if (!lifted) {
@@ -647,6 +745,12 @@ export default function RichEditor({
         setCopying(ev.altKey);
         update(lastX, lastY);
         edgeScroll();
+      };
+
+      // While a drag is in flight, the page must not scroll under the finger
+      // (touch) and text must not get swept into a selection (mouse).
+      const blockTouchScroll = (ev: TouchEvent) => {
+        if (lifted) ev.preventDefault();
       };
 
       let raf = 0;
@@ -673,11 +777,19 @@ export default function RichEditor({
         line?.remove();
         dim?.remove();
         document.body.style.cursor = "";
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
+        document.body.style.userSelect = "";
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onCancel);
+        window.removeEventListener("touchmove", blockTouchScroll);
         window.removeEventListener("keydown", onKey, true);
         window.removeEventListener("keyup", onKeyUp);
         dragCleanupRef.current = null;
+      };
+
+      const onCancel = () => {
+        target = null;
+        cleanup();
       };
 
       const onKey = (ev: KeyboardEvent) => {
@@ -701,7 +813,8 @@ export default function RichEditor({
         cleanup();
 
         if (!wasLifted) {
-          // A plain click: the grip picks the row; a picked row takes the caret.
+          // A plain click: the grip picks the row AND opens the block menu;
+          // a picked row takes the caret.
           if (origin === "grip") {
             try {
               const pos = editor.view.posAtDOM(originUnit, 0);
@@ -709,6 +822,11 @@ export default function RichEditor({
               const sel = NodeSelection.create(editor.state.doc, unitStartPos($p));
               editor.view.dispatch(editor.state.tr.setSelection(sel));
               editor.view.focus();
+              const r = originUnit.getBoundingClientRect();
+              setGripMenu({
+                top: Math.min(r.bottom + 6, window.innerHeight - 336),
+                left: Math.max(8, Math.min(r.left, window.innerWidth - 232)),
+              });
             } catch {
               /* row lookup can fail mid-edit */
             }
@@ -753,8 +871,11 @@ export default function RichEditor({
         }
       };
 
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
+      // Pointer events cover mouse AND touch with one set of listeners.
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onCancel);
+      window.addEventListener("touchmove", blockTouchScroll, { passive: false });
       // Capture phase: the drag's Escape wins over the modal's close-on-Escape.
       window.addEventListener("keydown", onKey, true);
       window.addEventListener("keyup", onKeyUp);
@@ -1071,11 +1192,106 @@ export default function RichEditor({
 
   /** Pressing a picked row starts the block drag before the editor can turn
    *  the press into a caret. Unpicked text is untouched — normal editing. */
-  function onWrapMouseDownCapture(e: ReactMouseEvent) {
+  function onWrapPointerDownCapture(e: ReactPointerEvent) {
     const t = e.target as HTMLElement;
     const unit = t.closest?.(".block-selected");
     if (unit instanceof HTMLElement) beginBlockDrag(e.nativeEvent, unit, "block");
   }
+
+  /** Touch: press-and-hold a row lifts it into a drag (the grip needs hover,
+   *  which fingers don't have). A short tap or an early move stays normal
+   *  tapping / scrolling. */
+  function onWrapTouchStart(e: ReactTouchEvent) {
+    const t = e.touches[0];
+    const prose = wrapRef.current?.querySelector(".cf-prose");
+    if (!t || !prose) return;
+    const unit = domUnits(prose).find((u) => {
+      const r = u.getBoundingClientRect();
+      return t.clientY >= r.top && t.clientY <= r.bottom;
+    });
+    if (!unit) return;
+    const sx = t.clientX;
+    const sy = t.clientY;
+    let dead = false;
+    const abort = () => {
+      dead = true;
+      window.removeEventListener("touchmove", onTM);
+      window.removeEventListener("touchend", abort);
+      window.removeEventListener("touchcancel", abort);
+    };
+    const onTM = (ev: TouchEvent) => {
+      const tt = ev.touches[0];
+      if (!tt || Math.abs(tt.clientX - sx) > 8 || Math.abs(tt.clientY - sy) > 8)
+        abort(); // finger is scrolling, not holding
+    };
+    window.addEventListener("touchmove", onTM, { passive: true });
+    window.addEventListener("touchend", abort);
+    window.addEventListener("touchcancel", abort);
+    window.setTimeout(() => {
+      if (dead) return;
+      abort();
+      navigator.vibrate?.(8);
+      beginBlockDrag(
+        {
+          clientX: sx,
+          clientY: sy,
+          altKey: false,
+          button: 0,
+          preventDefault() {},
+          stopPropagation() {},
+        },
+        unit,
+        "block"
+      );
+    }, 360);
+  }
+
+  /** Grip-menu actions all operate on the currently picked block(s). */
+  const menuAct = useCallback(
+    (what: "duplicate" | "delete" | ((ed: Editor) => void)) => {
+      if (!editor) return;
+      const { doc, selection } = editor.state;
+      if (typeof what === "function") {
+        what(editor);
+      } else {
+        const $f = doc.resolve(selection.from);
+        const $l = doc.resolve(Math.max(selection.from, selection.to - 1));
+        const start = unitStartPos($f);
+        const end = unitEndPos($l);
+        if (what === "duplicate") {
+          editor.view.dispatch(
+            editor.state.tr.insert(end, doc.slice(start, end).content).scrollIntoView()
+          );
+        } else {
+          const del = expandListBounds(doc, start, end);
+          editor.chain().focus().deleteRange(del).run();
+        }
+      }
+      setGripMenu(null);
+    },
+    [editor]
+  );
+
+  // The grip menu closes on any press outside it, and Escape closes it
+  // without also closing the modal.
+  useEffect(() => {
+    if (!gripMenu) return;
+    const onDown = (e: Event) => {
+      if (!(e.target as HTMLElement).closest?.(".grip-menu")) setGripMenu(null);
+    };
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setGripMenu(null);
+      }
+    };
+    window.addEventListener("pointerdown", onDown, true);
+    window.addEventListener("keydown", onEsc, true);
+    return () => {
+      window.removeEventListener("pointerdown", onDown, true);
+      window.removeEventListener("keydown", onEsc, true);
+    };
+  }, [gripMenu]);
 
   return (
     <div
@@ -1086,7 +1302,8 @@ export default function RichEditor({
         setGrip(null);
         gripUnitRef.current = null;
       }}
-      onMouseDownCapture={onWrapMouseDownCapture}
+      onPointerDownCapture={onWrapPointerDownCapture}
+      onTouchStart={onWrapTouchStart}
     >
       {editor && grip && (
         <button
@@ -1094,14 +1311,53 @@ export default function RichEditor({
           className="cf-grip"
           style={{ top: grip.top }}
           tabIndex={-1}
-          title="Drag to move · click to select the block"
-          onMouseDown={(e) => {
+          title="Drag to move · click for block menu"
+          onPointerDown={(e) => {
             const u = gripUnitRef.current;
             if (u) beginBlockDrag(e.nativeEvent, u, "grip");
           }}
         >
           <GripVertical size={12} />
         </button>
+      )}
+
+      {gripMenu && editor && (
+        <div
+          className="slash-menu grip-menu"
+          style={{ top: gripMenu.top, left: gripMenu.left }}
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <button className="slash-item" onClick={() => menuAct("duplicate")}>
+            <span className="slash-icon">
+              <Copy size={15} />
+            </span>
+            <span className="slash-text">
+              <span className="slash-title">Duplicate</span>
+              <span className="slash-hint">⌘D</span>
+            </span>
+          </button>
+          <button className="slash-item danger" onClick={() => menuAct("delete")}>
+            <span className="slash-icon">
+              <Trash2 size={15} />
+            </span>
+            <span className="slash-text">
+              <span className="slash-title">Delete</span>
+            </span>
+          </button>
+          <div className="grip-menu-label">Turn into</div>
+          {SLASH_ITEMS.filter((i) => i.title !== "Divider").map((item) => (
+            <button
+              key={item.title}
+              className="slash-item"
+              onClick={() => menuAct(item.run)}
+            >
+              <span className="slash-icon">{item.icon}</span>
+              <span className="slash-text">
+                <span className="slash-title">{item.title}</span>
+              </span>
+            </button>
+          ))}
+        </div>
       )}
 
       <EditorContent editor={editor} />

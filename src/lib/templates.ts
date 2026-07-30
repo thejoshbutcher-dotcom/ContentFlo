@@ -1,4 +1,4 @@
-import { isBlankContent, toEditorHtml } from "./richtext";
+import { htmlToText, isBlankContent, toEditorHtml } from "./richtext";
 import {
   ContentCard,
   ContentType,
@@ -116,18 +116,26 @@ export function shortFormSections(): Section[] {
 export function longFormSections(): Section[] {
   return [
     text("Goal of Video", "What should this video DO for the viewer?"),
-    text("Title Ideas", "Write 3+ options", "1. \n2. \n3. "),
-    text("Thumbnail Ideas (3–5 words)", "Write 3+ options", "1. \n2. \n3. "),
+    // Scaffolds are ghost placeholders, not real blocks: they only show while
+    // the box is empty and vanish the moment anything is typed or dropped in.
+    { ...text("Title Ideas", "Write 3+ options"), placeholder: "1. \n2. \n3. " },
+    {
+      ...text("Thumbnail Ideas (3–5 words)", "Write 3+ options"),
+      placeholder: "1. \n2. \n3. ",
+    },
     text(
       "Thumbnail References",
       "Other creators' thumbnails to model — paste screenshots straight from your clipboard"
     ),
     text("Video References 🔗", "Other creators' videos"),
-    text(
-      "Questions ❓ (from reference video)",
-      "Reference title · goal · 3 points/secrets to reveal · main question · what the viewer wants to know · what I want them to LEARN · objections",
-      "Reference video title: \n\nGoal of the reference video: \n\n3 points or secrets to reveal:\n1. \n2. \n3. \n\nMain question: \n\nWhat does the viewer want to know?\n- \n\nWhat do I want the viewer to know?\n- \n\nWhat do I want the viewer to LEARN?\n- \n\nObjections or obvious answers:\n- "
-    ),
+    {
+      ...text(
+        "Questions ❓ (from reference video)",
+        "Reference title · goal · 3 points/secrets to reveal · main question · what the viewer wants to know · what I want them to LEARN · objections"
+      ),
+      placeholder:
+        "Reference video title: \n\nGoal of the reference video: \n\n3 points or secrets to reveal:\n1. \n2. \n3. \n\nMain question: \n\nWhat does the viewer want to know?\n- \n\nWhat do I want the viewer to know?\n- \n\nWhat do I want the viewer to LEARN?\n- \n\nObjections or obvious answers:\n- ",
+    },
     script("Outline", "Beat-by-beat structure before you write the full script"),
     script("Script", "Hook → Intro → Value → CTA"),
     checklist("Publishing Checklist ✅", [
@@ -140,8 +148,8 @@ export function longFormSections(): Section[] {
       "Add video to most relevant playlist",
       "Schedule for publish at 5–6pm GMT",
     ]),
-    post("Video Description for YouTube", "", "00:00 - Intro\n"),
-    post("Email (for sharing video)", "", "Subject: \n\nBody:\n"),
+    { ...post("Video Description for YouTube"), placeholder: "00:00 - Intro" },
+    { ...post("Email (for sharing video)"), placeholder: "Subject: \n\nBody:" },
   ];
 }
 
@@ -151,11 +159,11 @@ export function carouselSections(): Section[] {
       "Hook Slide",
       "3–7 key words + power word — stops the scroll on slide 1"
     ),
-    script(
-      "Slides 2–9",
-      "One idea per slide · big text · keep them swiping",
-      "Slide 2: \nSlide 3: \nSlide 4: \nSlide 5: \nSlide 6: \nSlide 7: \nSlide 8: \nSlide 9: "
-    ),
+    {
+      ...script("Slides 2–9", "One idea per slide · big text · keep them swiping"),
+      placeholder:
+        "Slide 2: \nSlide 3: \nSlide 4: \nSlide 5: \nSlide 6: \nSlide 7: \nSlide 8: \nSlide 9: ",
+    },
     script("CTA Slide", "Share / Save / Follow / Comment word"),
     post("Caption for Posting 📱", ""),
     text("Design Notes", "Colors, imagery, template to reuse"),
@@ -165,10 +173,10 @@ export function carouselSections(): Section[] {
 export function podcastSections(): Section[] {
   return [
     script("Episode Premise", "What's the conversation really about?"),
-    script("Talking Points", "", "1. \n2. \n3. \n4. \n5. "),
+    { ...script("Talking Points"), placeholder: "1. \n2. \n3. \n4. \n5. " },
     script("Stories to Tell", "Personal stories that anchor each point"),
     text("Clips to Cut 🎬", "Moments likely to work as shorts"),
-    text("Title + Thumbnail Ideas", "", "1. \n2. \n3. "),
+    { ...text("Title + Thumbnail Ideas"), placeholder: "1. \n2. \n3. " },
     checklist("Publishing Checklist ✅", [
       "Edit full episode",
       "Cut 3–5 short clips",
@@ -284,15 +292,52 @@ function convertChecklists(sections: Section[]): Section[] | null {
   });
 }
 
+/**
+ * Scaffolds ("1. / 2. / 3.", "Slide 2: …") used to be seeded as real blocks;
+ * they're ghost placeholders now. For each section whose template carries a
+ * placeholder: adopt the placeholder, and clear content that is still just
+ * the untouched scaffold (or an empty list skeleton) so the ghost can show.
+ * Anything the user actually wrote is left alone.
+ */
+const scaffoldNorm = (s: string) => htmlToText(s).toLowerCase().replace(/[^a-z]/g, "");
+
+function applyPlaceholders(
+  sections: Section[],
+  type?: ContentType
+): Section[] | null {
+  const tpl = sectionsFor(type);
+  let changed = false;
+  const next = sections.map((s) => {
+    const t = tpl.find((x) => x.title === s.title);
+    if (!t?.placeholder) return s;
+    let out = s;
+    if (s.placeholder !== t.placeholder) {
+      out = { ...out, placeholder: t.placeholder };
+      changed = true;
+    }
+    const n = scaffoldNorm(out.content);
+    if (out.content !== "" && (n === "" || n === scaffoldNorm(t.placeholder))) {
+      out = { ...out, content: "" };
+      changed = true;
+    }
+    return out;
+  });
+  return changed ? next : null;
+}
+
 /** Returns reconciled sections for a card, or null if it's already current. */
 export function migrateCardSections(card: ContentCard): Section[] | null {
   let next: Section[] | null = null;
   if (card.contentType === "Short form") next = migrateShortForm(card.sections);
   else if (card.contentType === "Long form") next = migrateLongForm(card.sections);
 
-  // Runs for every content type — podcasts have checklists too.
+  // These run for every content type — podcasts have checklists too.
   const converted = convertChecklists(next ?? card.sections);
-  return converted ?? next;
+  const withPlaceholders = applyPlaceholders(
+    converted ?? next ?? card.sections,
+    card.contentType
+  );
+  return withPlaceholders ?? converted ?? next;
 }
 
 // ————— Reference library (the collapsible guides inside the Notion templates) —————

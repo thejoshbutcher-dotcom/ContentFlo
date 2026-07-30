@@ -15,8 +15,9 @@ import {
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Extension, InputRule } from "@tiptap/core";
-import { Plugin } from "@tiptap/pm/state";
+import { NodeSelection, Plugin } from "@tiptap/pm/state";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
+import type { ResolvedPos } from "@tiptap/pm/model";
 
 // The editor view a drag started from. A drop into a DIFFERENT section's
 // editor completes the move by deleting the dragged blocks from the source —
@@ -24,10 +25,33 @@ import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 // depending on the browser), which is where blocks were getting lost.
 let dragSourceView: EditorView | null = null;
 
+// "Units" are what picking operates on: list items count individually (like
+// Notion), everything else is the top-level block.
+const LIST_TYPES = new Set(["bulletList", "orderedList", "taskList"]);
+
+function unitStartPos($p: ResolvedPos): number {
+  for (let d = $p.depth; d >= 1; d -= 1) {
+    const name = $p.node(d).type.name;
+    if (name === "listItem" || name === "taskItem") return $p.before(d);
+  }
+  return $p.depth >= 1 ? $p.before(1) : $p.pos;
+}
+
+function unitEndPos($p: ResolvedPos): number {
+  for (let d = $p.depth; d >= 1; d -= 1) {
+    const name = $p.node(d).type.name;
+    if (name === "listItem" || name === "taskItem") return $p.after(d);
+  }
+  return $p.depth >= 1 ? $p.after(1) : $p.pos;
+}
+
 /**
- * Marks every top-level block a multi-block selection touches with
- * .block-selected — via ProseMirror decorations, which survive the editor's
- * own rendering (externally-mutated classes get wiped on redraw).
+ * Paints every unit a multi-unit selection touches with .block-selected and
+ * marks it draggable — via ProseMirror decorations, which survive the editor's
+ * own rendering (externally-mutated classes get wiped on redraw). The explicit
+ * draggable attribute is what makes grabbing a picked block start a real drag
+ * reliably; ProseMirror then drags the whole selection because the drag
+ * originates inside it.
  */
 const BlockPick = Extension.create({
   name: "blockPick",
@@ -38,22 +62,26 @@ const BlockPick = Extension.create({
           decorations(state) {
             const { doc, selection } = state;
             if (selection.empty || doc.childCount === 0) return null;
-            const fromIdx = doc.resolve(selection.from).index(0);
-            const toIdx = doc
-              .resolve(Math.max(selection.from, selection.to - 1))
-              .index(0);
-            if (toIdx <= fromIdx) return null;
+            const { from, to } = selection;
+            const $f = doc.resolve(from);
+            const $l = doc.resolve(Math.max(from, to - 1));
+            // Selections inside a single unit stay ordinary text selections.
+            if (unitStartPos($f) === unitStartPos($l)) return null;
+
+            const attrs = { class: "block-selected", draggable: "true" };
             const decos: Decoration[] = [];
-            let pos = 0;
-            for (let i = 0; i < doc.childCount; i += 1) {
-              const size = doc.child(i).nodeSize;
-              if (i >= fromIdx && i <= toIdx) {
-                decos.push(
-                  Decoration.node(pos, pos + size, { class: "block-selected" })
-                );
+            doc.forEach((node, pos) => {
+              if (pos + node.nodeSize <= from || pos >= to) return;
+              if (LIST_TYPES.has(node.type.name)) {
+                node.forEach((item, off) => {
+                  const ip = pos + 1 + off;
+                  if (ip + item.nodeSize <= from || ip >= to) return;
+                  decos.push(Decoration.node(ip, ip + item.nodeSize, attrs));
+                });
+              } else {
+                decos.push(Decoration.node(pos, pos + node.nodeSize, attrs));
               }
-              pos += size;
-            }
+            });
             return DecorationSet.create(doc, decos);
           },
         },
@@ -441,14 +469,24 @@ export default function RichEditor({
       const startY = e.clientY;
       let moved = false;
 
+      // Hit-testing operates on "units": list items individually, otherwise
+      // the top-level block — matching how picking and Notion treat rows.
       const blocksIn = (top: number, bottom: number) => {
-        const hits: HTMLElement[] = [];
+        const units: HTMLElement[] = [];
         proseEl.childNodes.forEach((n) => {
           if (!(n instanceof HTMLElement)) return;
-          const r = n.getBoundingClientRect();
-          if (r.top < bottom && r.bottom > top) hits.push(n);
+          if (/^(UL|OL)$/.test(n.tagName)) {
+            [...n.children].forEach((li) => {
+              if (li instanceof HTMLElement) units.push(li);
+            });
+          } else {
+            units.push(n);
+          }
         });
-        return hits;
+        return units.filter((el) => {
+          const r = el.getBoundingClientRect();
+          return r.top < bottom && r.bottom > top;
+        });
       };
 
       const paint = (hits: HTMLElement[]) => {
@@ -481,19 +519,20 @@ export default function RichEditor({
         paint([]); // clear the preview; the real selection takes over
 
         if (!moved) {
-          // Plain click in the gutter: instantly pick the block on that row —
+          // Plain click in the gutter: instantly pick the unit on that row —
           // no waiting for the floating grip to materialise.
           const rowHits = blocksIn(startY - 2, startY + 2);
-          const idx = rowHits.length
-            ? [...proseEl.children].indexOf(rowHits[0])
-            : -1;
-          if (idx >= 0) {
-            let acc = 0;
-            const doc = editor.state.doc;
-            for (let i = 0; i < idx && i < doc.childCount; i += 1) {
-              acc += doc.child(i).nodeSize;
+          if (rowHits.length) {
+            try {
+              const view = editor.view;
+              const pos = view.posAtDOM(rowHits[0], 0);
+              const $p = editor.state.doc.resolve(pos);
+              const sel = NodeSelection.create(editor.state.doc, unitStartPos($p));
+              view.dispatch(editor.state.tr.setSelection(sel));
+              view.focus();
+            } catch {
+              /* row lookup can fail mid-edit */
             }
-            editor.chain().focus().setNodeSelection(acc).run();
           }
           return;
         }
@@ -562,17 +601,9 @@ export default function RichEditor({
         setSelBlocks([]);
         return;
       }
-      const fromIdx = doc.resolve(selection.from).index(0);
-      const toIdx = doc
-        .resolve(Math.max(selection.from, selection.to - 1))
-        .index(0);
-      if (toIdx > fromIdx) {
-        const picks: number[] = [];
-        for (let i = fromIdx; i <= toIdx; i += 1) picks.push(i);
-        setSelBlocks(picks);
-      } else {
-        setSelBlocks([]);
-      }
+      const $f = doc.resolve(selection.from);
+      const $l = doc.resolve(Math.max(selection.from, selection.to - 1));
+      setSelBlocks(unitStartPos($f) !== unitStartPos($l) ? [1] : []);
     };
     editor.on("selectionUpdate", compute);
     return () => {
@@ -589,17 +620,13 @@ export default function RichEditor({
         if (!editor || editor.isDestroyed || !editor.view.hasFocus()) return;
         const { doc, selection } = editor.state;
         if (selection.empty || doc.childCount === 0) return;
-        const fromIdx = doc.resolve(selection.from).index(0);
-        const toIdx = doc
-          .resolve(Math.max(selection.from, selection.to - 1))
-          .index(0);
-        if (toIdx <= fromIdx) return;
-        let start = 0;
-        for (let i = 0; i < fromIdx; i += 1) start += doc.child(i).nodeSize;
-        let end = start;
-        for (let i = fromIdx; i <= toIdx; i += 1) end += doc.child(i).nodeSize;
-        if (selection.from !== start + 1 || selection.to !== end - 1) {
-          editor.commands.setTextSelection({ from: start + 1, to: end - 1 });
+        const $f = doc.resolve(selection.from);
+        const $l = doc.resolve(Math.max(selection.from, selection.to - 1));
+        if (unitStartPos($f) === unitStartPos($l)) return; // single unit: leave as text
+        const from = unitStartPos($f) + 1;
+        const to = unitEndPos($l) - 1;
+        if (selection.from !== from || selection.to !== to) {
+          editor.commands.setTextSelection({ from, to });
         }
       }, 0);
     };

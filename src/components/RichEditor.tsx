@@ -153,10 +153,6 @@ export default function RichEditor({
   onImagePaste?: (files: File[]) => boolean;
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
-  // Expanded-while-writing state. Clicking a toggle (or any contenteditable=false
-  // widget) briefly blurs the editor, so collapsing is delayed and cancelled if
-  // focus comes right back — otherwise the box flickers small/big on every click.
-  const [expanded, setExpanded] = useState(false);
   // Position of the block the drag handle is currently pointing at, so clicking
   // the handle can select that whole block as a unit.
   const handlePos = useRef<number | null>(null);
@@ -169,15 +165,6 @@ export default function RichEditor({
     width: number;
     height: number;
   } | null>(null);
-  const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const expandedRef = useRef(false);
-  expandedRef.current = expanded;
-  useEffect(
-    () => () => {
-      if (collapseTimer.current) clearTimeout(collapseTimer.current);
-    },
-    []
-  );
   const [slash, setSlash] = useState<{ top: number; left: number; query: string } | null>(
     null
   );
@@ -285,27 +272,9 @@ export default function RichEditor({
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
 
-  // Focus tracking lives on the wrapper, not the editor: React's focus events
-  // bubble from every descendant, so clicking a toggle's button (or any widget
-  // inside the editor) still counts as "still writing here".
-  function handleFocusIn() {
-    if (collapseTimer.current) clearTimeout(collapseTimer.current);
-    // Scroll only on genuine first entry, not when focus bounces back from a
-    // toggle click — otherwise the view jumps on every interaction.
-    if (!expandedRef.current) {
-      wrapRef.current
-        ?.closest(".section-block")
-        ?.scrollIntoView({ block: "start", behavior: "smooth" });
-    }
-    setExpanded(true);
-  }
-
-  function handleFocusOut() {
-    if (collapseTimer.current) clearTimeout(collapseTimer.current);
-    collapseTimer.current = setTimeout(() => setExpanded(false), 220);
-  }
-
-  /** Paint the block-selected class onto the matching DOM children. */
+  /** Paint the block-selected class onto the matching DOM children, and hide
+   *  the native character selection while blocks are picked so the pick reads
+   *  as objects, never as highlighted text. */
   useEffect(() => {
     const prose = wrapRef.current?.querySelector(".cf-prose");
     if (!prose) return;
@@ -316,7 +285,65 @@ export default function RichEditor({
       const el = prose.children[i];
       if (el) el.classList.add("block-selected");
     });
+    prose.classList.toggle("ProseMirror-hideselection", selBlocks.length > 0);
   }, [selBlocks, editor]);
+
+  // Solid drag preview: the browser's default ghost is a translucent text
+  // smear. Build a card-styled clone of the dragged block(s) instead, so the
+  // whole block visibly moves, and dim the sources while the drag is live.
+  useEffect(() => {
+    const host = wrapRef.current;
+    if (!host || !editor) return;
+
+    const onDragStart = (e: Event) => {
+      const de = e as DragEvent;
+      if (!de.dataTransfer) return;
+      const prose = host.querySelector(".cf-prose");
+      if (!prose) return;
+
+      let els = [...prose.querySelectorAll<HTMLElement>(".block-selected")];
+      if (!els.length) {
+        const selNode = prose.querySelector<HTMLElement>(".ProseMirror-selectednode");
+        if (selNode) els = [selNode];
+      }
+      if (!els.length) {
+        const target = de.target as HTMLElement | null;
+        const block = target?.closest?.(".cf-prose > *");
+        if (block instanceof HTMLElement) els = [block];
+      }
+      if (!els.length) return;
+
+      const ghost = document.createElement("div");
+      ghost.className = "cf-drag-ghost";
+      ghost.style.width = `${Math.min(420, els[0].offsetWidth || 320)}px`;
+      els.slice(0, 4).forEach((el) => {
+        const clone = el.cloneNode(true) as HTMLElement;
+        clone.classList.remove("block-selected", "lasso-hit", "cf-dragging-src");
+        ghost.appendChild(clone);
+      });
+      if (els.length > 4) {
+        const more = document.createElement("div");
+        more.className = "cf-ghost-more";
+        more.textContent = `+${els.length - 4} more`;
+        ghost.appendChild(more);
+      }
+      document.body.appendChild(ghost);
+      de.dataTransfer.setDragImage(ghost, 24, 18);
+      window.setTimeout(() => ghost.remove(), 0);
+
+      els.forEach((el) => el.classList.add("cf-dragging-src"));
+      const clear = () => {
+        els.forEach((el) => el.classList.remove("cf-dragging-src"));
+        window.removeEventListener("dragend", clear);
+        window.removeEventListener("drop", clear);
+      };
+      window.addEventListener("dragend", clear);
+      window.addEventListener("drop", clear);
+    };
+
+    host.addEventListener("dragstart", onDragStart, true);
+    return () => host.removeEventListener("dragstart", onDragStart, true);
+  }, [editor]);
 
   /** Clicking the grip picks that whole block as an object — a native
    *  ProseMirror node selection, so it can be dragged, copied, or deleted as a
@@ -521,10 +548,8 @@ export default function RichEditor({
 
   return (
     <div
-      className={`rich-editor${large ? " large" : ""}${expanded ? " expanded" : ""}`}
+      className={`rich-editor${large ? " large" : ""}`}
       ref={wrapRef}
-      onFocus={handleFocusIn}
-      onBlur={handleFocusOut}
     >
       {editor && (
         <DragHandle

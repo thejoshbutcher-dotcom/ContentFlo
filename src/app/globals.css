@@ -1592,7 +1592,7 @@ body {
 }
 
 .rich-editor .cf-prose {
-  min-height: 130px;
+  min-height: 200px;
   outline: none;
   font-family: var(--font-body), sans-serif;
   font-size: 13.5px;
@@ -1605,20 +1605,9 @@ body {
 }
 
 .rich-editor.large .cf-prose {
-  min-height: 220px;
+  min-height: 320px;
   font-size: 16.5px;
   line-height: 1.75;
-}
-
-/* The box you're writing in expands to fill the view, so it becomes the focus
-   of the screen instead of one cramped box among several.
-   Two triggers on purpose: the live focus state handles the common case, and
-   the debounced `.expanded` class keeps it open across the brief blur caused by
-   clicking a toggle or other widget inside the editor (which otherwise made the
-   box flicker small/big on every click). */
-.rich-editor:has(.ProseMirror-focused) .cf-prose,
-.rich-editor.expanded .cf-prose {
-  min-height: calc(100vh - 240px);
 }
 
 .section-block {
@@ -1653,6 +1642,61 @@ body {
   outline: 2px solid var(--amber);
   outline-offset: 4px;
   border-radius: 6px;
+  cursor: grab;
+}
+
+/* Hovering a picked block signals "grab me": brighter glow, ready to drag. */
+.cf-prose .ProseMirror-selectednode:hover,
+.cf-prose .block-selected:hover {
+  background: rgba(247, 201, 72, 0.3);
+  box-shadow: 0 0 18px rgba(247, 201, 72, 0.35);
+}
+
+.cf-prose .block-selected:active {
+  cursor: grabbing;
+}
+
+/* Belt-and-braces for hidden native selection while blocks are picked
+   (ProseMirror toggles this class; make sure it wins in our theme). */
+.cf-prose.ProseMirror-hideselection ::selection {
+  background: transparent;
+}
+.cf-prose.ProseMirror-hideselection {
+  caret-color: transparent;
+}
+
+/* The source blocks dim while their drag is in flight. */
+.cf-prose .cf-dragging-src {
+  opacity: 0.3;
+}
+
+/* Solid drag preview: a card-styled stack of the dragged blocks. */
+.cf-drag-ghost {
+  position: absolute;
+  top: -2000px;
+  left: -2000px;
+  z-index: 9999;
+  padding: 10px 14px;
+  background: var(--card);
+  border: 1.5px solid var(--amber);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+  font-family: var(--font-body), sans-serif;
+  font-size: 13.5px;
+  line-height: 1.6;
+  pointer-events: none;
+}
+
+.cf-drag-ghost > * + * {
+  margin-top: 0.4em;
+}
+
+.cf-ghost-more {
+  color: var(--text-3);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding-top: 4px;
 }
 
 /* Live lasso feedback: blocks wash amber while the box is still being dragged,

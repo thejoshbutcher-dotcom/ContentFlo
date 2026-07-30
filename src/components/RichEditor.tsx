@@ -267,6 +267,8 @@ export default function RichEditor({
   // gutter instantly, replacing the floating plugin handle that appeared late.
   const [grip, setGrip] = useState<{ top: number } | null>(null);
   const gripUnitRef = useRef<HTMLElement | null>(null);
+  // Tears down an in-flight block drag if the editor unmounts under it.
+  const dragCleanupRef = useRef<(() => void) | null>(null);
   // Non-empty while the selection spans multiple units (drives hideselection).
   const [selBlocks, setSelBlocks] = useState<number[]>([]);
   const [lasso, setLasso] = useState<{
@@ -557,20 +559,20 @@ export default function RichEditor({
         drawDim();
       };
 
-      const onMove = (ev: MouseEvent) => {
-        if (!lifted) {
-          if (Math.abs(ev.clientX - startX) < 4 && Math.abs(ev.clientY - startY) < 4)
-            return;
-          lift();
-        }
-        ghost!.style.left = `${ev.clientX + 14}px`;
-        ghost!.style.top = `${ev.clientY + 10}px`;
-        setCopying(ev.altKey);
+      let lastX = startX;
+      let lastY = startY;
+
+      /** Reposition the ghost and re-resolve the drop target for the current
+       *  pointer — called on every move, and again after auto-scroll shifts
+       *  the boxes under a stationary pointer. */
+      const update = (cx: number, cy: number) => {
+        ghost!.style.left = `${cx + 14}px`;
+        ghost!.style.top = `${cy + 10}px`;
         drawDim();
 
         target = null;
         line!.style.display = "none";
-        const under = document.elementFromPoint(ev.clientX, ev.clientY);
+        const under = document.elementFromPoint(cx, cy);
         // Anywhere inside a writing box counts — the gutter and padding around
         // the text must not be a drop dead-zone.
         const destProse =
@@ -586,7 +588,7 @@ export default function RichEditor({
         let pos: number | null = null;
         for (const u of destUnits) {
           const r = u.getBoundingClientRect();
-          if (ev.clientY < r.top + r.height / 2) {
+          if (cy < r.top + r.height / 2) {
             gapY = r.top - 2;
             try {
               pos = unitStartPos(
@@ -610,6 +612,50 @@ export default function RichEditor({
         line!.style.top = `${gapY}px`;
       };
 
+      // Auto-scroll: a lifted drag near the top or bottom edge of the
+      // scrolling pane scrolls it, so blocks can travel to boxes beyond the
+      // fold without abandoning the drag. Driven by BOTH the rAF loop (keeps
+      // scrolling while the pointer parks in the zone) and each mousemove
+      // (covers environments that throttle rAF).
+      const srcPane = wrapRef.current?.closest(".modal-sections, .script-pane");
+      const edgeScroll = () => {
+        if (!lifted) return;
+        const under = document.elementFromPoint(lastX, lastY);
+        const pane =
+          under?.closest?.(".modal-sections, .script-pane") ?? srcPane;
+        if (!pane) return;
+        const pr = pane.getBoundingClientRect();
+        const zone = 48;
+        let dy = 0;
+        if (lastY < pr.top + zone) dy = -Math.ceil((pr.top + zone - lastY) / 4);
+        else if (lastY > pr.bottom - zone)
+          dy = Math.ceil((lastY - (pr.bottom - zone)) / 4);
+        if (dy) {
+          pane.scrollTop += dy;
+          update(lastX, lastY);
+        }
+      };
+
+      const onMove = (ev: MouseEvent) => {
+        lastX = ev.clientX;
+        lastY = ev.clientY;
+        if (!lifted) {
+          if (Math.abs(ev.clientX - startX) < 4 && Math.abs(ev.clientY - startY) < 4)
+            return;
+          lift();
+        }
+        setCopying(ev.altKey);
+        update(lastX, lastY);
+        edgeScroll();
+      };
+
+      let raf = 0;
+      const tick = () => {
+        edgeScroll();
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+
       // Option-drag copies instead of moves (Notion/Finder convention). The
       // flag follows the key live, so pressing or releasing ⌥ mid-drag flips
       // the ghost's "+" badge and the cursor immediately.
@@ -622,18 +668,23 @@ export default function RichEditor({
       };
 
       const cleanup = () => {
+        cancelAnimationFrame(raf);
         ghost?.remove();
         line?.remove();
         dim?.remove();
         document.body.style.cursor = "";
         window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
-        window.removeEventListener("keydown", onKey);
+        window.removeEventListener("keydown", onKey, true);
         window.removeEventListener("keyup", onKeyUp);
+        dragCleanupRef.current = null;
       };
 
       const onKey = (ev: KeyboardEvent) => {
         if (ev.key === "Escape") {
+          // Consume it: cancelling a drag must not also close the modal.
+          ev.stopPropagation();
+          ev.preventDefault();
           target = null;
           cleanup();
         }
@@ -704,10 +755,21 @@ export default function RichEditor({
 
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
-      window.addEventListener("keydown", onKey);
+      // Capture phase: the drag's Escape wins over the modal's close-on-Escape.
+      window.addEventListener("keydown", onKey, true);
       window.addEventListener("keyup", onKeyUp);
+      dragCleanupRef.current = cleanup;
     },
     [editor]
+  );
+
+  // If this editor unmounts mid-drag (modal closed, section switched), tear
+  // the drag down — otherwise the ghost and window listeners outlive it.
+  useEffect(
+    () => () => {
+      dragCleanupRef.current?.();
+    },
+    []
   );
 
   /**
@@ -730,6 +792,39 @@ export default function RichEditor({
       }
       const proseEl = wrapRef.current?.querySelector(".cf-prose");
       if (!proseEl) return;
+
+      // Every editor in the pane hears this mousedown; exactly ONE may own the
+      // lasso. Presses inside a box belong to that box; presses in the pane's
+      // empty space belong to the vertically nearest box. Each instance runs
+      // the same arithmetic, so they all agree without coordinating.
+      const myBlock = wrapRef.current?.closest(".section-block");
+      const pressedBlock = target.closest(".section-block");
+      if (pressedBlock) {
+        if (pressedBlock !== myBlock) return;
+      } else if (myBlock) {
+        const host = e.currentTarget instanceof HTMLElement ? e.currentTarget : null;
+        const blocks = host
+          ? [...host.querySelectorAll(".section-block")].filter((b) =>
+              b.querySelector(".cf-prose")
+            )
+          : [myBlock];
+        let best: Element | null = null;
+        let bestDist = Infinity;
+        for (const b of blocks) {
+          const r = b.getBoundingClientRect();
+          const d =
+            e.clientY < r.top
+              ? r.top - e.clientY
+              : e.clientY > r.bottom
+                ? e.clientY - r.bottom
+                : 0;
+          if (d < bestDist) {
+            bestDist = d;
+            best = b;
+          }
+        }
+        if (best !== myBlock) return;
+      }
 
       e.preventDefault();
       const startX = e.clientX;
@@ -819,19 +914,19 @@ export default function RichEditor({
     [editor]
   );
 
-  // Listen on the section block AND the scrolling pane, so the lasso can be
-  // started from the empty space well outside the text box.
+  // ONE listener per editor, on the outermost host: the scrolling pane when
+  // there is one (so lassos can start from empty space between boxes), else
+  // the section block. Listening on both would run this handler twice per
+  // press — the ownership check in startLasso keeps pane-level presses fair.
   useEffect(() => {
-    const hosts = [
-      wrapRef.current?.closest(".section-block"),
-      wrapRef.current?.closest(".modal-sections"),
-      wrapRef.current?.closest(".script-pane"),
-    ].filter(Boolean) as HTMLElement[];
-    hosts.forEach((h) => h.addEventListener("mousedown", startLasso as EventListener));
+    const host =
+      wrapRef.current?.closest(".modal-sections") ??
+      wrapRef.current?.closest(".script-pane") ??
+      wrapRef.current?.closest(".section-block");
+    if (!host) return;
+    host.addEventListener("mousedown", startLasso as EventListener);
     return () =>
-      hosts.forEach((h) =>
-        h.removeEventListener("mousedown", startLasso as EventListener)
-      );
+      host.removeEventListener("mousedown", startLasso as EventListener);
   }, [startLasso]);
 
   // Dev-only: expose editor instances so interaction logic can be exercised
@@ -891,16 +986,19 @@ export default function RichEditor({
     return () => window.removeEventListener("mouseup", onUp);
   }, [editor]);
 
-  // Escape releases a block pick by collapsing the selection.
+  // Escape releases a block pick by collapsing the selection. Captured and
+  // consumed, so deselecting never also closes the modal — the next bare
+  // Escape still will, Notion-style layered escape.
   useEffect(() => {
     if (!selBlocks.length || !editor) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        e.stopPropagation();
         editor.commands.setTextSelection(editor.state.selection.from);
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [selBlocks.length, editor]);
 
   // Track "/" typed at the start of an empty block and drive the block menu.
@@ -951,6 +1049,13 @@ export default function RichEditor({
   /** Keep our own grip glued to the hovered row — always available, no
    *  floating-plugin latency. */
   function onWrapMouseMove(e: ReactMouseEvent) {
+    // Still on the same row as last time — nothing to do. Keeps the per-move
+    // cost at one rect check instead of a full row scan.
+    const cur = gripUnitRef.current;
+    if (cur?.isConnected) {
+      const r = cur.getBoundingClientRect();
+      if (e.clientY >= r.top && e.clientY <= r.bottom) return;
+    }
     const prose = wrapRef.current?.querySelector(".cf-prose");
     const wr = wrapRef.current?.getBoundingClientRect();
     if (!prose || !wr) return;
@@ -995,7 +1100,7 @@ export default function RichEditor({
             if (u) beginBlockDrag(e.nativeEvent, u, "grip");
           }}
         >
-          <GripVertical size={14} />
+          <GripVertical size={12} />
         </button>
       )}
 

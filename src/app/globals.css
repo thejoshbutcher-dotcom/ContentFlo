@@ -1585,10 +1585,9 @@ body {
 /* ————— Rich block editor (card sections) ————— */
 .rich-editor {
   position: relative;
-  /* Left gutter is the drag handle's lane — without it the handle overlaps the
-     text and gets pinned against the clipped section edge, which is what makes
-     it fiddly to grab. */
-  padding: 8px 16px 14px 40px;
+  /* Slim in-box gutter: just enough lane for the grip. Text should read as a
+     normal field hugging the left edge, not an indented paragraph. */
+  padding: 8px 16px 14px 26px;
 }
 
 .rich-editor .cf-prose {
@@ -1601,7 +1600,7 @@ body {
 }
 
 .rich-editor.large {
-  padding: 12px 22px 18px 44px;
+  padding: 12px 22px 18px 28px;
 }
 
 .rich-editor.large .cf-prose {
@@ -2021,13 +2020,13 @@ body {
    row is hovered — no floating-plugin latency, nothing to "wait" for. */
 .cf-grip {
   position: absolute;
-  left: 8px;
+  left: 2px;
   z-index: 5;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   border: none;
   border-radius: 6px;

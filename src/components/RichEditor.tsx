@@ -548,6 +548,8 @@ export default function RichEditor({
           more.textContent = `+${units.length - 4} more`;
           ghost.appendChild(more);
         }
+        ghost.classList.toggle("cf-copying", copying);
+        if (copying) document.body.style.cursor = "copy";
         document.body.appendChild(ghost);
         line = document.createElement("div");
         line.className = "cf-drop-line";
@@ -563,12 +565,17 @@ export default function RichEditor({
         }
         ghost!.style.left = `${ev.clientX + 14}px`;
         ghost!.style.top = `${ev.clientY + 10}px`;
+        setCopying(ev.altKey);
         drawDim();
 
         target = null;
         line!.style.display = "none";
         const under = document.elementFromPoint(ev.clientX, ev.clientY);
-        const destProse = under?.closest?.(".cf-prose");
+        // Anywhere inside a writing box counts — the gutter and padding around
+        // the text must not be a drop dead-zone.
+        const destProse =
+          under?.closest?.(".cf-prose") ??
+          under?.closest?.(".rich-editor")?.querySelector(".cf-prose");
         if (!destProse) return;
         const destEd = editorByDom.get(destProse);
         if (!destEd) return;
@@ -603,13 +610,26 @@ export default function RichEditor({
         line!.style.top = `${gapY}px`;
       };
 
+      // Option-drag copies instead of moves (Notion/Finder convention). The
+      // flag follows the key live, so pressing or releasing ⌥ mid-drag flips
+      // the ghost's "+" badge and the cursor immediately.
+      let copying = e.altKey;
+      const setCopying = (c: boolean) => {
+        if (copying === c) return;
+        copying = c;
+        ghost?.classList.toggle("cf-copying", c);
+        document.body.style.cursor = c ? "copy" : "";
+      };
+
       const cleanup = () => {
         ghost?.remove();
         line?.remove();
         dim?.remove();
+        document.body.style.cursor = "";
         window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
         window.removeEventListener("keydown", onKey);
+        window.removeEventListener("keyup", onKeyUp);
       };
 
       const onKey = (ev: KeyboardEvent) => {
@@ -617,6 +637,11 @@ export default function RichEditor({
           target = null;
           cleanup();
         }
+        if (ev.key === "Alt") setCopying(true);
+      };
+
+      const onKeyUp = (ev: KeyboardEvent) => {
+        if (ev.key === "Alt") setCopying(false);
       };
 
       const onUp = (ev: MouseEvent) => {
@@ -653,6 +678,13 @@ export default function RichEditor({
         const intoList = LIST_TYPES.has($t.parent.type.name);
         const html = buildHtml(parts, { intoList, keepNumbering: false });
 
+        // ⌥ at release = duplicate: insert at the drop gap, keep the source.
+        const copy = ev.altKey || copying;
+        if (copy) {
+          t.ed.chain().focus().insertContentAt(t.pos, html).run();
+          return;
+        }
+
         const del = expandListBounds(editor.state.doc, from, to);
         if (t.ed === editor) {
           let insertPos = t.pos;
@@ -673,6 +705,7 @@ export default function RichEditor({
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
       window.addEventListener("keydown", onKey);
+      window.addEventListener("keyup", onKeyUp);
     },
     [editor]
   );

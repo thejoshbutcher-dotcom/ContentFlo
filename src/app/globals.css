@@ -1714,6 +1714,23 @@ body {
   padding-top: 4px;
 }
 
+/* Option-drag duplicates: the ghost wears a "+" badge while ⌥ is held. */
+.cf-drag-ghost.cf-copying::after {
+  content: "+";
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--amber);
+  color: #181a20;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
 /* Live lasso feedback: a fixed overlay paints a glow box over every block the
    lasso is touching, updated on each mouse move. It lives on <body>, outside
    the editor's DOM, so the editor's own rendering can never wipe it. On

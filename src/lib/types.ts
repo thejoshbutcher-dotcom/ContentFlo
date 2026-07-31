@@ -12,6 +12,8 @@ export interface ChecklistItem {
 
 export type SectionPhase = "plan" | "script" | "post";
 
+import type { SectionRef } from "./inspo";
+
 export interface Section {
   id: string;
   title: string;
@@ -24,6 +26,8 @@ export interface Section {
   placeholder?: string;
   items?: ChecklistItem[];
   images?: string[];
+  /** Items pinned from the inspiration library (hotlinked, not copied). */
+  refs?: SectionRef[];
 }
 
 export interface ContentCard {
@@ -82,6 +86,7 @@ export interface Status {
 
 export type ViewId =
   | "ideate"
+  | "inspo"
   | "board-short"
   | "board-long"
   | "board-podcast"

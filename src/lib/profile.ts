@@ -9,6 +9,7 @@ import {
   DEFAULT_FORMATS,
   DEFAULT_TOPICS,
 } from "./ideation";
+import type { InspoItem } from "./inspo";
 import { BUCKETS } from "./seed";
 import { newId } from "./templates";
 
@@ -71,10 +72,17 @@ type ProfileData = {
   feelings: string[];
   actions: string[];
   setupComplete: boolean;
+  /** The inspiration library. It lives here so it inherits this store's
+   *  per-profile key swapping and cloud sync — the items are small enough
+   *  (ids and text, never image data) that the whole library rides along. */
+  inspo: InspoItem[];
 };
 
 interface ProfileState extends ProfileData {
   update: (patch: Partial<ProfileData>) => void;
+  addInspo: (items: InspoItem[]) => void;
+  updateInspo: (id: string, patch: Partial<InspoItem>) => void;
+  removeInspo: (id: string) => void;
 }
 
 // A ready-to-use starting point — broad enough for any niche, editable in Setup.
@@ -91,6 +99,7 @@ export function defaultProfileData(): ProfileData {
     feelings: [...DEFAULT_FEELINGS],
     actions: [...DEFAULT_ACTIONS],
     setupComplete: false,
+    inspo: [],
   };
 }
 
@@ -99,6 +108,22 @@ export const useProfile = create<ProfileState>()(
     (set) => ({
       ...defaultProfileData(),
       update: (patch) => set(patch),
+      // Newest first: the library is scanned visually, and what you just
+      // captured is what you're most likely reaching for.
+      addInspo: (items) =>
+        set((s) => {
+          const seen = new Set(s.inspo.map((i) => i.videoId));
+          const fresh = items.filter(
+            (i) => !seen.has(i.videoId) && seen.add(i.videoId)
+          );
+          return fresh.length ? { inspo: [...fresh, ...s.inspo] } : {};
+        }),
+      updateInspo: (id, patch) =>
+        set((s) => ({
+          inspo: s.inspo.map((i) => (i.id === id ? { ...i, ...patch } : i)),
+        })),
+      removeInspo: (id) =>
+        set((s) => ({ inspo: s.inspo.filter((i) => i.id !== id) })),
     }),
     { name: profileKey(activeAccountId()) }
   )

@@ -5,6 +5,7 @@ import Image from "next/image";
 import {
   CalendarDays,
   GalleryHorizontalEnd,
+  Images,
   Kanban,
   LayoutGrid,
   Lightbulb,
@@ -27,6 +28,8 @@ import CloudSync from "./CloudSync";
 import BrainstormView from "./BrainstormView";
 import CalendarView from "./CalendarView";
 import CardModal from "./CardModal";
+import InspoAddDialog from "./InspoAddDialog";
+import InspoView from "./InspoView";
 import SetupWizard from "./SetupWizard";
 import TableView from "./TableView";
 import Tutorial, { TourController } from "./Tutorial";
@@ -34,6 +37,7 @@ import { VIEW_DEFS } from "./views";
 
 const NAV_ICONS: Record<ViewId, React.ReactNode> = {
   ideate: <Lightbulb size={15} />,
+  inspo: <Images size={15} />,
   "board-short": <Smartphone size={15} />,
   "board-long": <MonitorPlay size={15} />,
   "board-podcast": <Mic size={15} />,
@@ -50,7 +54,7 @@ const DEST_TO_VIEW: Record<ContentType, ViewId> = {
   Carousel: "board-carousel",
 };
 
-type MobileGroup = "create" | "pipeline" | "plan";
+type MobileGroup = "ideation" | "pipeline" | "plan";
 
 const MOBILE_GROUPS: {
   id: MobileGroup;
@@ -58,7 +62,12 @@ const MOBILE_GROUPS: {
   icon: React.ReactNode;
   views: ViewId[];
 }[] = [
-  { id: "create", label: "Create", icon: <Lightbulb size={18} />, views: ["ideate"] },
+  {
+    id: "ideation",
+    label: "Ideate",
+    icon: <Lightbulb size={18} />,
+    views: ["ideate", "inspo"],
+  },
   {
     id: "pipeline",
     label: "Pipeline",
@@ -74,7 +83,7 @@ const MOBILE_GROUPS: {
 ];
 
 function groupOf(viewId: ViewId): MobileGroup {
-  return MOBILE_GROUPS.find((g) => g.views.includes(viewId))?.id ?? "create";
+  return MOBILE_GROUPS.find((g) => g.views.includes(viewId))?.id ?? "ideation";
 }
 
 export default function PlannerApp() {
@@ -85,6 +94,7 @@ export default function PlannerApp() {
   const [showSetup, setShowSetup] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const [showAddInspo, setShowAddInspo] = useState(false);
 
   async function handleRefresh() {
     if (refreshing) return;
@@ -98,6 +108,7 @@ export default function PlannerApp() {
 
   const cards = usePlanner((s) => s.cards);
   const addCard = usePlanner((s) => s.addCard);
+  const inspoCount = useProfile((s) => s.inspo.length);
 
   useEffect(() => setMounted(true), []);
 
@@ -135,6 +146,7 @@ export default function PlannerApp() {
     const def = VIEW_DEFS.find((v) => v.id === id)!;
     if (def.kind === "calendar") return cards.filter((c) => c.postingDate).length;
     if (def.kind === "table") return cards.length;
+    if (def.kind === "inspo") return inspoCount;
     if (def.kind === "slate") return null;
     return cards.filter((c) => !def.filter || def.filter(c)).length;
   };
@@ -174,7 +186,7 @@ export default function PlannerApp() {
   };
 
   const groups: { label: string; ids: ViewId[] }[] = [
-    { label: "Create", ids: ["ideate"] },
+    { label: "Ideation", ids: ["ideate", "inspo"] },
     {
       label: "Pipeline",
       ids: ["board-short", "board-long", "board-podcast", "board-carousel"],
@@ -272,6 +284,16 @@ export default function PlannerApp() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {/* Quick capture from anywhere: paste a link, it lands in the
+              library, get back to what you were doing. */}
+          <button
+            className="btn btn-ghost"
+            onClick={() => setShowAddInspo(true)}
+            title="Paste a YouTube link straight into your inspiration library"
+          >
+            <Images size={15} />{" "}
+            <span className="btn-label">Add inspiration</span>
+          </button>
           <button className="btn btn-amber" onClick={newIdea}>
             <Plus size={15} /> <span className="btn-label">New idea</span>
           </button>
@@ -303,6 +325,7 @@ export default function PlannerApp() {
         {view.kind === "table" && (
           <TableView search={search} onOpen={setOpenCardId} />
         )}
+        {view.kind === "inspo" && <InspoView search={search} />}
         {view.kind === "slate" && (
           <BrainstormView
             onOpen={setOpenCardId}
@@ -333,6 +356,12 @@ export default function PlannerApp() {
 
       {openCardId && (
         <CardModal cardId={openCardId} onClose={() => setOpenCardId(null)} />
+      )}
+      {showAddInspo && (
+        <InspoAddDialog
+          onClose={() => setShowAddInspo(false)}
+          onGoToLibrary={() => setViewId("inspo")}
+        />
       )}
       {showSetup && <SetupWizard onClose={() => setShowSetup(false)} />}
       {showTour && (

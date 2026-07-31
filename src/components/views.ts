@@ -5,7 +5,7 @@ export interface ViewDef {
   label: string;
   title: string;
   note: string;
-  kind: "board" | "calendar" | "table" | "slate";
+  kind: "board" | "calendar" | "table" | "slate" | "inspo";
   groupBy?: "status" | "bucket";
   filter?: (c: ContentCard) => boolean;
   newCardType?: ContentCard["contentType"];
@@ -18,6 +18,13 @@ export const VIEW_DEFS: ViewDef[] = [
     title: "Brainstorm",
     note: "Stack the deck, then send it to the pipeline",
     kind: "slate",
+  },
+  {
+    id: "inspo",
+    label: "Inspiration",
+    title: "Inspiration",
+    note: "Your swipe file — packaging and formats worth modelling",
+    kind: "inspo",
   },
   {
     id: "board-short",

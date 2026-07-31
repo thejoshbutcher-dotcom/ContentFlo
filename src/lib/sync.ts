@@ -154,6 +154,7 @@ export async function flush(): Promise<void> {
             feelings: p.feelings,
             actions: p.actions,
             setupComplete: p.setupComplete,
+            inspo: p.inspo,
           },
           updated_at: new Date().toISOString(),
         })

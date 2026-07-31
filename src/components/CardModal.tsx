@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { BookOpen, ImagePlus, Trash2, X } from "lucide-react";
+import { BookOpen, ImagePlus, Images, Trash2, X } from "lucide-react";
 import { usePlanner } from "@/lib/store";
 import { useProfile } from "@/lib/profile";
 import { STATUS_COLORS, statusesFor } from "@/lib/seed";
@@ -12,6 +12,8 @@ import {
   sectionPhase,
 } from "@/lib/templates";
 import { htmlToText, textToHtml, toEditorHtml } from "@/lib/richtext";
+import { parseYouTubeId, SectionRef } from "@/lib/inspo";
+import InspoPicker from "./InspoPicker";
 import RichEditor from "./RichEditor";
 import { ContentCard, ContentType, Section, Who } from "@/lib/types";
 
@@ -95,7 +97,18 @@ function SectionBlock({
   const updateSection = usePlanner((s) => s.updateSection);
   const toggleChecklistItem = usePlanner((s) => s.toggleChecklistItem);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
   const bound = onValueChange !== undefined;
+  const refs = sec.refs ?? [];
+
+  function addRef(ref: SectionRef) {
+    if (refs.some((r) => r.url === ref.url)) return;
+    updateSection(cardId, sec.id, { refs: [...refs, ref] });
+  }
+
+  function removeRef(id: string) {
+    updateSection(cardId, sec.id, { refs: refs.filter((r) => r.id !== id) });
+  }
 
   async function addImages(files: File[]) {
     const dataUrls = await Promise.all(files.map(compressImage));
@@ -135,7 +148,41 @@ function SectionBlock({
           )}
         </span>
         {hint && <span className="section-hint">{hint}</span>}
+        {/* Pull a reference in without leaving the card — the packaging
+            moment: "what's worked for videos like this?" */}
+        <button
+          className="section-inspo-btn"
+          onClick={() => setPicking(true)}
+          title="Add a reference from your inspiration library"
+        >
+          <Images size={12} />
+          <span>Inspiration</span>
+        </button>
       </div>
+
+      {refs.length > 0 && (
+        <div className="sec-refs">
+          {refs.map((r) => (
+            <div className="sec-ref" key={r.id}>
+              <a href={r.url} target="_blank" rel="noreferrer" title="Open on YouTube">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={r.thumbUrl} alt="" loading="lazy" />
+              </a>
+              <div className="sec-ref-meta">
+                <span className="sec-ref-title">{r.title || "Untitled"}</span>
+                {r.channel && <span className="sec-ref-channel">{r.channel}</span>}
+              </div>
+              <button
+                className="sec-ref-del"
+                aria-label="Remove reference"
+                onClick={() => removeRef(r.id)}
+              >
+                <X size={11} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {sec.images && sec.images.length > 0 && (
         <div className="sec-images">
@@ -204,6 +251,16 @@ function SectionBlock({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={lightbox} alt="Reference preview" />
         </div>
+      )}
+
+      {picking && (
+        <InspoPicker
+          onPick={addRef}
+          onClose={() => setPicking(false)}
+          attached={refs
+            .map((r) => parseYouTubeId(r.url))
+            .filter((v): v is string => v !== null)}
+        />
       )}
     </div>
   );

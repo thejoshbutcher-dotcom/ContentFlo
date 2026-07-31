@@ -94,6 +94,11 @@ export const HINT_OVERRIDES: Record<string, string> = {
   "Goal of Video": "What should this video DO for the viewer?",
 };
 
+/** Thumbnails and reference videos were two boxes; they're one now — you're
+ *  studying the same video's packaging either way. */
+export const REF_SECTION_TITLE = "Video & Thumbnail References";
+const LEGACY_REF_TITLES = ["Thumbnail References", "Video References 🔗"];
+
 // ————— Page templates, mirroring the Notion CONTENT database templates —————
 
 export function shortFormSections(): Section[] {
@@ -104,7 +109,10 @@ export function shortFormSections(): Section[] {
     ),
     text("Outline", "Beat-by-beat structure before you write the full script"),
     text("Original Script", "Transcript / beats of the reference video"),
-    text("Reference Link 🔗", "Link to the video you're modeling"),
+    {
+      ...text("Reference Link 🔗", "Link to the video you're modeling"),
+      allowRefs: true,
+    },
     script(
       "My Script ✍️",
       "Hook → Build Up → Value → Resolution → CTA → Loop Back"
@@ -118,16 +126,23 @@ export function longFormSections(): Section[] {
     text("Goal of Video", "What should this video DO for the viewer?"),
     // Scaffolds are ghost placeholders, not real blocks: they only show while
     // the box is empty and vanish the moment anything is typed or dropped in.
-    { ...text("Title Ideas", "Write 3+ options"), placeholder: "1. \n2. \n3. " },
+    {
+      ...text("Title Ideas", "Write 3+ options"),
+      placeholder: "1. \n2. \n3. ",
+      allowRefs: true,
+    },
     {
       ...text("Thumbnail Ideas (3–5 words)", "Write 3+ options"),
       placeholder: "1. \n2. \n3. ",
+      allowRefs: true,
     },
-    text(
-      "Thumbnail References",
-      "Other creators' thumbnails to model — paste screenshots straight from your clipboard"
-    ),
-    text("Video References 🔗", "Other creators' videos"),
+    {
+      ...text(
+        REF_SECTION_TITLE,
+        "Other creators' videos and thumbnails to model — pull them from your inspiration library, or paste screenshots from your clipboard"
+      ),
+      allowRefs: true,
+    },
     {
       ...text(
         "Questions ❓ (from reference video)",
@@ -176,7 +191,11 @@ export function podcastSections(): Section[] {
     { ...script("Talking Points"), placeholder: "1. \n2. \n3. \n4. \n5. " },
     script("Stories to Tell", "Personal stories that anchor each point"),
     text("Clips to Cut 🎬", "Moments likely to work as shorts"),
-    { ...text("Title + Thumbnail Ideas"), placeholder: "1. \n2. \n3. " },
+    {
+      ...text("Title + Thumbnail Ideas"),
+      placeholder: "1. \n2. \n3. ",
+      allowRefs: true,
+    },
     checklist("Publishing Checklist ✅", [
       "Edit full episode",
       "Cut 3–5 short clips",
@@ -293,15 +312,50 @@ function convertChecklists(sections: Section[]): Section[] | null {
 }
 
 /**
- * Scaffolds ("1. / 2. / 3.", "Slide 2: …") used to be seeded as real blocks;
- * they're ghost placeholders now. For each section whose template carries a
- * placeholder: adopt the placeholder, and clear content that is still just
- * the untouched scaffold (or an empty list skeleton) so the ghost can show.
- * Anything the user actually wrote is left alone.
+ * Fold the old "Thumbnail References" + "Video References 🔗" boxes into the
+ * single reference box, keeping everything from both: written content is
+ * stacked, images and pinned refs concatenated. Runs before the per-type
+ * migrations so they see the current title and carry the content over.
+ */
+function mergeReferenceSections(sections: Section[]): Section[] | null {
+  const legacy = sections.filter((s) => LEGACY_REF_TITLES.includes(s.title));
+  if (!legacy.length) return null;
+
+  const first = sections.findIndex((s) => LEGACY_REF_TITLES.includes(s.title));
+  const existing = sections.find((s) => s.title === REF_SECTION_TITLE);
+  const parts = [existing, ...legacy].filter(Boolean) as Section[];
+
+  const merged: Section = {
+    ...(existing ?? legacy[0]),
+    title: REF_SECTION_TITLE,
+    allowRefs: true,
+    content: parts
+      .map((s) => s.content)
+      .filter((c) => c && !isBlankContent(c))
+      .map(toEditorHtml)
+      .join(""),
+    images: parts.flatMap((s) => s.images ?? []),
+    refs: parts.flatMap((s) => s.refs ?? []),
+  };
+  if (!merged.images?.length) delete merged.images;
+  if (!merged.refs?.length) delete merged.refs;
+
+  const out = sections.filter(
+    (s) => !LEGACY_REF_TITLES.includes(s.title) && s.title !== REF_SECTION_TITLE
+  );
+  out.splice(Math.min(first, out.length), 0, merged);
+  return out;
+}
+
+/**
+ * Sync the fields a template owns onto an already-saved card: the ghost
+ * placeholder, whether the box offers the Inspiration button, and the hint.
+ * Content the user wrote is never touched — except an untouched scaffold,
+ * which is cleared so the ghost placeholder can show through.
  */
 const scaffoldNorm = (s: string) => htmlToText(s).toLowerCase().replace(/[^a-z]/g, "");
 
-function applyPlaceholders(
+function syncTemplateFields(
   sections: Section[],
   type?: ContentType
 ): Section[] | null {
@@ -309,16 +363,27 @@ function applyPlaceholders(
   let changed = false;
   const next = sections.map((s) => {
     const t = tpl.find((x) => x.title === s.title);
-    if (!t?.placeholder) return s;
+    if (!t) return s;
     let out = s;
-    if (s.placeholder !== t.placeholder) {
+
+    if (t.placeholder && s.placeholder !== t.placeholder) {
       out = { ...out, placeholder: t.placeholder };
       changed = true;
     }
-    const n = scaffoldNorm(out.content);
-    if (out.content !== "" && (n === "" || n === scaffoldNorm(t.placeholder))) {
-      out = { ...out, content: "" };
+    if (Boolean(s.allowRefs) !== Boolean(t.allowRefs)) {
+      out = { ...out, allowRefs: t.allowRefs };
       changed = true;
+    }
+    if (t.hint && s.hint !== t.hint) {
+      out = { ...out, hint: t.hint };
+      changed = true;
+    }
+    if (t.placeholder) {
+      const n = scaffoldNorm(out.content);
+      if (out.content !== "" && (n === "" || n === scaffoldNorm(t.placeholder))) {
+        out = { ...out, content: "" };
+        changed = true;
+      }
     }
     return out;
   });
@@ -327,17 +392,23 @@ function applyPlaceholders(
 
 /** Returns reconciled sections for a card, or null if it's already current. */
 export function migrateCardSections(card: ContentCard): Section[] | null {
-  let next: Section[] | null = null;
-  if (card.contentType === "Short form") next = migrateShortForm(card.sections);
-  else if (card.contentType === "Long form") next = migrateLongForm(card.sections);
+  let cur = card.sections;
+  let changed = false;
+  const step = (out: Section[] | null) => {
+    if (out) {
+      cur = out;
+      changed = true;
+    }
+  };
 
+  step(mergeReferenceSections(cur));
+  if (card.contentType === "Short form") step(migrateShortForm(cur));
+  else if (card.contentType === "Long form") step(migrateLongForm(cur));
   // These run for every content type — podcasts have checklists too.
-  const converted = convertChecklists(next ?? card.sections);
-  const withPlaceholders = applyPlaceholders(
-    converted ?? next ?? card.sections,
-    card.contentType
-  );
-  return withPlaceholders ?? converted ?? next;
+  step(convertChecklists(cur));
+  step(syncTemplateFields(cur, card.contentType));
+
+  return changed ? cur : null;
 }
 
 // ————— Reference library (the collapsible guides inside the Notion templates) —————

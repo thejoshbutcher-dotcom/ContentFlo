@@ -29,6 +29,12 @@ interface PlannerState {
   moveCardBucket: (id: string, bucketId: string) => void;
   moveCardsBucket: (ids: string[], bucketId: string) => void;
   updateSection: (cardId: string, sectionId: string, patch: Partial<Section>) => void;
+  /** updateSection that Cmd+Z can reverse. */
+  updateSectionUndoable: (
+    cardId: string,
+    sectionId: string,
+    patch: Partial<Section>
+  ) => void;
   toggleChecklistItem: (cardId: string, sectionId: string, itemId: string) => void;
   applyTemplate: (cardId: string, type: ContentType) => void;
   importAll: (cards: ContentCard[]) => void;
@@ -171,6 +177,22 @@ export const usePlanner = create<PlannerState>()(
           ),
         }),
 
+      /**
+       * updateSection, but snapshotted so Cmd+Z reverses it. For discrete
+       * actions like pinning a reference — typing stays on the editor's own
+       * undo stack, which is finer-grained than a whole-sections snapshot.
+       */
+      updateSectionUndoable: (cardId, sectionId, patch) => {
+        const card = get().cards.find((c) => c.id === cardId);
+        if (card) {
+          push({
+            kind: "patch",
+            patches: [{ id: cardId, patch: { sections: card.sections } }],
+          });
+        }
+        get().updateSection(cardId, sectionId, patch);
+      },
+
       toggleChecklistItem: (cardId, sectionId, itemId) =>
         set({
           cards: get().cards.map((c) =>
@@ -261,3 +283,9 @@ export const usePlanner = create<PlannerState>()(
     }
   )
 );
+
+// Dev-only: expose the store so interaction and migration logic can be
+// exercised through the real API in tests. Stripped from production builds.
+if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
+  (window as unknown as { __cfPlanner?: unknown }).__cfPlanner = usePlanner;
+}

@@ -177,10 +177,13 @@ export async function POST(request: Request) {
   }
 
   if (!items.length) {
+    // A private playlist serves a normal-looking page with the video list
+    // stripped out — there's no error marker to detect, so name the cause
+    // that's true almost every time, along with the fix.
     return NextResponse.json(
       {
         error:
-          "No videos found. If the playlist is Private, set it to Unlisted so CreatorFlo can read it.",
+          "Couldn't read any videos — this playlist is almost certainly set to Private. On YouTube open the playlist, change Privacy from Private to Unlisted, then paste again. Unlisted keeps it out of search and off your channel; only someone with the link can open it.",
       },
       { status: 404 }
     );

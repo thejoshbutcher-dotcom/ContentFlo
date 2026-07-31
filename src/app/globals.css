@@ -4118,3 +4118,27 @@ summary:focus-visible {
     width: 58px;
   }
 }
+
+/* A pasted watch?v=…&list=… link names a video and a playlist; ask which. */
+.inspo-choice {
+  padding: 4px 0 2px;
+}
+
+.inspo-choice p {
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.55;
+  margin-bottom: 14px;
+}
+
+.inspo-choice em {
+  color: var(--text);
+  font-style: normal;
+  font-weight: 600;
+}
+
+.inspo-choice-btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}

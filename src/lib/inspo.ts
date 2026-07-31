@@ -94,8 +94,8 @@ export function parseCollectionUrl(
   }
   if (!YT_HOSTS.has(u.hostname)) return null;
 
-  // A watch URL carrying &list= is a single video being played *within* a
-  // playlist — treat it as one video, not an import of the whole list.
+  // A watch URL carrying &list= means BOTH — the caller decides via
+  // parseWatchPlaylist, since only the user knows which they meant.
   if (u.pathname === "/watch") return null;
 
   const list = u.searchParams.get("list");
@@ -111,6 +111,33 @@ export function parseCollectionUrl(
     return { kind: "channel", id: `channel/${parts[1]}` };
   }
   return null;
+}
+
+/**
+ * Clicking a video inside a playlist gives you `watch?v=…&list=…`, which is
+ * the link most people actually end up copying. It names a video AND a
+ * playlist, so we surface both and let the user pick rather than guessing.
+ *
+ * Returns null for playlists that aren't really collections: RD… mixes are
+ * generated on the fly by YouTube, and WL / LL / HL are private to the account.
+ */
+export function parseWatchPlaylist(input: string): string | null {
+  const raw = input.trim();
+  let u: URL;
+  try {
+    u = new URL(raw.startsWith("http") ? raw : `https://${raw}`);
+  } catch {
+    return null;
+  }
+  if (!YT_HOSTS.has(u.hostname)) return null;
+  const list = u.searchParams.get("list");
+  if (!list || !/^[A-Za-z0-9_-]{2,64}$/.test(list)) return null;
+  if (/^(RD|WL|LL|HL)/i.test(list)) return null;
+  return list;
+}
+
+export function playlistUrlFor(listId: string): string {
+  return `https://www.youtube.com/playlist?list=${listId}`;
 }
 
 /** Every URL-ish token in a blob of pasted text, so many links can go in at once. */

@@ -8,7 +8,9 @@ import {
   extractLinks,
   InspoItem,
   parseCollectionUrl,
+  parseWatchPlaylist,
   parseYouTubeId,
+  playlistUrlFor,
   TAG_SUGGESTIONS,
   thumbUrlFor,
   watchUrlFor,
@@ -53,6 +55,11 @@ export default function InspoAddDialog({
   const [preview, setPreview] = useState<PreviewRow[] | null>(null);
   const [sourceName, setSourceName] = useState("");
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  // A pasted link that names both a video and a playlist — only the user
+  // knows which they meant, so ask instead of guessing.
+  const [choice, setChoice] = useState<{ raw: string; listId: string } | null>(
+    null
+  );
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -176,6 +183,15 @@ export default function InspoAddDialog({
   function submit(raw: string) {
     const first = extractLinks(raw)[0] ?? "";
     if (parseCollectionUrl(first)) return void loadCollection(first);
+
+    // "watch?v=…&list=…" — the link you get by clicking a video inside a
+    // playlist. Offer both rather than silently picking one.
+    const listId = parseWatchPlaylist(first);
+    if (listId && parseYouTubeId(first) && extractLinks(raw).length === 1) {
+      setError("");
+      setChoice({ raw, listId });
+      return;
+    }
     return void submitVideos(raw);
   }
 
@@ -229,7 +245,38 @@ export default function InspoAddDialog({
           </button>
         </div>
 
-        {!preview && (
+        {choice && !preview && (
+          <div className="inspo-choice">
+            <p>
+              That link is a video <em>inside</em> a playlist. Which did you
+              mean?
+            </p>
+            <div className="inspo-choice-btns">
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  const raw = choice.raw;
+                  setChoice(null);
+                  void submitVideos(raw);
+                }}
+              >
+                Just this video
+              </button>
+              <button
+                className="btn btn-amber"
+                onClick={() => {
+                  const url = playlistUrlFor(choice.listId);
+                  setChoice(null);
+                  void loadCollection(url);
+                }}
+              >
+                The whole playlist
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!preview && !choice && (
           <>
             <textarea
               ref={inputRef}
@@ -240,7 +287,12 @@ export default function InspoAddDialog({
               onPaste={(e) => {
                 const pasted = e.clipboardData.getData("text");
                 const first = extractLinks(pasted)[0] ?? "";
-                if (pasted && (parseYouTubeId(first) || parseCollectionUrl(first))) {
+                if (
+                  pasted &&
+                  (parseYouTubeId(first) ||
+                    parseCollectionUrl(first) ||
+                    parseWatchPlaylist(first))
+                ) {
                   e.preventDefault();
                   submit(pasted);
                 }
@@ -353,7 +405,7 @@ export default function InspoAddDialog({
           </>
         )}
 
-        {!preview && added.length > 0 && (
+        {!preview && !choice && added.length > 0 && (
           <>
             <div className="inspo-add-grid">
               {added.slice(0, 12).map((it) => (

@@ -8,6 +8,7 @@ import { STATUS_COLORS, statusesFor } from "@/lib/seed";
 import {
   HINT_OVERRIDES,
   migrateCardSections,
+  REF_SECTION_TITLE,
   REFERENCE_LIBRARY,
   sectionPhase,
 } from "@/lib/templates";
@@ -95,19 +96,24 @@ function SectionBlock({
   rev?: number;
 }) {
   const updateSection = usePlanner((s) => s.updateSection);
+  const updateSectionUndoable = usePlanner((s) => s.updateSectionUndoable);
   const toggleChecklistItem = usePlanner((s) => s.toggleChecklistItem);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const bound = onValueChange !== undefined;
   const refs = sec.refs ?? [];
 
+  // Pinning and unpinning are discrete actions, so they go on the card undo
+  // stack — Cmd+Z takes back a reference you didn't mean to add.
   function addRef(ref: SectionRef) {
     if (refs.some((r) => r.url === ref.url)) return;
-    updateSection(cardId, sec.id, { refs: [...refs, ref] });
+    updateSectionUndoable(cardId, sec.id, { refs: [...refs, ref] });
   }
 
   function removeRef(id: string) {
-    updateSection(cardId, sec.id, { refs: refs.filter((r) => r.id !== id) });
+    updateSectionUndoable(cardId, sec.id, {
+      refs: refs.filter((r) => r.id !== id),
+    });
   }
 
   async function addImages(files: File[]) {
@@ -143,21 +149,23 @@ function SectionBlock({
       <div className="section-head">
         <span className="section-title">
           {sec.title}
-          {sec.title === "Thumbnail References" && (
+          {sec.title === REF_SECTION_TITLE && (
             <ImagePlus size={12} style={{ display: "inline", marginLeft: 6, verticalAlign: -1, opacity: 0.6 }} />
           )}
         </span>
         {hint && <span className="section-hint">{hint}</span>}
-        {/* Pull a reference in without leaving the card — the packaging
-            moment: "what's worked for videos like this?" */}
-        <button
-          className="section-inspo-btn"
-          onClick={() => setPicking(true)}
-          title="Add a reference from your inspiration library"
-        >
-          <Images size={12} />
-          <span>Inspiration</span>
-        </button>
+        {/* Only the reference and ideas boxes offer this — everywhere else it
+            would be clutter you'd never click. */}
+        {sec.allowRefs && (
+          <button
+            className="section-inspo-btn"
+            onClick={() => setPicking(true)}
+            title="Add a reference from your inspiration library"
+          >
+            <Images size={12} />
+            <span>Inspiration</span>
+          </button>
+        )}
       </div>
 
       {refs.length > 0 && (

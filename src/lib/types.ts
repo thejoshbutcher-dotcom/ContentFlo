@@ -28,6 +28,9 @@ export interface Section {
   images?: string[];
   /** Items pinned from the inspiration library (hotlinked, not copied). */
   refs?: SectionRef[];
+  /** Whether this box offers the "Inspiration" button — only the reference
+   *  and ideas boxes do, so the control stays where it's actually wanted. */
+  allowRefs?: boolean;
 }
 
 export interface ContentCard {

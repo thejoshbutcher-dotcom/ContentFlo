@@ -75,6 +75,44 @@ export function parseYouTubeId(input: string): string | null {
   return null;
 }
 
+/**
+ * A pasted link that stands for MANY videos: a playlist, or a channel whose
+ * uploads we can read. Returns the validated id the server rebuilds its
+ * request from — never the user's host or path.
+ */
+export function parseCollectionUrl(
+  input: string
+): { kind: "playlist" | "channel"; id: string } | null {
+  const raw = input.trim();
+  if (!raw) return null;
+
+  let u: URL;
+  try {
+    u = new URL(raw.startsWith("http") ? raw : `https://${raw}`);
+  } catch {
+    return null;
+  }
+  if (!YT_HOSTS.has(u.hostname)) return null;
+
+  // A watch URL carrying &list= is a single video being played *within* a
+  // playlist — treat it as one video, not an import of the whole list.
+  if (u.pathname === "/watch") return null;
+
+  const list = u.searchParams.get("list");
+  if (list && /^[A-Za-z0-9_-]{2,64}$/.test(list)) {
+    return { kind: "playlist", id: list };
+  }
+
+  const parts = u.pathname.split("/").filter(Boolean);
+  if (parts[0]?.startsWith("@") && /^@[A-Za-z0-9._-]{1,60}$/.test(parts[0])) {
+    return { kind: "channel", id: parts[0] };
+  }
+  if (parts[0] === "channel" && /^UC[A-Za-z0-9_-]{22}$/.test(parts[1] ?? "")) {
+    return { kind: "channel", id: `channel/${parts[1]}` };
+  }
+  return null;
+}
+
 /** Every URL-ish token in a blob of pasted text, so many links can go in at once. */
 export function extractLinks(text: string): string[] {
   return text

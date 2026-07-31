@@ -3695,8 +3695,15 @@ summary:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex: 1;
+  min-width: 0;
   color: var(--text-3);
   font-size: 12px;
+  line-height: 1.4;
+}
+
+.inspo-add-actions .btn {
+  flex: none;
 }
 
 .inspo-add-error {
@@ -3992,5 +3999,122 @@ summary:focus-visible {
 
   .sec-ref {
     width: 100%;
+  }
+}
+
+/* ————— Playlist import checklist ————— */
+
+.inspo-add.wide {
+  width: min(680px, 100%);
+}
+
+.inspo-pl-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+}
+
+.inspo-pl-bulk {
+  display: flex;
+  gap: 6px;
+}
+
+.inspo-pl-list {
+  max-height: 46vh;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--ink);
+}
+
+.inspo-pl-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background 110ms ease;
+}
+
+.inspo-pl-row:last-child {
+  border-bottom: none;
+}
+
+.inspo-pl-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.inspo-pl-row.on {
+  background: rgba(247, 201, 72, 0.08);
+}
+
+/* Already-saved rows stay visible but recede — you want to see that the
+   playlist is mostly captured, not have it silently shrink. */
+.inspo-pl-row.known {
+  opacity: 0.5;
+}
+
+.inspo-pl-row input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--amber);
+  flex: none;
+  cursor: pointer;
+}
+
+.inspo-pl-row img {
+  width: 72px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 5px;
+  flex: none;
+  display: block;
+}
+
+.inspo-pl-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.inspo-pl-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.inspo-pl-channel {
+  display: block;
+  margin-top: 1px;
+  color: var(--text-3);
+  font-size: 10.5px;
+}
+
+.inspo-pl-known {
+  flex: none;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  color: var(--text-3);
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .inspo-pl-list {
+    max-height: 52vh;
+  }
+
+  .inspo-pl-row img {
+    width: 58px;
   }
 }

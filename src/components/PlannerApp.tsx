@@ -86,6 +86,11 @@ function groupOf(viewId: ViewId): MobileGroup {
   return MOBILE_GROUPS.find((g) => g.views.includes(viewId))?.id ?? "ideation";
 }
 
+// Where you were last time. Brainstorm was a fine landing page when it was the
+// only place to start; now that the pipeline and library get daily use, coming
+// back to whatever you were doing beats a fixed home screen.
+const LAST_VIEW_KEY = "cf-last-view";
+
 export default function PlannerApp() {
   const [mounted, setMounted] = useState(false);
   const [viewId, setViewId] = useState<ViewId>("ideate");
@@ -110,7 +115,28 @@ export default function PlannerApp() {
   const addCard = usePlanner((s) => s.addCard);
   const inspoCount = useProfile((s) => s.inspo.length);
 
-  useEffect(() => setMounted(true), []);
+  // Restore the last view in the same tick as mounting: nothing renders until
+  // `mounted`, so the app opens straight onto it with no flash of Brainstorm.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LAST_VIEW_KEY);
+      if (saved && VIEW_DEFS.some((v) => v.id === saved)) {
+        setViewId(saved as ViewId);
+      }
+    } catch {
+      /* private mode / storage disabled — just use the default */
+    }
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    try {
+      localStorage.setItem(LAST_VIEW_KEY, viewId);
+    } catch {
+      /* not worth surfacing — it only costs the restore */
+    }
+  }, [viewId, mounted]);
 
   // Cmd/Ctrl+Z undoes the last card delete / move / duplicate. Skip it while a
   // text field is focused so the browser's own text undo keeps working there.

@@ -140,8 +140,12 @@ export default function Tutorial({
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const [dialogH, setDialogH] = useState(190);
 
+  // Kept current via an effect — writing a ref during render is a
+  // rules-of-React violation, and every reader here fires from a later event.
   const ctrlRef = useRef(controller);
-  ctrlRef.current = controller;
+  useEffect(() => {
+    ctrlRef.current = controller;
+  });
 
   const current = STEPS[step];
   const isFirst = step === 0;
@@ -204,7 +208,6 @@ export default function Tutorial({
     };
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, current.clickAdvance]);
 
   useEffect(() => {

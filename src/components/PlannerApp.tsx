@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import {
   CalendarDays,
@@ -95,8 +95,26 @@ function groupOf(viewId: ViewId): MobileGroup {
 const LAST_VIEW_KEY = "cf-last-view";
 
 export default function PlannerApp() {
-  const [mounted, setMounted] = useState(false);
-  const [viewId, setViewId] = useState<ViewId>("ideate");
+  // "Have we hydrated yet?" without a state write from an effect: the server
+  // snapshot is false, the client's is true, and the store never changes.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+  // Restored on first render rather than after it, so the app opens straight
+  // onto your last view with no flash of Brainstorm. Safe to read storage
+  // here because nothing renders until `mounted` is true anyway.
+  const [viewId, setViewId] = useState<ViewId>(() => {
+    if (typeof window === "undefined") return "ideate";
+    try {
+      const saved = localStorage.getItem(LAST_VIEW_KEY);
+      if (saved && VIEW_DEFS.some((v) => v.id === saved)) return saved as ViewId;
+    } catch {
+      /* private mode / storage disabled — just use the default */
+    }
+    return "ideate";
+  });
   const [search, setSearch] = useState("");
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [showSetup, setShowSetup] = useState(false);
@@ -118,20 +136,6 @@ export default function PlannerApp() {
   const addCard = usePlanner((s) => s.addCard);
   const inspoCount = useProfile((s) => s.inspo.length);
   const competitorCount = useProfile((s) => s.competitors.length);
-
-  // Restore the last view in the same tick as mounting: nothing renders until
-  // `mounted`, so the app opens straight onto it with no flash of Brainstorm.
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(LAST_VIEW_KEY);
-      if (saved && VIEW_DEFS.some((v) => v.id === saved)) {
-        setViewId(saved as ViewId);
-      }
-    } catch {
-      /* private mode / storage disabled — just use the default */
-    }
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!mounted) return;

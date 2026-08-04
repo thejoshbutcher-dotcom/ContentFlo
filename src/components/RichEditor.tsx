@@ -369,9 +369,6 @@ export default function RichEditor({
   const matchesRef = useRef(matches);
   const activeRef = useRef(active);
   const pickRef = useRef<(item: SlashItem) => void>(() => {});
-  slashRef.current = slash;
-  matchesRef.current = matches;
-  activeRef.current = active;
 
   const editor = useEditor({
     // Next renders this on the server first; let the client mount it.
@@ -1165,7 +1162,16 @@ export default function RichEditor({
     },
     [editor, closeSlash]
   );
-  pickRef.current = pick;
+
+  // Refreshed after each render rather than during it: mutating a ref while
+  // rendering is a rules-of-React violation. The handler only reads these on a
+  // real keypress, which always lands after render and effects have run.
+  useEffect(() => {
+    slashRef.current = slash;
+    matchesRef.current = matches;
+    activeRef.current = active;
+    pickRef.current = pick;
+  });
 
   /** Keep our own grip glued to the hovered row — always available, no
    *  floating-plugin latency. */

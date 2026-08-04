@@ -141,7 +141,14 @@ export default function BoardView({
   const q = search.trim().toLowerCase();
 
   // Clear the selection when switching boards or when Escape is pressed.
-  useEffect(() => setSelected(new Set()), [view.id]);
+  // Switching boards adjusts state during render rather than in an effect:
+  // React's own pattern for "reset when a prop changes", and it avoids
+  // painting one frame with the previous board's selection still applied.
+  const [selectionBoard, setSelectionBoard] = useState(view.id);
+  if (selectionBoard !== view.id) {
+    setSelectionBoard(view.id);
+    setSelected(new Set());
+  }
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setSelected(new Set());

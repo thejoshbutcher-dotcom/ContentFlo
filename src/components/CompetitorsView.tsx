@@ -169,10 +169,13 @@ function CompetitorCard({
   onOpen: () => void;
   onRemove: () => void;
 }) {
-  const [snap, setSnap] = useState<CompetitorSnapshot | null>(null);
-  useEffect(() => {
-    setSnap(loadSnapshot(competitor.channelId));
-  }, [competitor.channelId]);
+  // Read once on mount rather than in an effect. The card is keyed by
+  // competitor id, so a given instance never changes channel, and returning
+  // from a wall remounts the grid — which is when a refreshed snapshot should
+  // be picked up anyway.
+  const [snap] = useState<CompetitorSnapshot | null>(() =>
+    loadSnapshot(competitor.channelId)
+  );
 
   const best = useMemo(() => {
     if (!snap) return null;
@@ -255,21 +258,20 @@ function CompetitorWall({
     [addInspo, saved, competitor.name]
   );
 
-  const [snap, setSnap] = useState<CompetitorSnapshot | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Seeded straight from the cache so a revisit paints instantly, with no
+  // empty first frame and no state write from an effect.
+  const [snap, setSnap] = useState<CompetitorSnapshot | null>(() =>
+    loadSnapshot(competitor.channelId)
+  );
+  // Starts true when there's nothing cached, so the spinner is right on the
+  // first frame instead of after a round trip through an effect.
+  const [loading, setLoading] = useState(snap === null);
   const [error, setError] = useState("");
   const [sort, setSort] = useState<Sort>("views");
   const [kind, setKind] = useState<Kind>("all");
 
   const pull = useCallback(
-    async (force: boolean) => {
-      if (!force) {
-        const cached = loadSnapshot(competitor.channelId);
-        if (cached) {
-          setSnap(cached);
-          return;
-        }
-      }
+    async () => {
       setLoading(true);
       setError("");
       try {
@@ -294,9 +296,15 @@ function CompetitorWall({
     [competitor.channelId]
   );
 
+  // Only fetch when there's nothing cached; Refresh calls pull() directly.
+  // Kicked off a tick later so the effect body itself writes no state — the
+  // spinner is already up from the initial value above.
+  const hasSnap = snap !== null;
   useEffect(() => {
-    void pull(false);
-  }, [pull]);
+    if (hasSnap) return;
+    const id = window.setTimeout(() => void pull(), 0);
+    return () => window.clearTimeout(id);
+  }, [hasSnap, pull]);
 
   const videos = useMemo(() => {
     const all = snap?.videos ?? [];
@@ -352,7 +360,7 @@ function CompetitorWall({
           <button
             className="btn btn-ghost"
             disabled={loading}
-            onClick={() => void pull(true)}
+            onClick={() => void pull()}
             title="Re-pull this channel from YouTube"
           >
             <RefreshCw size={14} className={loading ? "spin" : ""} />

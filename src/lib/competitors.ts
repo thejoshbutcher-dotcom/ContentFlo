@@ -33,7 +33,12 @@ export interface CompetitorVideo {
   inTop: boolean;
   /** Came from the channel's Shorts tab (no duration is published there). */
   isShort?: boolean;
-  /** Views ÷ the channel's median, measured within this video's own format. */
+  /** Posted recently enough that its view count is still climbing. */
+  fresh?: boolean;
+  /** "fresh" = scored against same-age uploads; "all" = the full catalogue. */
+  basis?: "fresh" | "all";
+  /** Views ÷ the channel's median, measured within this video's own format.
+   *  Null on a fresh upload with no same-age peers to compare against. */
   multiple: number | null;
 }
 

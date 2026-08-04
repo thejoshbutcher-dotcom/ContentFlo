@@ -160,18 +160,67 @@ export async function POST(request: Request) {
   const viewsOf = (list: typeof videos) =>
     list.filter((v) => typeof v.views === "number").map((v) => v.views as number);
 
+  /**
+   * A video posted last week hasn't finished earning its views, so measuring
+   * its running total against videos that have had months is just measuring
+   * age. Fresh uploads are therefore held out of the baseline entirely — they
+   * would drag it down — and scored against each OTHER when the channel has
+   * enough of them. When it doesn't, they get no score at all and say so,
+   * which is more honest than a number that only means "recently posted".
+   *
+   * Only the fresh window is treated this way. Age-banding the whole
+   * catalogue would compare a nine-year-old hit against other nine-year-old
+   * hits and quietly erase the all-time winners the wall exists to surface.
+   */
+  const FRESH_DAYS = 30;
+  const MIN_FRESH_SAMPLE = 3;
+  const ageDays = (v: (typeof videos)[number]) =>
+    v.published ? (now - Date.parse(v.published)) / 86400000 : Infinity;
+  const isFresh = (v: (typeof videos)[number]) => ageDays(v) < FRESH_DAYS;
+
   const shortsPool = videos.filter((v) => v.isShort);
   const longs = videos.filter((v) => !v.isShort);
-  const longMedian =
-    medianOf(viewsOf(longs.filter((v) => v.inRecent))) || medianOf(viewsOf(longs));
   // A couple of Shorts make too small a sample to be anyone's "normal"; below
-  // that, score everything against the channel's main output instead.
-  const shortMedian = shortsPool.length >= 5 ? medianOf(viewsOf(shortsPool)) : 0;
+  // that, score them against the channel's main output instead.
+  const useShortPool = shortsPool.length >= 5;
+
+  /** The right yardstick for one video: same format, same stage of life. */
+  const baselineFor = (v: (typeof videos)[number]) => {
+    const family = v.isShort && useShortPool ? shortsPool : longs;
+    if (isFresh(v)) {
+      const peers = family.filter(isFresh);
+      return {
+        base:
+          peers.length >= MIN_FRESH_SAMPLE ? medianOf(viewsOf(peers)) : 0,
+        basis: "fresh" as const,
+      };
+    }
+    const mature = family.filter((x) => !isFresh(x));
+    return {
+      base:
+        medianOf(viewsOf(mature.filter((x) => x.inRecent))) ||
+        medianOf(viewsOf(mature)) ||
+        medianOf(viewsOf(family)),
+      basis: "all" as const,
+    };
+  };
+
+  const matureLongs = longs.filter((v) => !isFresh(v));
+  const longMedian =
+    medianOf(viewsOf(matureLongs.filter((v) => v.inRecent))) ||
+    medianOf(viewsOf(matureLongs)) ||
+    medianOf(viewsOf(longs));
+  const shortMedian = useShortPool
+    ? medianOf(viewsOf(shortsPool.filter((v) => !isFresh(v)))) ||
+      medianOf(viewsOf(shortsPool))
+    : 0;
 
   const out = videos.map((v) => {
-    const base = v.isShort && shortMedian > 0 ? shortMedian : longMedian;
+    const { base, basis } = baselineFor(v);
     return {
       ...v,
+      fresh: isFresh(v),
+      basis: basis === "fresh" && base > 0 ? ("fresh" as const) : ("all" as const),
       multiple: base > 0 && v.views ? Number((v.views / base).toFixed(1)) : null,
     };
   });

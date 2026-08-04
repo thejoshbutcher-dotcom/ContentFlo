@@ -4566,3 +4566,19 @@ summary:focus-visible {
   background: var(--amber);
   color: #181a20;
 }
+
+/* Fresh upload with no same-age peers: marked rather than scored, so a video
+   that simply hasn't had time yet doesn't read as a flop. */
+.comp-flag.fresh {
+  background: rgba(10, 11, 14, 0.78);
+  color: var(--text-3);
+  font-weight: 600;
+  text-transform: lowercase;
+}
+
+/* On a scored fresh upload, notes that the comparison is against its peers. */
+.comp-flag-note {
+  margin-left: 3px;
+  opacity: 0.7;
+  font-weight: 600;
+}

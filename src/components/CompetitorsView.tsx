@@ -10,6 +10,7 @@ import {
   Loader2,
   Plus,
   RefreshCw,
+  Sparkles,
   Trash2,
   Users,
 } from "lucide-react";
@@ -421,13 +422,30 @@ function VideoTile({
         {v.durationSec !== null && (
           <span className="comp-dur">{formatDuration(v.durationSec)}</span>
         )}
-        {flagged && (
+        {flagged ? (
           <span
             className={`comp-flag${strong ? " strong" : mid ? " mid" : ""}`}
-            title={`${v.multiple}× this channel's typical views for the format`}
+            title={
+              v.basis === "fresh"
+                ? `${v.multiple}× this channel's other recent uploads — still climbing`
+                : `${v.multiple}× this channel's typical views for the format`
+            }
           >
             {strong && <Flame size={10} />} {v.multiple}×
+            {v.basis === "fresh" && <span className="comp-flag-note">new</span>}
           </span>
+        ) : (
+          // Too recent to have earned its views, and no same-age uploads to
+          // measure it against — say so rather than imply it underperformed.
+          v.fresh &&
+          v.multiple === null && (
+            <span
+              className="comp-flag fresh"
+              title="Posted recently — too early to compare"
+            >
+              <Sparkles size={10} /> new
+            </span>
+          )
         )}
         <span className="comp-actions">
           <button

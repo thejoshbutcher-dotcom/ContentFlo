@@ -51,10 +51,17 @@ export interface CompetitorSnapshot {
  *  edit under three minutes behave the same way for planning purposes. */
 export const SHORT_MAX_SEC = 180;
 
-/** Beats the channel's current normal by enough to be worth studying. */
+/**
+ * Three tiers, because one threshold can't serve both sorts.
+ *
+ * Recent uploads are what set the median, so barely any of them can be 3x it —
+ * sorted by Newest you'd scroll past an unbroken run of unmarked tiles. But a
+ * recent video at 1.9x its channel's normal is exactly the thing worth
+ * noticing. So: NOTE marks "did better than usual", MIN marks a real outlier,
+ * STRONG marks the runaway hits that dominate the Most-viewed sort.
+ */
+export const OUTLIER_NOTE = 1.5;
 export const OUTLIER_MIN = 3;
-/** Ran away with it. At the ≥3x mark alone, more than half a back catalogue
- *  can qualify, which is no signal at all — this is the tier that earns colour. */
 export const OUTLIER_STRONG = 10;
 
 export function isShort(v: CompetitorVideo): boolean {

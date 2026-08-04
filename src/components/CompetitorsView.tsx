@@ -25,6 +25,7 @@ import {
   isShort,
   loadSnapshot,
   OUTLIER_MIN,
+  OUTLIER_NOTE,
   OUTLIER_STRONG,
   saveSnapshot,
   thumbUrl,
@@ -365,7 +366,7 @@ function CompetitorWall({
           {snap.shortMedianViews ? (
             <> · typical Short {formatViews(snap.shortMedianViews)}</>
           ) : null}{" "}
-          · past {OUTLIER_MIN}× its own format is flagged
+          · flagged past {OUTLIER_NOTE}× its format&apos;s normal
         </div>
       )}
 
@@ -406,7 +407,8 @@ function VideoTile({
   onSave: () => void;
 }) {
   const strong = v.multiple !== null && v.multiple >= OUTLIER_STRONG;
-  const flagged = v.multiple !== null && v.multiple >= OUTLIER_MIN;
+  const mid = v.multiple !== null && v.multiple >= OUTLIER_MIN;
+  const flagged = v.multiple !== null && v.multiple >= OUTLIER_NOTE;
 
   return (
     // Deliberately not a link: with the whole tile clickable, saving a video
@@ -420,7 +422,10 @@ function VideoTile({
           <span className="comp-dur">{formatDuration(v.durationSec)}</span>
         )}
         {flagged && (
-          <span className={`comp-flag${strong ? " strong" : ""}`}>
+          <span
+            className={`comp-flag${strong ? " strong" : mid ? " mid" : ""}`}
+            title={`${v.multiple}× this channel's typical views for the format`}
+          >
             {strong && <Flame size={10} />} {v.multiple}×
           </span>
         )}

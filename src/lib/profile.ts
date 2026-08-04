@@ -9,6 +9,7 @@ import {
   DEFAULT_FORMATS,
   DEFAULT_TOPICS,
 } from "./ideation";
+import type { Competitor } from "./competitors";
 import type { InspoItem } from "./inspo";
 import { BUCKETS } from "./seed";
 import { newId } from "./templates";
@@ -76,6 +77,10 @@ type ProfileData = {
    *  per-profile key swapping and cloud sync — the items are small enough
    *  (ids and text, never image data) that the whole library rides along. */
   inspo: InspoItem[];
+  /** Channels being studied. Same reasoning: a handful of ids and names.
+   *  Their video walls are cached locally instead, since YouTube can
+   *  regenerate those any time. */
+  competitors: Competitor[];
 };
 
 interface ProfileState extends ProfileData {
@@ -83,6 +88,8 @@ interface ProfileState extends ProfileData {
   addInspo: (items: InspoItem[]) => void;
   updateInspo: (id: string, patch: Partial<InspoItem>) => void;
   removeInspo: (id: string) => void;
+  addCompetitor: (c: Competitor) => void;
+  removeCompetitor: (id: string) => void;
 }
 
 // A ready-to-use starting point — broad enough for any niche, editable in Setup.
@@ -100,6 +107,7 @@ export function defaultProfileData(): ProfileData {
     actions: [...DEFAULT_ACTIONS],
     setupComplete: false,
     inspo: [],
+    competitors: [],
   };
 }
 
@@ -124,6 +132,14 @@ export const useProfile = create<ProfileState>()(
         })),
       removeInspo: (id) =>
         set((s) => ({ inspo: s.inspo.filter((i) => i.id !== id) })),
+      addCompetitor: (c) =>
+        set((s) =>
+          s.competitors.some((x) => x.channelId === c.channelId)
+            ? {}
+            : { competitors: [...s.competitors, c] }
+        ),
+      removeCompetitor: (id) =>
+        set((s) => ({ competitors: s.competitors.filter((c) => c.id !== id) })),
     }),
     { name: profileKey(activeAccountId()) }
   )

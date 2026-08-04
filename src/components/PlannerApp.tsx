@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Settings2,
   Smartphone,
+  Swords,
   Table2,
 } from "lucide-react";
 import { usePlanner } from "@/lib/store";
@@ -28,6 +29,7 @@ import CloudSync from "./CloudSync";
 import BrainstormView from "./BrainstormView";
 import CalendarView from "./CalendarView";
 import CardModal from "./CardModal";
+import CompetitorsView from "./CompetitorsView";
 import InspoAddDialog from "./InspoAddDialog";
 import InspoView from "./InspoView";
 import SetupWizard from "./SetupWizard";
@@ -38,6 +40,7 @@ import { VIEW_DEFS } from "./views";
 const NAV_ICONS: Record<ViewId, React.ReactNode> = {
   ideate: <Lightbulb size={15} />,
   inspo: <Images size={15} />,
+  competitors: <Swords size={15} />,
   "board-short": <Smartphone size={15} />,
   "board-long": <MonitorPlay size={15} />,
   "board-podcast": <Mic size={15} />,
@@ -66,7 +69,7 @@ const MOBILE_GROUPS: {
     id: "ideation",
     label: "Ideate",
     icon: <Lightbulb size={18} />,
-    views: ["ideate", "inspo"],
+    views: ["ideate", "inspo", "competitors"],
   },
   {
     id: "pipeline",
@@ -114,6 +117,7 @@ export default function PlannerApp() {
   const cards = usePlanner((s) => s.cards);
   const addCard = usePlanner((s) => s.addCard);
   const inspoCount = useProfile((s) => s.inspo.length);
+  const competitorCount = useProfile((s) => s.competitors.length);
 
   // Restore the last view in the same tick as mounting: nothing renders until
   // `mounted`, so the app opens straight onto it with no flash of Brainstorm.
@@ -173,6 +177,7 @@ export default function PlannerApp() {
     if (def.kind === "calendar") return cards.filter((c) => c.postingDate).length;
     if (def.kind === "table") return cards.length;
     if (def.kind === "inspo") return inspoCount;
+    if (def.kind === "competitors") return competitorCount;
     if (def.kind === "slate") return null;
     return cards.filter((c) => !def.filter || def.filter(c)).length;
   };
@@ -212,7 +217,7 @@ export default function PlannerApp() {
   };
 
   const groups: { label: string; ids: ViewId[] }[] = [
-    { label: "Ideation", ids: ["ideate", "inspo"] },
+    { label: "Ideation", ids: ["ideate", "inspo", "competitors"] },
     {
       label: "Pipeline",
       ids: ["board-short", "board-long", "board-podcast", "board-carousel"],
@@ -352,6 +357,7 @@ export default function PlannerApp() {
           <TableView search={search} onOpen={setOpenCardId} />
         )}
         {view.kind === "inspo" && <InspoView search={search} />}
+        {view.kind === "competitors" && <CompetitorsView search={search} />}
         {view.kind === "slate" && (
           <BrainstormView
             onOpen={setOpenCardId}

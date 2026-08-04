@@ -90,6 +90,7 @@ export interface Status {
 export type ViewId =
   | "ideate"
   | "inspo"
+  | "competitors"
   | "board-short"
   | "board-long"
   | "board-podcast"

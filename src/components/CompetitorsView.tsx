@@ -409,12 +409,10 @@ function VideoTile({
   const flagged = v.multiple !== null && v.multiple >= OUTLIER_MIN;
 
   return (
-    <a
-      className={`comp-tile${strong ? " strong" : ""}`}
-      href={watchUrl(v.videoId)}
-      target="_blank"
-      rel="noreferrer"
-    >
+    // Deliberately not a link: with the whole tile clickable, saving a video
+    // and opening it were the same gesture. The two buttons are the only
+    // things that act.
+    <div className={`comp-tile${strong ? " strong" : ""}`}>
       <span className="comp-thumb">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={thumbUrl(v.videoId)} alt="" loading="lazy" />
@@ -427,23 +425,25 @@ function VideoTile({
           </span>
         )}
         <span className="comp-actions">
-          {/* The tile is a link to YouTube, so saving must not follow it. */}
           <button
             type="button"
-            className={`comp-save${saved ? " on" : ""}`}
+            className={`comp-act comp-save${saved ? " on" : ""}`}
             title={saved ? "Already in your inspiration library" : "Save to inspiration"}
             aria-label={saved ? "Saved to inspiration" : "Save to inspiration"}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onSave();
-            }}
+            onClick={onSave}
           >
-            {saved ? <Check size={13} /> : <BookmarkPlus size={13} />}
+            {saved ? <Check size={14} /> : <BookmarkPlus size={14} />}
           </button>
-          <span className="comp-open">
-            <ExternalLink size={13} />
-          </span>
+          <a
+            className="comp-act comp-open"
+            href={watchUrl(v.videoId)}
+            target="_blank"
+            rel="noreferrer"
+            title="Open on YouTube"
+            aria-label="Open on YouTube"
+          >
+            <ExternalLink size={14} />
+          </a>
         </span>
       </span>
       <span className="comp-tile-title">{v.title}</span>
@@ -451,6 +451,6 @@ function VideoTile({
         {/* Shorts publish no date, so don't leave a dangling separator. */}
         {[`${formatViews(v.views)} views`, formatAge(v)].filter(Boolean).join(" · ")}
       </span>
-    </a>
+    </div>
   );
 }

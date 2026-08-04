@@ -4406,15 +4406,11 @@ summary:focus-visible {
   gap: 16px;
 }
 
+/* No hover lift: the tile itself doesn't do anything now, and a card that
+   rises under the cursor promises a click that isn't there. */
 .comp-tile {
   display: block;
-  text-decoration: none;
   border-radius: 12px;
-  transition: transform 140ms ease;
-}
-
-.comp-tile:hover {
-  transform: translateY(-2px);
 }
 
 .comp-thumb {
@@ -4473,25 +4469,8 @@ summary:focus-visible {
   color: #181a20;
 }
 
-.comp-open {
-  position: absolute;
-  right: 5px;
-  top: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 7px;
-  background: rgba(10, 11, 14, 0.8);
-  color: #fff;
-  opacity: 0;
-  transition: opacity 130ms ease;
-}
-
-.comp-tile:hover .comp-open {
-  opacity: 1;
-}
+/* .comp-open is a flex child of .comp-actions — positioning it absolutely
+   parked it on top of the save button instead of beside it. */
 
 .comp-tile-title {
   display: -webkit-box;
@@ -4538,50 +4517,42 @@ summary:focus-visible {
   }
 }
 
-/* Save a competitor's video straight into the inspiration library — the tile
-   itself links to YouTube, so these sit above it. */
+/* Two explicit controls per tile: save to the inspiration library, and open on
+   YouTube. Both stay visible — hiding them until hover made the save button
+   undiscoverable, and nothing else on the tile is clickable now. */
 .comp-actions {
   position: absolute;
   right: 5px;
   top: 5px;
   display: flex;
-  gap: 4px;
+  gap: 5px;
 }
 
-.comp-save {
+.comp-act {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: none;
-  border-radius: 7px;
-  background: rgba(10, 11, 14, 0.8);
+  border-radius: 8px;
+  background: rgba(10, 11, 14, 0.78);
+  backdrop-filter: blur(3px);
   color: #fff;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 130ms ease, background 130ms ease, color 130ms ease;
+  text-decoration: none;
+  transition: background 130ms ease, color 130ms ease, transform 130ms ease;
 }
 
-.comp-tile:hover .comp-save {
-  opacity: 1;
-}
-
-.comp-save:hover {
+.comp-act:hover {
   background: var(--amber);
   color: #181a20;
+  transform: scale(1.06);
 }
 
-/* Already saved: stays visible so the wall shows what you've taken. */
+/* Already saved reads at a glance, so the wall shows what you've taken. */
 .comp-save.on {
-  opacity: 1;
   background: var(--amber);
   color: #181a20;
-}
-
-@media (max-width: 900px) {
-  .comp-save {
-    opacity: 1;
-  }
 }

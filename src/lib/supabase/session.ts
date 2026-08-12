@@ -7,6 +7,7 @@ const PUBLIC_PATHS = [
   "/login",
   "/auth",
   "/purchase", // a buyer must reach checkout before they have an account
+  "/thank-you", // Stripe returns here before the buyer has signed in at all
   "/api/auth", // the access check, called from the login form
   "/api/checkout",
   "/api/dev-login", // dev-only instant sign-in; self-gated, must run pre-session

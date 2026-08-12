@@ -29,9 +29,11 @@ export async function POST(request: NextRequest) {
     mode: "payment",
     line_items: [{ price, quantity: 1 }],
     customer_email: email,
-    // Land back on /login so the buyer creates their account with the email
-    // they just paid with — that is what proves ownership.
-    success_url: `${origin}/login?purchased=1`,
+    // Land on /thank-you, which confirms the sale against Stripe (so the
+    // conversion pixel can't be fired by just visiting the URL) and then
+    // points the buyer at /login — signing in with the email they paid with
+    // is what proves ownership.
+    success_url: `${origin}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/purchase?canceled=1`,
   });
 

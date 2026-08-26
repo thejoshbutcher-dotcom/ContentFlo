@@ -650,6 +650,24 @@ footer{border-top:1px solid var(--line);background:var(--ink);padding:56px 0 40p
   .demo-frame,.shot,.feat:nth-child(even) .shot{transform:none}
 }
 </style>
+
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window,document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '3306734846380695');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
 </head>
 <body>
 
@@ -1099,7 +1117,7 @@ footer{border-top:1px solid var(--line);background:var(--ink);padding:56px 0 40p
         <li>Brainstorm ideation engine</li>
         <li>Script templates, hooks &amp; CTA library</li>
         <li>Unlimited brand profiles</li>
-        <li>Your data stays on your device</li>
+        <li>Local-first, synced privately to your account</li>
         <li>All future updates included</li>
       </ul>
       <a class="btn btn-amber" href="https://buy.stripe.com/8x2fZhaQA416a7SaOl18c02" id="buy">Buy CreatorFlo — $29</a>
@@ -1147,7 +1165,10 @@ footer{border-top:1px solid var(--line);background:var(--ink);padding:56px 0 40p
       </div>
     </div>
     <div class="foot-base">
-      <span>© 2026 CreatorFlo. All rights reserved.</span>
+      <span>© 2026 CreatorFlo. All rights reserved. &nbsp;·&nbsp;
+        <a href="/privacy/" style="color:inherit">Privacy</a> ·
+        <a href="/terms/" style="color:inherit">Terms</a> ·
+        <a href="/refunds/" style="color:inherit">Refunds</a></span>
       <span>Stay in your CreatorFlo.</span>
     </div>
   </div>
@@ -1564,6 +1585,14 @@ renderBoard();
 renderCal();
 renderDims();
 renderDeck();
+</script>
+<!-- Cutting Corners traffic beacon (dashboard: powderblue-weasel-104544) -->
+<script>
+(function(){var t=Math.random().toString(36).slice(2),
+d='https://powderblue-weasel-104544.hostingersite.com/collect.php',
+s=function(h){var u=d+'?site='+location.hostname+'&path='+encodeURIComponent(location.pathname)+'&t='+t+(h?'&h=1':'');
+navigator.sendBeacon?navigator.sendBeacon(u):(new Image).src=u};
+s();setInterval(function(){s(1)},60000)})();
 </script>
 </body>
 </html>

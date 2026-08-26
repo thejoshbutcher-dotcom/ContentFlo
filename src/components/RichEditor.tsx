@@ -17,7 +17,12 @@ import {
 } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Extension, InputRule } from "@tiptap/core";
-import { NodeSelection, Plugin, TextSelection } from "@tiptap/pm/state";
+import {
+  NodeSelection,
+  Plugin,
+  PluginKey,
+  TextSelection,
+} from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import type { Node as PMNode, ResolvedPos } from "@tiptap/pm/model";
 
@@ -30,17 +35,76 @@ const editorByDom = new Map<Element, Editor>();
  *  otherwise the top-level block. */
 function domUnits(prose: Element): HTMLElement[] {
   const units: HTMLElement[] = [];
-  prose.childNodes.forEach((n) => {
-    if (!(n instanceof HTMLElement)) return;
-    if (/^(UL|OL)$/.test(n.tagName)) {
-      [...n.children].forEach((li) => {
-        if (li instanceof HTMLElement) units.push(li);
-      });
-    } else {
+  const walk = (parent: Element) => {
+    [...parent.children].forEach((n) => {
+      if (!(n instanceof HTMLElement)) return;
+      if (/^(UL|OL)$/.test(n.tagName)) {
+        walk(n);
+        return;
+      }
       units.push(n);
-    }
-  });
+      // A list item can hold its own nested list. Those rows are units in
+      // their own right — indenting a bullet must not demote it into part of
+      // its parent, or it stops being independently pickable and draggable.
+      [...n.children].forEach((c) => {
+        if (c instanceof HTMLElement && /^(UL|OL)$/.test(c.tagName)) walk(c);
+      });
+    });
+  };
+  walk(prose);
   return units;
+}
+
+/**
+ * A unit's OWN row, excluding anything nested inside it. A parent bullet's
+ * bounding box swallows its sub-bullets, so hit-testing and hover would always
+ * resolve to the parent; measuring down to where the nested list begins keeps
+ * every row independently targetable.
+ */
+function unitRect(el: HTMLElement): DOMRect {
+  const r = el.getBoundingClientRect();
+  const nested = [...el.children].find(
+    (c) => c instanceof HTMLElement && /^(UL|OL)$/.test(c.tagName)
+  ) as HTMLElement | undefined;
+  if (!nested) return r;
+  const n = nested.getBoundingClientRect();
+  return new DOMRect(r.left, r.top, r.width, Math.max(0, n.top - r.top));
+}
+
+const EDGE_ZONE = 56;
+
+/**
+ * Scroll a pane while a pointer sits near its edge, so a drag or a lasso can
+ * reach content past the fold. Returns the distance actually scrolled.
+ *
+ * Speed is per SECOND, scaled by how deep into the edge zone the pointer is,
+ * and multiplied by real elapsed time rather than assuming a steady tick. A
+ * held pointer produces no events to ride on, so this runs off a timer — and
+ * timers get throttled hard in background tabs and embedded web views. Pacing
+ * by the clock means a throttled tick still travels the right distance instead
+ * of crawling. `dt` is clamped so returning from a long stall doesn't lurch.
+ */
+function edgeScroll(
+  pane: Element | null | undefined,
+  clientY: number,
+  dtMs: number
+): number {
+  if (!pane) return 0;
+  const r = pane.getBoundingClientRect();
+  let dir = 0;
+  let depth = 0;
+  if (clientY < r.top + EDGE_ZONE) {
+    dir = -1;
+    depth = (r.top + EDGE_ZONE - clientY) / EDGE_ZONE;
+  } else if (clientY > r.bottom - EDGE_ZONE) {
+    dir = 1;
+    depth = (clientY - (r.bottom - EDGE_ZONE)) / EDGE_ZONE;
+  }
+  if (!dir) return 0;
+  const pxPerSecond = 150 + Math.min(1, Math.max(0, depth)) * 900;
+  const before = pane.scrollTop;
+  pane.scrollTop += dir * pxPerSecond * (Math.min(dtMs, 120) / 1000);
+  return pane.scrollTop - before;
 }
 
 // "Units" are what picking operates on: list items count individually (like
@@ -85,44 +149,79 @@ function expandListBounds(
   return { from, to };
 }
 
+/** The picked range, when one exists. Null means "just a text selection". */
+type PickRange = { from: number; to: number } | null;
+export const pickKey = new PluginKey<PickRange>("blockPick");
+
+/** Every row the picked range covers, outermost first — a fully covered parent
+ *  bullet is drawn as one block rather than boxing each of its children. */
+function pickedRows(doc: PMNode, from: number, to: number): Decoration[] {
+  const attrs = { class: "block-selected" };
+  const decos: Decoration[] = [];
+
+  const walk = (parent: PMNode, parentStart: number) => {
+    let pos = parentStart;
+    parent.forEach((child) => {
+      const start = pos;
+      const end = pos + child.nodeSize;
+      pos = end;
+      if (end <= from || start >= to) return;
+
+      const name = child.type.name;
+      if (LIST_TYPES.has(name)) {
+        walk(child, start + 1);
+        return;
+      }
+      if (name === "listItem" || name === "taskItem") {
+        // Wholly inside the range: one box around the item and its children.
+        // Only partly inside: descend, so the covered rows light up alone.
+        if (start >= from && end <= to) decos.push(Decoration.node(start, end, attrs));
+        else walk(child, start + 1);
+        return;
+      }
+      decos.push(Decoration.node(start, end, attrs));
+    });
+  };
+
+  walk(doc, 0);
+  return decos;
+}
+
 /**
- * Paints every unit a multi-unit selection touches with .block-selected and
- * marks it draggable — via ProseMirror decorations, which survive the editor's
- * own rendering (externally-mutated classes get wiped on redraw). The explicit
- * draggable attribute is what makes grabbing a picked block start a real drag
- * reliably; ProseMirror then drags the whole selection because the drag
- * originates inside it.
+ * Block picking is EXPLICIT state, not something inferred from the selection.
+ *
+ * It used to be derived: any text selection spanning two units became a block
+ * pick. That made ordinary editing impossible — dragging a highlight from the
+ * end of one line into the next silently turned into a block selection instead
+ * of highlighting text. Now only the grip and the lasso set a pick, and any
+ * selection change or edit clears it, so text drags inside the prose stay
+ * exactly what they look like.
  */
 const BlockPick = Extension.create({
   name: "blockPick",
   addProseMirrorPlugins() {
     return [
       new Plugin({
+        key: pickKey,
+        state: {
+          init: (): PickRange => null,
+          apply(tr, value: PickRange): PickRange {
+            const meta = tr.getMeta(pickKey);
+            if (meta !== undefined) return meta as PickRange;
+            if (!value) return null;
+            // Moving the caret or editing ends the pick.
+            if (tr.selectionSet || tr.docChanged) return null;
+            return value;
+          },
+        },
         props: {
           decorations(state) {
-            const { doc, selection } = state;
-            if (selection.empty || doc.childCount === 0) return null;
-            const { from, to } = selection;
-            const $f = doc.resolve(from);
-            const $l = doc.resolve(Math.max(from, to - 1));
-            // Selections inside a single unit stay ordinary text selections.
-            if (unitStartPos($f) === unitStartPos($l)) return null;
-
-            const attrs = { class: "block-selected" };
-            const decos: Decoration[] = [];
-            doc.forEach((node, pos) => {
-              if (pos + node.nodeSize <= from || pos >= to) return;
-              if (LIST_TYPES.has(node.type.name)) {
-                node.forEach((item, off) => {
-                  const ip = pos + 1 + off;
-                  if (ip + item.nodeSize <= from || ip >= to) return;
-                  decos.push(Decoration.node(ip, ip + item.nodeSize, attrs));
-                });
-              } else {
-                decos.push(Decoration.node(pos, pos + node.nodeSize, attrs));
-              }
-            });
-            return DecorationSet.create(doc, decos);
+            const range = pickKey.getState(state);
+            if (!range || state.doc.childCount === 0) return null;
+            return DecorationSet.create(
+              state.doc,
+              pickedRows(state.doc, range.from, range.to)
+            );
           },
         },
       }),
@@ -333,8 +432,9 @@ export default function RichEditor({
   const [gripMenu, setGripMenu] = useState<{ top: number; left: number } | null>(
     null
   );
-  // Non-empty while the selection spans multiple units (drives hideselection).
-  const [selBlocks, setSelBlocks] = useState<number[]>([]);
+  // True while a block pick is active (grip or lasso), which is what hides the
+  // character selection. Ordinary text drags never set it.
+  const [picked, setPicked] = useState(false);
   const [lasso, setLasso] = useState<{
     left: number;
     top: number;
@@ -478,8 +578,8 @@ export default function RichEditor({
   useEffect(() => {
     const prose = wrapRef.current?.querySelector(".cf-prose");
     if (!prose) return;
-    prose.classList.toggle("ProseMirror-hideselection", selBlocks.length > 0);
-  }, [selBlocks, editor]);
+    prose.classList.toggle("ProseMirror-hideselection", picked);
+  }, [picked, editor]);
 
   // Register this editor so drags from other sections can drop into it.
   useEffect(() => {
@@ -615,7 +715,7 @@ export default function RichEditor({
         dim.innerHTML = "";
         units.forEach((u) => {
           if (!u.isConnected) return;
-          const r = u.getBoundingClientRect();
+          const r = unitRect(u);
           const b = document.createElement("div");
           b.className = "cf-drag-dim";
           b.style.left = `${r.left - 4}px`;
@@ -682,7 +782,7 @@ export default function RichEditor({
         let gapY = pr.top + 4;
         let pos: number | null = null;
         for (const u of destUnits) {
-          const r = u.getBoundingClientRect();
+          const r = unitRect(u);
           if (cy < r.top + r.height / 2) {
             gapY = r.top - 2;
             try {
@@ -697,7 +797,7 @@ export default function RichEditor({
         }
         if (pos === null) {
           const lastU = destUnits[destUnits.length - 1];
-          gapY = lastU ? lastU.getBoundingClientRect().bottom + 2 : pr.top + 6;
+          gapY = lastU ? unitRect(lastU).bottom + 2 : pr.top + 6;
           pos = destEd.state.doc.content.size;
         }
         target = { ed: destEd, pos };
@@ -713,22 +813,16 @@ export default function RichEditor({
       // scrolling while the pointer parks in the zone) and each mousemove
       // (covers environments that throttle rAF).
       const srcPane = wrapRef.current?.closest(".modal-sections, .script-pane");
-      const edgeScroll = () => {
+      let lastDragTick = performance.now();
+      const dragEdgeScroll = () => {
+        const now = performance.now();
+        const dt = now - lastDragTick;
+        lastDragTick = now;
         if (!lifted) return;
         const under = document.elementFromPoint(lastX, lastY);
         const pane =
           under?.closest?.(".modal-sections, .script-pane") ?? srcPane;
-        if (!pane) return;
-        const pr = pane.getBoundingClientRect();
-        const zone = 48;
-        let dy = 0;
-        if (lastY < pr.top + zone) dy = -Math.ceil((pr.top + zone - lastY) / 4);
-        else if (lastY > pr.bottom - zone)
-          dy = Math.ceil((lastY - (pr.bottom - zone)) / 4);
-        if (dy) {
-          pane.scrollTop += dy;
-          update(lastX, lastY);
-        }
+        if (edgeScroll(pane, lastY, dt)) update(lastX, lastY);
       };
 
       const onMove = (ev: PointerEvent) => {
@@ -741,7 +835,7 @@ export default function RichEditor({
         }
         setCopying(ev.altKey);
         update(lastX, lastY);
-        edgeScroll();
+        dragEdgeScroll();
       };
 
       // While a drag is in flight, the page must not scroll under the finger
@@ -750,12 +844,9 @@ export default function RichEditor({
         if (lifted) ev.preventDefault();
       };
 
-      let raf = 0;
-      const tick = () => {
-        edgeScroll();
-        raf = requestAnimationFrame(tick);
-      };
-      raf = requestAnimationFrame(tick);
+      // Timer rather than rAF for the same reason as the lasso: the pointer is
+      // often held still at the edge, and rAF is suspended in some embedded views.
+      const raf = window.setInterval(dragEdgeScroll, 16);
 
       // Option-drag copies instead of moves (Notion/Finder convention). The
       // flag follows the key live, so pressing or releasing ⌥ mid-drag flips
@@ -769,7 +860,7 @@ export default function RichEditor({
       };
 
       const cleanup = () => {
-        cancelAnimationFrame(raf);
+        window.clearInterval(raf);
         ghost?.remove();
         line?.remove();
         dim?.remove();
@@ -953,7 +1044,7 @@ export default function RichEditor({
       // the top-level block — matching how picking and Notion treat rows.
       const blocksIn = (top: number, bottom: number) =>
         domUnits(proseEl).filter((el) => {
-          const r = el.getBoundingClientRect();
+          const r = unitRect(el);
           return r.top < bottom && r.bottom > top;
         });
 
@@ -970,7 +1061,7 @@ export default function RichEditor({
         }
         hi.innerHTML = "";
         hits.forEach((el) => {
-          const r = el.getBoundingClientRect();
+          const r = unitRect(el);
           const b = document.createElement("div");
           b.className = "cf-lasso-box";
           b.style.left = `${r.left - 6}px`;
@@ -981,46 +1072,91 @@ export default function RichEditor({
         });
       };
 
+      // The box is anchored to the document, not the viewport, so it keeps
+      // covering the same content while the pane scrolls under it.
+      const pane = wrapRef.current?.closest(".modal-sections, .script-pane");
+      let scrolled = 0;
+      let lastX = startX;
+      let lastY = startY;
+
+      const draw = () => {
+        const top = Math.min(startY - scrolled, lastY);
+        const bottom = Math.max(startY - scrolled, lastY);
+        setLasso({
+          left: Math.min(startX, lastX),
+          top,
+          width: Math.abs(lastX - startX),
+          height: bottom - top,
+        });
+        if (moved) paint(blocksIn(top, bottom));
+      };
+
       const onMove = (ev: MouseEvent) => {
+        lastX = ev.clientX;
+        lastY = ev.clientY;
         if (Math.abs(ev.clientX - startX) > 3 || Math.abs(ev.clientY - startY) > 3) {
           moved = true;
         }
-        setLasso({
-          left: Math.min(startX, ev.clientX),
-          top: Math.min(startY, ev.clientY),
-          width: Math.abs(ev.clientX - startX),
-          height: Math.abs(ev.clientY - startY),
-        });
-        if (moved) {
-          // Live feedback: show what will be selected before releasing.
-          paint(blocksIn(Math.min(startY, ev.clientY), Math.max(startY, ev.clientY)));
-        }
+        draw();
+        scrollStep();
       };
 
-      const onUp = (ev: MouseEvent) => {
+      // Dragging to the top or bottom edge scrolls the pane, so a selection can
+      // run past what's on screen. The anchor shifts by however far we scroll,
+      // keeping the box over the same content it started on.
+      //
+      // A timer, not requestAnimationFrame: the pointer is typically HELD
+      // still at the edge, so there are no move events to ride on, and rAF is
+      // throttled or suspended in some embedded browser views.
+      let lastTick = performance.now();
+      const scrollStep = () => {
+        const now = performance.now();
+        const dt = now - lastTick;
+        lastTick = now;
+        if (!moved) return;
+        const movedBy = edgeScroll(pane, lastY, dt);
+        if (movedBy) {
+          scrolled += movedBy;
+          draw();
+        }
+      };
+      const scrollTimer = window.setInterval(scrollStep, 16);
+
+      const onUp = () => {
+        window.clearInterval(scrollTimer);
         window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
         setLasso(null);
-        hi?.remove(); // clear the preview; the real selection takes over
+        hi?.remove(); // clear the preview; the real pick takes over
 
         // A plain gutter click selects nothing — only the grip or a real
         // lasso drag picks blocks. Text clicks stay normal editing.
         if (!moved) return;
 
         const hits = blocksIn(
-          Math.min(startY, ev.clientY),
-          Math.max(startY, ev.clientY)
+          Math.min(startY - scrolled, lastY),
+          Math.max(startY - scrolled, lastY)
         );
         if (!hits.length) return;
 
-        // Back the picked blocks with a real editor selection; the overlay is
-        // derived from it, so drag / copy / delete / Tab all behave natively.
+        // Snap outward to whole rows, then set BOTH the text selection (so
+        // copy / delete / Tab act on the range natively) and the explicit pick
+        // (which is what draws the boxes). One transaction, so the pick isn't
+        // immediately cleared by its own selection change.
         try {
           const view = editor.view;
-          const from = view.posAtDOM(hits[0], 0);
-          const last = hits[hits.length - 1];
-          const to = view.posAtDOM(last, last.childNodes.length);
-          editor.chain().focus().setTextSelection({ from, to }).run();
+          const doc = editor.state.doc;
+          const first = doc.resolve(view.posAtDOM(hits[0], 0));
+          const last = doc.resolve(view.posAtDOM(hits[hits.length - 1], 0));
+          const from = unitStartPos(first);
+          const to = unitEndPos(last);
+          const tr = editor.state.tr
+            .setSelection(
+              TextSelection.create(doc, Math.min(from + 1, to - 1), to - 1)
+            )
+            .setMeta(pickKey, { from, to });
+          view.dispatch(tr);
+          view.focus();
         } catch {
           /* position lookup can fail mid-edit */
         }
@@ -1058,57 +1194,22 @@ export default function RichEditor({
     };
   }, [editor]);
 
-  // The overlay is DERIVED from the editor's own selection: whenever the
-  // selection spans more than one top-level block, those blocks render as
-  // picked objects (and the character highlight is hidden). This means simply
-  // dragging through text across blocks — the most natural gesture — becomes
-  // block selection, exactly like Notion. One source of truth, no stale state.
+  // Mirror the plugin's pick state into React, so the character-selection
+  // hiding and the Escape handler know when a pick is actually active.
   useEffect(() => {
     if (!editor) return;
-    const compute = () => {
-      const { doc, selection } = editor.state;
-      if (selection.empty || doc.childCount === 0) {
-        setSelBlocks([]);
-        return;
-      }
-      const $f = doc.resolve(selection.from);
-      const $l = doc.resolve(Math.max(selection.from, selection.to - 1));
-      setSelBlocks(unitStartPos($f) !== unitStartPos($l) ? [1] : []);
-    };
-    editor.on("selectionUpdate", compute);
+    const sync = () => setPicked(Boolean(pickKey.getState(editor.state)));
+    editor.on("transaction", sync);
     return () => {
-      editor.off("selectionUpdate", compute);
+      editor.off("transaction", sync);
     };
-  }, [editor]);
-
-  // On release, a multi-block selection snaps outward to whole-block
-  // boundaries, so what you picked is complete blocks — never half a block.
-  useEffect(() => {
-    if (!editor) return;
-    const onUp = () => {
-      window.setTimeout(() => {
-        if (!editor || editor.isDestroyed || !editor.view.hasFocus()) return;
-        const { doc, selection } = editor.state;
-        if (selection.empty || doc.childCount === 0) return;
-        const $f = doc.resolve(selection.from);
-        const $l = doc.resolve(Math.max(selection.from, selection.to - 1));
-        if (unitStartPos($f) === unitStartPos($l)) return; // single unit: leave as text
-        const from = unitStartPos($f) + 1;
-        const to = unitEndPos($l) - 1;
-        if (selection.from !== from || selection.to !== to) {
-          editor.commands.setTextSelection({ from, to });
-        }
-      }, 0);
-    };
-    window.addEventListener("mouseup", onUp);
-    return () => window.removeEventListener("mouseup", onUp);
   }, [editor]);
 
   // Escape releases a block pick by collapsing the selection. Captured and
   // consumed, so deselecting never also closes the modal — the next bare
   // Escape still will, Notion-style layered escape.
   useEffect(() => {
-    if (!selBlocks.length || !editor) return;
+    if (!picked || !editor) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
@@ -1117,7 +1218,7 @@ export default function RichEditor({
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [selBlocks.length, editor]);
+  }, [picked, editor]);
 
   // Track "/" typed at the start of an empty block and drive the block menu.
   useEffect(() => {
@@ -1180,19 +1281,22 @@ export default function RichEditor({
     // cost at one rect check instead of a full row scan.
     const cur = gripUnitRef.current;
     if (cur?.isConnected) {
-      const r = cur.getBoundingClientRect();
+      const r = unitRect(cur);
       if (e.clientY >= r.top && e.clientY <= r.bottom) return;
     }
     const prose = wrapRef.current?.querySelector(".cf-prose");
     const wr = wrapRef.current?.getBoundingClientRect();
     if (!prose || !wr) return;
-    const hit = domUnits(prose).find((u) => {
-      const r = u.getBoundingClientRect();
+    // Deepest match wins: a sub-bullet sits inside its parent's row range, and
+    // hovering it must grab the sub-bullet, not the whole branch.
+    const hits = domUnits(prose).filter((u) => {
+      const r = unitRect(u);
       return e.clientY >= r.top && e.clientY <= r.bottom;
     });
+    const hit = hits[hits.length - 1];
     if (!hit) return;
     gripUnitRef.current = hit;
-    const top = hit.getBoundingClientRect().top - wr.top + 2;
+    const top = unitRect(hit).top - wr.top + 2;
     setGrip((prev) => (prev && Math.abs(prev.top - top) < 1 ? prev : { top }));
   }
 

@@ -4582,3 +4582,107 @@ summary:focus-visible {
   opacity: 0.7;
   font-weight: 600;
 }
+
+/* ————— Bookmark cards —————
+   A pasted link as a block: favicon + title (+ thumbnail for videos), opening
+   in a new tab on click. One unit to the grip / lasso / drag system. */
+
+.cf-bookmark {
+  margin: 6px 0;
+}
+
+.cf-bookmark-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  background: var(--ink);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 130ms ease, background 130ms ease;
+}
+
+.cf-bookmark-link:hover {
+  border-color: var(--amber);
+  background: var(--ink-2);
+}
+
+.cf-bookmark-thumb {
+  width: 92px;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 7px;
+  flex: none;
+  display: block;
+}
+
+.cf-bookmark-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.cf-bookmark-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.cf-bookmark-site {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  color: var(--text-3);
+  font-size: 11.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cf-bookmark-favicon {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.cf-bookmark-open {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--text-3);
+  transition: color 130ms ease, background 130ms ease;
+}
+
+.cf-bookmark-link:hover .cf-bookmark-open {
+  color: var(--amber);
+}
+
+/* Inline links: read as links, feel clickable. The bookmark card is an <a>
+   too, but it's a card — no underline, its own palette. */
+.cf-prose a:not(.cf-bookmark-link) {
+  color: var(--amber);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.cf-prose a:not(.cf-bookmark-link):hover {
+  color: var(--amber-deep);
+}
+
+.cf-prose .cf-bookmark-link,
+.cf-prose .cf-bookmark-link * {
+  text-decoration: none;
+}

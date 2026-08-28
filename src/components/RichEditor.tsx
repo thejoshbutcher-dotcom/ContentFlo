@@ -116,6 +116,8 @@ function unitStartPos($p: ResolvedPos): number {
     const name = $p.node(d).type.name;
     if (name === "listItem" || name === "taskItem") return $p.before(d);
   }
+  // Depth 0 = a top-level boundary. Atom blocks (bookmark cards) resolve
+  // here, since they have no interior for posAtDOM to land in.
   return $p.depth >= 1 ? $p.before(1) : $p.pos;
 }
 
@@ -124,7 +126,11 @@ function unitEndPos($p: ResolvedPos): number {
     const name = $p.node(d).type.name;
     if (name === "listItem" || name === "taskItem") return $p.after(d);
   }
-  return $p.depth >= 1 ? $p.after(1) : $p.pos;
+  if ($p.depth >= 1) return $p.after(1);
+  // Top-level boundary: the unit is the node that FOLLOWS it. Returning the
+  // boundary itself made from === to, and the empty deleteRange aborted the
+  // whole drop chain — atom blocks silently refused to move.
+  return $p.pos + ($p.nodeAfter?.nodeSize ?? 0);
 }
 
 /**
@@ -307,6 +313,7 @@ import {
 } from "lucide-react";
 import { toEditorHtml } from "@/lib/richtext";
 import { Indent } from "@/lib/indent";
+import { Bookmark } from "./BookmarkView";
 import CodeBlockView from "./CodeBlockView";
 
 const MENU_W = 252;
@@ -476,7 +483,12 @@ export default function RichEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
-        link: { openOnClick: false },
+        // Plain click opens the link (Notion behaviour). Editing around a
+        // link still works — click beside it, or arrow into it.
+        link: {
+          openOnClick: true,
+          HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
+        },
         codeBlock: false, // replaced below with a copy-button node view
         // "> " belongs to the toggle here (Notion parity), so blockquote keeps
         // the node but loses its input rule; it's still in the slash menu.
@@ -487,6 +499,7 @@ export default function RichEditor({
       TaskItem.configure({ nested: true }),
       Indent,
       BlockPick,
+      Bookmark,
       BlockKeys,
       CodeBlock.extend({
         addNodeView: () => ReactNodeViewRenderer(CodeBlockView),
@@ -535,12 +548,36 @@ export default function RichEditor({
         }
         return false;
       },
-      handlePaste: (_view, event) => {
+      handlePaste: (view, event) => {
         const files = [...(event.clipboardData?.items ?? [])]
           .filter((it) => it.type.startsWith("image/"))
           .map((it) => it.getAsFile())
           .filter((f): f is File => f !== null);
         if (files.length && onImagePaste) return onImagePaste(files);
+
+        // A bare URL pasted onto an EMPTY line becomes a bookmark card.
+        // Pasted into text it stays an inline link, so writing around links
+        // is never hijacked. Only at the top level (or inside a toggle) —
+        // swapping a list item's paragraph for a card would break the list.
+        const text = event.clipboardData?.getData("text/plain")?.trim() ?? "";
+        if (/^https?:\/\/\S+$/.test(text)) {
+          const { $from, empty } = view.state.selection;
+          const parentName = $from.depth > 1 ? $from.node($from.depth - 1).type.name : "doc";
+          const emptyLine =
+            empty &&
+            $from.parent.type.name === "paragraph" &&
+            $from.parent.content.size === 0 &&
+            (parentName === "doc" || parentName === "detailsContent");
+          const type = view.state.schema.nodes.bookmark;
+          if (emptyLine && type) {
+            const from = $from.before($from.depth);
+            const to = $from.after($from.depth);
+            view.dispatch(
+              view.state.tr.replaceRangeWith(from, to, type.create({ url: text }))
+            );
+            return true;
+          }
+        }
         return false;
       },
     },
@@ -632,7 +669,14 @@ export default function RichEditor({
       // Serialize NOW, while every unit is still attached. ProseMirror's DOM
       // observer can redraw rows mid-drag and orphan these references, so
       // nothing after this point may rely on units[] still being in the tree.
-      const parts = units.map((el) => {
+      const parts = units.map((rawEl) => {
+        // Node views wrap their markup in a `react-renderer` shell that has no
+        // parse rule; serialize the real element inside it instead.
+        const el =
+          rawEl.classList.contains("react-renderer") &&
+          rawEl.firstElementChild instanceof HTMLElement
+            ? rawEl.firstElementChild
+            : rawEl;
         const clone = el.cloneNode(true) as HTMLElement;
         clone.classList.remove("block-selected");
         clone

@@ -12,6 +12,7 @@ const PUBLIC_PATHS = [
   "/api/checkout",
   "/api/dev-login", // dev-only instant sign-in; self-gated, must run pre-session
   "/api/stripe/webhook", // unauthenticated by design; verified by signature
+  "/api/version", // deploy-verification ping; exposes only commit id + build time
 ];
 
 function isPublic(pathname: string): boolean {

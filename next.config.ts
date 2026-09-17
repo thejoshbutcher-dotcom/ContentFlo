@@ -15,6 +15,12 @@ function gitSha(): string {
 }
 
 const nextConfig: NextConfig = {
+  // Turns the /_next/image optimizer OFF. It has a critical advisory
+  // (GHSA-2xp9-vwfh-vxw4, AVIF decoding) fixed only in Next 16.3.3+, which
+  // Hostinger's GLIBC can't build. We serve a handful of small brand PNGs and
+  // hotlinked YouTube thumbnails, so there's nothing for it to optimize —
+  // remove the attack surface rather than carry it.
+  images: { unoptimized: true },
   env: {
     BUILD_COMMIT: gitSha(),
     BUILD_TIME: new Date().toISOString(),

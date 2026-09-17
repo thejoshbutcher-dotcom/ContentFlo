@@ -49,14 +49,6 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/**
- * Checklists are plain text sections holding a to-do list, not a special kind,
- * so every item can be edited, reordered, or deleted like any other block.
- */
-function checklist(title: string, items: string[]): Section {
-  return text(title, undefined, taskListHtml(items.map((t) => ({ text: t }))), "post");
-}
-
 // Fallbacks for cards saved before sections carried a phase
 const SCRIPT_TITLES = [
   "Visual Hook",
@@ -81,7 +73,8 @@ const POST_TITLES = [
   "Email (for sharing video)",
 ];
 
-/** The optional pre-publish to-do list; shown in the Post tab's side panel. */
+/** The pre-publish to-do list. Retired from the templates as redundant; a
+ *  customised one on an older card still shows in the Post tab's side panel. */
 export const CHECKLIST_TITLE = "Publishing Checklist ✅";
 
 /**
@@ -89,9 +82,16 @@ export const CHECKLIST_TITLE = "Publishing Checklist ✅";
  * from saved cards ONLY while empty (or still holding their untouched
  * scaffold) — anything a person actually wrote stays exactly where it is.
  */
-const RETIRED_SECTIONS: Record<string, string> = {
-  "Questions ❓ (from reference video)":
+const RETIRED_SECTIONS: Record<string, string[]> = {
+  "Questions ❓ (from reference video)": [
     "Reference video title: \n\nGoal of the reference video: \n\n3 points or secrets to reveal:\n1. \n2. \n3. \n\nMain question: \n\nWhat does the viewer want to know?\n- \n\nWhat do I want the viewer to know?\n- \n\nWhat do I want the viewer to LEARN?\n- \n\nObjections or obvious answers:\n- ",
+  ],
+  // The default to-do lists the checklist shipped with. Ticks don't count as
+  // writing; a list someone re-worded does, and stays (in the Post side panel).
+  [CHECKLIST_TITLE]: [
+    "Upload ad-free version if sponsored Add description (friendly, no hey guys — below sponsor CTA) Ensure sponsor CTA has details + test the link Add tags Add end screen (custom playlist if needed) Send for captioning once uploaded as Unlisted Add video to most relevant playlist Schedule for publish at 5–6pm GMT",
+    "Edit full episode Cut 3–5 short clips Write episode description Schedule audio + video versions Post clips across platforms",
+  ],
 };
 
 export function sectionPhase(sec: Section): SectionPhase {
@@ -158,16 +158,6 @@ export function longFormSections(): Section[] {
     },
     script("Outline", "Beat-by-beat structure before you write the full script"),
     script("Script", "Hook → Intro → Value → CTA"),
-    checklist("Publishing Checklist ✅", [
-      "Upload ad-free version if sponsored",
-      "Add description (friendly, no 'hey guys' — below sponsor CTA)",
-      "Ensure sponsor CTA has details + test the link",
-      "Add tags",
-      "Add end screen (custom playlist if needed)",
-      "Send for captioning once uploaded as Unlisted",
-      "Add video to most relevant playlist",
-      "Schedule for publish at 5–6pm GMT",
-    ]),
     { ...post("Video Description for YouTube"), placeholder: "00:00 - Intro" },
     { ...post("Email (for sharing video)"), placeholder: "Subject: \n\nBody:" },
   ];
@@ -201,13 +191,6 @@ export function podcastSections(): Section[] {
       placeholder: "1. \n2. \n3. ",
       allowRefs: true,
     },
-    checklist("Publishing Checklist ✅", [
-      "Edit full episode",
-      "Cut 3–5 short clips",
-      "Write episode description",
-      "Schedule audio + video versions",
-      "Post clips across platforms",
-    ]),
   ];
 }
 
@@ -404,11 +387,11 @@ function syncTemplateFields(
 
 function dropRetiredSections(sections: Section[]): Section[] | null {
   const next = sections.filter((s) => {
-    const scaffold = RETIRED_SECTIONS[s.title];
-    if (scaffold === undefined) return true;
+    const scaffolds = RETIRED_SECTIONS[s.title];
+    if (scaffolds === undefined) return true;
     if (s.images?.length || s.refs?.length) return true;
     const n = scaffoldNorm(s.content);
-    return !(n === "" || n === scaffoldNorm(scaffold));
+    return !(n === "" || scaffolds.some((x) => n === scaffoldNorm(x)));
   });
   return next.length === sections.length ? null : next;
 }

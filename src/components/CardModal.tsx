@@ -853,8 +853,8 @@ export default function CardModal({
               ))}
               {postSections.length === 0 && (
                 <div className="empty-state">
-                  No publishing sections for this format yet — switch content type
-                  on the Plan tab.
+                  Nothing to write up for this format — the posting date,
+                  description and link are in the panel on the right.
                 </div>
               )}
             </div>

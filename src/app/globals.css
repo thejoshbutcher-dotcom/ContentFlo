@@ -5129,3 +5129,41 @@ summary:focus-visible {
 .side-checklist .check-row:last-child {
   padding-bottom: 6px;
 }
+
+/* ————— "A newer version is ready" ————— */
+
+.update-prompt {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 96;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px 9px 14px;
+  border-radius: var(--radius-btn);
+  background: var(--ink-2);
+  border: 1px solid var(--amber-deep);
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+  font-size: 12.5px;
+}
+
+.update-prompt svg {
+  color: var(--amber);
+  flex-shrink: 0;
+}
+
+.update-prompt .btn {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .update-prompt {
+    left: 12px;
+    right: 12px;
+    bottom: 76px; /* clear the bottom nav */
+    justify-content: space-between;
+  }
+}

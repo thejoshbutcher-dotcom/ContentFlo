@@ -37,6 +37,7 @@ import InspoAddDialog from "./InspoAddDialog";
 import ShareDialog from "./ShareDialog";
 import TeamInvites from "./TeamInvites";
 import TeamPresence from "./TeamPresence";
+import UpdatePrompt from "./UpdatePrompt";
 import { useTeam } from "@/lib/team";
 import InspoView from "./InspoView";
 import SetupWizard, { SETUP_STEP_BUCKETS } from "./SetupWizard";
@@ -447,6 +448,7 @@ export default function PlannerApp() {
       </nav>
 
       <CloudSync />
+      <UpdatePrompt />
       <TeamInvites onJoined={() => handleAccountSwitched(false)} />
       <ShareDialog onLeft={() => handleAccountSwitched(false)} />
 

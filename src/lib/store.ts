@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { isReadOnly } from "./access";
 import { activeAccountId, plannerKey } from "./accounts";
 import { seedCards } from "./seed";
 import { newId, sectionsFor } from "./templates";
@@ -45,7 +46,17 @@ interface PlannerState {
 
 export const usePlanner = create<PlannerState>()(
   persist(
-    (set, get) => {
+    (rawSet, get) => {
+      // On a profile shared with you as a viewer, every action is a no-op.
+      // Cloud pulls go through `usePlanner.setState`, not this, so they still
+      // land. (RLS rejects a viewer's writes regardless.)
+      const set = (
+        partial: Partial<PlannerState> | ((s: PlannerState) => Partial<PlannerState>)
+      ) => {
+        if (isReadOnly()) return;
+        rawSet(partial);
+      };
+
       const push = (action: UndoAction) =>
         set({ history: [...get().history, action].slice(-HISTORY_MAX) });
 

@@ -16,6 +16,8 @@ import { htmlToText, textToHtml, toEditorHtml } from "@/lib/richtext";
 import { parseYouTubeId, SectionRef } from "@/lib/inspo";
 import InspoPicker from "./InspoPicker";
 import RichEditor from "./RichEditor";
+import { setOpenCard } from "@/lib/sync";
+import { initialOf, useTeam } from "@/lib/team";
 import { ContentCard, ContentType, Section, Who } from "@/lib/types";
 
 const CONTENT_TYPES: ContentType[] = [
@@ -361,6 +363,15 @@ export default function CardModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // Tell teammates this card is open here, so they see who they'd collide with.
+  useEffect(() => {
+    setOpenCard(cardId);
+    return () => setOpenCard(null);
+  }, [cardId]);
+  const viewOnly = useTeam((s) => s.role === "viewer");
+  const peers = useTeam((s) => s.peers);
+  const here = peers.filter((p) => p.cardId === cardId);
+
   // Reconcile older cards to the current template layout when opened, carrying
   // over anything already written. Runs before paint so there's no flash of the
   // old boxes, and is a no-op once a card is up to date.
@@ -424,6 +435,7 @@ export default function CardModal({
           <select
             className="prop-select status-select"
             style={{ background: colors.bg, color: colors.fg }}
+            disabled={viewOnly}
             value={card.status}
             onChange={(e) => setStatus(e.target.value)}
           >
@@ -437,6 +449,7 @@ export default function CardModal({
             className="modal-title-input"
             value={card.title}
             placeholder="Untitled idea"
+            readOnly={viewOnly}
             autoFocus={!card.title}
             onChange={(e) => updateCard(card.id, { title: e.target.value })}
           />
@@ -453,6 +466,22 @@ export default function CardModal({
               </button>
             ))}
           </div>
+          {here.length > 0 && (
+            <span
+              className="peer-stack"
+              title={`Also in this card: ${here.map((p) => p.email).join(", ")}`}
+            >
+              {here.slice(0, 3).map((p) => (
+                <span key={p.userId} className="peer-dot">
+                  {initialOf(p.email)}
+                </span>
+              ))}
+              <span className="peer-label">
+                {here.length === 1 ? "is here too" : "are here too"}
+              </span>
+            </span>
+          )}
+          {viewOnly && <span className="view-only-chip">View only</span>}
           {tab === "script" && (
             <button className="ref-toggle" onClick={() => setShowRef((v) => !v)}>
               <BookOpen
@@ -462,16 +491,18 @@ export default function CardModal({
               {showRef ? "Hide guides" : "Hooks & guides"}
             </button>
           )}
-          <button
-            className="btn btn-danger"
-            onClick={() => {
-              deleteCard(card.id);
-              onClose();
-            }}
-            aria-label="Delete card"
-          >
-            <Trash2 size={15} />
-          </button>
+          {!viewOnly && (
+            <button
+              className="btn btn-danger"
+              onClick={() => {
+                deleteCard(card.id);
+                onClose();
+              }}
+              aria-label="Delete card"
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
           <button
             className="btn btn-ghost head-close"
             onClick={onClose}

@@ -1,4 +1,6 @@
 import { ContentCard } from "./types";
+import type { Competitor } from "./competitors";
+import type { InspoItem } from "./inspo";
 import { ProfileFormat, ProfileBucket, SocialAccount } from "./profile";
 
 /** Shape of a row in public.cards. */
@@ -36,6 +38,8 @@ export interface ProfileDataRow {
   feelings?: string[];
   actions?: string[];
   setupComplete?: boolean;
+  inspo?: InspoItem[];
+  competitors?: Competitor[];
 }
 
 /**
@@ -59,7 +63,10 @@ export function cardToRow(
     // rejects the empty string.
     posting_date: card.postingDate ? card.postingDate : null,
     body: card,
-    updated_at: card.updatedAt ?? new Date().toISOString(),
+    // The row's version stamp, fresh on every save: sync uses it as an
+    // optimistic-concurrency token, so two saves must never share one. (The
+    // card's own `updatedAt` lives on inside `body`.)
+    updated_at: new Date().toISOString(),
     // Any upsert clears the tombstone — a live/restored card is not deleted.
     // This is what lets Cmd+Z bring a deleted card back in the cloud too.
     deleted_at: null,

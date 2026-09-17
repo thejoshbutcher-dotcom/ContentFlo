@@ -1,19 +1,37 @@
 "use client";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
+import { isReadOnly } from "./access";
 import { CardRow, ProfileRow, cardToRow, rowToCard } from "./mapping";
+import { mergeCard, mergeProfileData } from "./merge";
 import { defaultProfileData, useProfile } from "./profile";
 import { getSupabaseBrowser } from "./supabase/client";
 import { usePlanner } from "./store";
+import { Peer, useTeam } from "./team";
 import { ContentCard } from "./types";
 
 const FLUSH_IDLE_MS = 800; // quiet period after the last keystroke
 const FLUSH_MAX_MS = 3000; // never wait longer than this while typing
+const REMOTE_BATCH_MS = 150; // coalesce a burst of realtime events
+const PARALLEL_SAVES = 8;
 
 interface Outbox {
   dirty: string[];
   deleted: string[];
   profileDirty: boolean;
+}
+
+type ProfileData = ReturnType<typeof defaultProfileData>;
+
+/**
+ * The last version of a row that we and the cloud agreed on. `version` is the
+ * row's `updated_at`, used as an optimistic-concurrency token: a save only
+ * lands if the row is still at the version we started from. `card`/`data` is
+ * the common ancestor for a three-way merge when it isn't.
+ */
+interface CardBase {
+  version: string;
+  card: ContentCard;
 }
 
 interface SyncSession {
@@ -23,28 +41,78 @@ interface SyncSession {
   dirty: Set<string>;
   deleted: Set<string>;
   profileDirty: boolean;
+  base: Map<string, CardBase>;
+  profileBase: { version: string; data: ProfileData } | null;
+  channel: RealtimeChannel | null;
+  /** Card ids a realtime event told us changed, awaiting one batched fetch. */
+  remoteQueue: Set<string>;
+  remoteTimer: ReturnType<typeof setTimeout> | null;
+  /** The card this user has open — broadcast to teammates. */
+  openCardId: string | null;
   unsubscribes: (() => void)[];
   idleTimer: ReturnType<typeof setTimeout> | null;
   maxTimer: ReturnType<typeof setTimeout> | null;
   /** Suppresses change-tracking while we write cloud data into the stores. */
   hydrating: boolean;
+  flushing: Promise<void> | null;
 }
 
 let session: SyncSession | null = null;
 
 /** Set once the user is signed in; null means local-only mode. */
 let cloudUserId: string | null = null;
+let cloudUserEmail: string | null = null;
 
-export function setCloudUser(id: string | null) {
+export function setCloudUser(id: string | null, email: string | null = null) {
   cloudUserId = id;
+  cloudUserEmail = email;
 }
 
 export function getCloudUser(): string | null {
   return cloudUserId;
 }
 
+export function getCloudEmail(): string | null {
+  return cloudUserEmail;
+}
+
 export function isSyncing(): boolean {
   return session !== null;
+}
+
+/** Timestamps round-trip as "…Z" or "…+00:00"; compare the instant. */
+function sameVersion(a: string | undefined, b: string | undefined): boolean {
+  if (!a || !b) return false;
+  return a === b || Date.parse(a) === Date.parse(b);
+}
+
+function profileDataOf(p: ProfileData): ProfileData {
+  return {
+    brandName: p.brandName,
+    niche: p.niche,
+    audience: p.audience,
+    offer: p.offer,
+    socials: p.socials,
+    buckets: p.buckets,
+    topics: p.topics,
+    formats: p.formats,
+    feelings: p.feelings,
+    actions: p.actions,
+    setupComplete: p.setupComplete,
+    inspo: p.inspo,
+    competitors: p.competitors,
+  };
+}
+
+/** Write cloud state into a store without it counting as a local edit. */
+function quietly(s: SyncSession, write: () => void) {
+  const was = s.hydrating;
+  s.hydrating = true;
+  try {
+    write();
+  } finally {
+    s.hydrating = was;
+  }
 }
 
 // ————— Outbox: survives a reload so an unflushed delete isn't resurrected —————
@@ -100,10 +168,115 @@ function clearTimers(s: SyncSession) {
   s.maxTimer = null;
 }
 
+/**
+ * Someone else saved this card since we last saw it. Fold their version into
+ * ours and leave the result dirty: the next flush writes it from the new base.
+ */
+function reconcileCard(s: SyncSession, row: CardRow) {
+  const theirs = rowToCard(row);
+  const ours = usePlanner.getState().cards.find((c) => c.id === row.id);
+  const prior = s.base.get(row.id);
+  s.base.set(row.id, { version: row.updated_at, card: theirs });
+  if (!ours) return;
+
+  const merged = mergeCard(prior?.card, ours, theirs);
+  quietly(s, () =>
+    usePlanner.setState({
+      cards: usePlanner.getState().cards.map((c) => (c.id === row.id ? merged : c)),
+    })
+  );
+  s.dirty.add(row.id);
+}
+
+/** Save one card that the cloud already has, guarded by its version. */
+async function saveKnownCard(s: SyncSession, card: ContentCard, known: CardBase) {
+  const row = cardToRow(card, s.userId, s.profileId);
+  const { data, error } = await s.supabase
+    .from("cards")
+    .update(row)
+    .eq("id", card.id)
+    .eq("updated_at", known.version)
+    .select("id");
+  if (error) throw error;
+
+  if (data?.length) {
+    s.base.set(card.id, { version: row.updated_at, card });
+    return;
+  }
+
+  // Version moved on (or the row is gone). Look before overwriting.
+  const { data: current, error: readErr } = await s.supabase
+    .from("cards")
+    .select("*")
+    .eq("id", card.id)
+    .maybeSingle();
+  if (readErr) throw readErr;
+
+  const remote = current as CardRow | null;
+  if (!remote || remote.deleted_at) {
+    // Deleted elsewhere while we were editing it. An edit is the stronger
+    // signal of intent, so the card comes back (upsert clears the tombstone).
+    const { error: upErr } = await s.supabase.from("cards").upsert(row);
+    if (upErr) throw upErr;
+    s.base.set(card.id, { version: row.updated_at, card });
+    return;
+  }
+
+  reconcileCard(s, remote);
+}
+
+async function saveProfile(s: SyncSession) {
+  const ours = profileDataOf(useProfile.getState());
+  const version = new Date().toISOString();
+
+  let q = s.supabase
+    .from("profiles")
+    .update({ data: ours, updated_at: version })
+    .eq("id", s.profileId);
+  if (s.profileBase) q = q.eq("updated_at", s.profileBase.version);
+  const { data, error } = await q.select("id");
+  if (error) throw error;
+
+  if (data?.length) {
+    s.profileBase = { version, data: ours };
+    return;
+  }
+
+  const { data: current, error: readErr } = await s.supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", s.profileId)
+    .maybeSingle();
+  if (readErr) throw readErr;
+  // Unreadable means the profile was deleted or our access was removed;
+  // there is nothing left to save into.
+  if (!current) return;
+
+  reconcileProfile(s, current as ProfileRow);
+}
+
+function reconcileProfile(s: SyncSession, row: ProfileRow) {
+  const theirs = { ...defaultProfileData(), ...(row.data ?? {}) } as ProfileData;
+  const ours = profileDataOf(useProfile.getState());
+  const merged = mergeProfileData(s.profileBase?.data, ours, theirs);
+  s.profileBase = { version: row.updated_at, data: theirs };
+  quietly(s, () => useProfile.setState(merged));
+  s.profileDirty = true;
+}
+
 /** Push all pending changes. Safe to await before switching profiles. */
-export async function flush(): Promise<void> {
+export function flush(): Promise<void> {
   const s = session;
-  if (!s) return;
+  if (!s) return Promise.resolve();
+  // One at a time: two overlapping flushes would race each other's versions.
+  if (s.flushing) return s.flushing.then(() => flush());
+  s.flushing = doFlush(s).finally(() => {
+    s.flushing = null;
+  });
+  return s.flushing;
+}
+
+async function doFlush(s: SyncSession): Promise<void> {
   clearTimers(s);
 
   const dirtyIds = [...s.dirty];
@@ -116,59 +289,68 @@ export async function flush(): Promise<void> {
   s.deleted.clear();
   s.profileDirty = false;
 
-  const cards = usePlanner.getState().cards;
-  const rows = dirtyIds
-    .map((id) => cards.find((c) => c.id === id))
-    .filter((c): c is ContentCard => Boolean(c))
-    .map((c) => cardToRow(c, s.userId, s.profileId));
+  const byId = new Map(usePlanner.getState().cards.map((c) => [c.id, c]));
+  const cards = dirtyIds
+    .map((id) => byId.get(id))
+    .filter((c): c is ContentCard => Boolean(c));
+
+  // Cards the cloud hasn't seen from us go up in one request. Cards it has
+  // are saved one by one, each conditional on its version.
+  const fresh = cards.filter((c) => !s.base.has(c.id));
+  const known = cards.filter((c) => s.base.has(c.id));
+
+  // Track what actually landed, so a mid-flush failure only retries the rest.
+  const done = new Set<string>();
+  let deletesDone = false;
+  let profileDone = !wantProfile;
 
   try {
-    if (rows.length) {
+    if (fresh.length) {
+      const rows = fresh.map((c) => cardToRow(c, s.userId, s.profileId));
       const { error } = await s.supabase.from("cards").upsert(rows);
       if (error) throw error;
+      rows.forEach((r, i) => {
+        s.base.set(r.id, { version: r.updated_at, card: fresh[i] });
+        done.add(r.id);
+      });
+    }
+
+    for (let i = 0; i < known.length; i += PARALLEL_SAVES) {
+      await Promise.all(
+        known.slice(i, i + PARALLEL_SAVES).map(async (c) => {
+          await saveKnownCard(s, c, s.base.get(c.id)!);
+          done.add(c.id);
+        })
+      );
     }
 
     if (deletedIds.length) {
       // Soft delete. A hard delete would let a stale device re-insert the row.
+      // `updated_at` moves too, so a teammate mid-edit conflicts instead of
+      // silently saving over the tombstone.
+      const now = new Date().toISOString();
       const { error } = await s.supabase
         .from("cards")
-        .update({ deleted_at: new Date().toISOString() })
+        .update({ deleted_at: now, updated_at: now })
         .in("id", deletedIds);
       if (error) throw error;
+      deletedIds.forEach((id) => s.base.delete(id));
     }
+    deletesDone = true;
 
     if (wantProfile) {
-      const p = useProfile.getState();
-      const { error } = await s.supabase
-        .from("profiles")
-        .update({
-          data: {
-            brandName: p.brandName,
-            niche: p.niche,
-            audience: p.audience,
-            offer: p.offer,
-            socials: p.socials,
-            buckets: p.buckets,
-            topics: p.topics,
-            formats: p.formats,
-            feelings: p.feelings,
-            actions: p.actions,
-            setupComplete: p.setupComplete,
-            inspo: p.inspo,
-            competitors: p.competitors,
-          },
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", s.profileId);
-      if (error) throw error;
+      await saveProfile(s);
+      profileDone = true;
     }
 
     saveOutbox(s);
+    // A conflict leaves its merged result dirty — write that too.
+    if (s.dirty.size || s.profileDirty) scheduleFlush();
   } catch (err) {
-    // Put everything back and try again on the next change or focus.
-    dirtyIds.forEach((id) => s.dirty.add(id));
-    deletedIds.forEach((id) => s.deleted.add(id));
-    if (wantProfile) s.profileDirty = true;
+    // Put back whatever didn't land and try again on the next change or focus.
+    dirtyIds.forEach((id) => !done.has(id) && s.dirty.add(id));
+    if (!deletesDone) deletedIds.forEach((id) => s.deleted.add(id));
+    if (!profileDone) s.profileDirty = true;
     saveOutbox(s);
     console.error("[sync] flush failed, will retry", err);
   }
@@ -192,16 +374,24 @@ export async function pull(supabase: SupabaseClient, profileId: string) {
     .maybeSingle();
   if (profErr) throw profErr;
 
-  const cards = (cardRows as CardRow[]).map(rowToCard);
-  const data = (profileRow as ProfileRow | null)?.data;
+  const rows = cardRows as CardRow[];
+  const cards = rows.map(rowToCard);
+  const prow = profileRow as ProfileRow | null;
+  const data = { ...defaultProfileData(), ...(prow?.data ?? {}) } as ProfileData;
 
-  const wasHydrating = session?.hydrating;
-  if (session) session.hydrating = true;
+  const apply = () => {
+    usePlanner.setState({ cards });
+    useProfile.setState(data);
+  };
 
-  usePlanner.setState({ cards });
-  useProfile.setState({ ...defaultProfileData(), ...(data ?? {}) });
-
-  if (session) session.hydrating = wasHydrating ?? false;
+  const s = session;
+  if (s && s.profileId === profileId) {
+    s.base = new Map(rows.map((r, i) => [r.id, { version: r.updated_at, card: cards[i] }]));
+    s.profileBase = prow ? { version: prow.updated_at, data } : null;
+    quietly(s, apply);
+  } else {
+    apply();
+  }
 }
 
 /**
@@ -214,6 +404,182 @@ export async function refreshFromCloud(): Promise<void> {
   if (!s) return;
   await flush();
   await pull(s.supabase, s.profileId);
+}
+
+// ————— Live updates —————
+
+/** Fetch the cards realtime told us about, and fold each one in. */
+async function drainRemoteQueue(s: SyncSession) {
+  s.remoteTimer = null;
+  const ids = [...s.remoteQueue];
+  s.remoteQueue.clear();
+  if (!ids.length || session !== s) return;
+
+  // Fetched rather than read off the event: a card carrying pasted images can
+  // exceed the realtime payload limit, and a truncated body must never be
+  // mistaken for the real one.
+  const { data, error } = await s.supabase.from("cards").select("*").in("id", ids);
+  if (error || session !== s) return;
+
+  for (const row of data as CardRow[]) applyRemoteCard(s, row);
+  saveOutbox(s);
+  if (s.dirty.size) scheduleFlush();
+}
+
+function applyRemoteCard(s: SyncSession, row: CardRow) {
+  if (sameVersion(s.base.get(row.id)?.version, row.updated_at)) return; // our own echo
+
+  const local = usePlanner.getState().cards;
+  const have = local.some((c) => c.id === row.id);
+
+  if (row.deleted_at) {
+    // Mid-edit here? Our pending save will bring it back; leave it be.
+    if (s.dirty.has(row.id)) return;
+    s.base.delete(row.id);
+    if (have) {
+      quietly(s, () =>
+        usePlanner.setState({ cards: local.filter((c) => c.id !== row.id) })
+      );
+    }
+    return;
+  }
+
+  if (s.deleted.has(row.id)) return; // we're deleting it; theirs loses
+
+  if (have && s.dirty.has(row.id)) {
+    reconcileCard(s, row);
+    return;
+  }
+
+  const theirs = rowToCard(row);
+  s.base.set(row.id, { version: row.updated_at, card: theirs });
+  quietly(s, () =>
+    usePlanner.setState({
+      cards: have
+        ? local.map((c) => (c.id === row.id ? theirs : c))
+        : [theirs, ...local],
+    })
+  );
+}
+
+function queueRemote(s: SyncSession, id: string) {
+  s.remoteQueue.add(id);
+  s.remoteTimer ??= setTimeout(() => void drainRemoteQueue(s), REMOTE_BATCH_MS);
+}
+
+async function applyRemoteProfile(s: SyncSession) {
+  const { data, error } = await s.supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", s.profileId)
+    .maybeSingle();
+  if (error || !data || session !== s) return;
+  const row = data as ProfileRow;
+  if (sameVersion(s.profileBase?.version, row.updated_at)) return;
+
+  if (s.profileDirty) {
+    reconcileProfile(s, row);
+    scheduleFlush();
+    return;
+  }
+  const theirs = { ...defaultProfileData(), ...(row.data ?? {}) } as ProfileData;
+  s.profileBase = { version: row.updated_at, data: theirs };
+  quietly(s, () => useProfile.setState(theirs));
+}
+
+/**
+ * Anything that changed while we weren't listening — tab asleep, laptop shut,
+ * socket dropped. Compares versions only, then fetches just what moved.
+ */
+async function catchUp(s: SyncSession) {
+  const { data, error } = await s.supabase
+    .from("cards")
+    .select("id,updated_at,deleted_at")
+    .eq("profile_id", s.profileId);
+  if (error || session !== s) return;
+
+  for (const r of data as Pick<CardRow, "id" | "updated_at" | "deleted_at">[]) {
+    const known = s.base.get(r.id);
+    if (!known && r.deleted_at) continue; // a tombstone we never had
+    if (!sameVersion(known?.version, r.updated_at)) queueRemote(s, r.id);
+  }
+  await applyRemoteProfile(s);
+}
+
+function publishPresence(s: SyncSession) {
+  if (!s.channel) return;
+  void s.channel.track({
+    userId: s.userId,
+    email: cloudUserEmail ?? "",
+    cardId: s.openCardId,
+  });
+}
+
+/** Tell teammates which card is open here (null when the editor closes). */
+export function setOpenCard(cardId: string | null) {
+  const s = session;
+  if (!s || s.openCardId === cardId) return;
+  s.openCardId = cardId;
+  publishPresence(s);
+}
+
+function subscribeLive(s: SyncSession) {
+  let subscribedOnce = false;
+
+  const channel = s.supabase
+    .channel(`profile:${s.profileId}`, {
+      config: { presence: { key: s.userId } },
+    })
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "cards",
+        filter: `profile_id=eq.${s.profileId}`,
+      },
+      (payload) => {
+        const row = payload.new as Partial<CardRow> | null;
+        if (!row?.id) return;
+        if (sameVersion(s.base.get(row.id)?.version, row.updated_at)) return;
+        queueRemote(s, row.id);
+      }
+    )
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "profiles",
+        filter: `id=eq.${s.profileId}`,
+      },
+      (payload) => {
+        const row = payload.new as Partial<ProfileRow> | null;
+        if (sameVersion(s.profileBase?.version, row?.updated_at)) return;
+        void applyRemoteProfile(s);
+      }
+    )
+    .on("presence", { event: "sync" }, () => {
+      const state = channel.presenceState<Peer>();
+      const peers: Peer[] = [];
+      for (const metas of Object.values(state)) {
+        // Several tabs from one person collapse into one peer; prefer the
+        // tab that has a card open.
+        const meta = metas.find((m) => m.cardId) ?? metas[0];
+        if (!meta || meta.userId === s.userId) continue;
+        peers.push({ userId: meta.userId, email: meta.email, cardId: meta.cardId ?? null });
+      }
+      useTeam.setState({ peers });
+    })
+    .subscribe((status) => {
+      if (status !== "SUBSCRIBED" || session !== s) return;
+      publishPresence(s);
+      // A RE-subscribe means the socket dropped: events were missed.
+      if (subscribedOnce) void catchUp(s);
+      subscribedOnce = true;
+    });
+
+  s.channel = channel;
 }
 
 // ————— Change tracking —————
@@ -265,13 +631,18 @@ function attachSubscriptions(s: SyncSession) {
     scheduleFlush();
   });
 
-  const onFocus = () => void flush();
+  const onFocus = () => {
+    void flush().then(() => {
+      if (session === s) void catchUp(s);
+    });
+  };
+  const onUnload = () => void flush();
   window.addEventListener("focus", onFocus);
-  window.addEventListener("beforeunload", onFocus);
+  window.addEventListener("beforeunload", onUnload);
 
   s.unsubscribes.push(unsubCards, unsubProfile, () => {
     window.removeEventListener("focus", onFocus);
-    window.removeEventListener("beforeunload", onFocus);
+    window.removeEventListener("beforeunload", onUnload);
   });
 }
 
@@ -291,23 +662,34 @@ export async function startSync(userId: string, profileId: string) {
     dirty: new Set(),
     deleted: new Set(),
     profileDirty: false,
+    base: new Map(),
+    profileBase: null,
+    channel: null,
+    remoteQueue: new Set(),
+    remoteTimer: null,
+    openCardId: null,
     unsubscribes: [],
     idleTimer: null,
     maxTimer: null,
     hydrating: true,
+    flushing: null,
   };
   session = s;
 
   await pull(supabase, profileId);
 
   // Replay anything a previous session failed to write (e.g. offline delete).
-  const box = loadOutbox(profileId);
-  box.dirty.forEach((id) => s.dirty.add(id));
-  box.deleted.forEach((id) => s.deleted.add(id));
-  s.profileDirty = box.profileDirty;
+  // A viewer has nothing to replay: the cloud would reject it forever.
+  if (!isReadOnly()) {
+    const box = loadOutbox(profileId);
+    box.dirty.forEach((id) => s.dirty.add(id));
+    box.deleted.forEach((id) => s.deleted.add(id));
+    s.profileDirty = box.profileDirty;
+  }
 
   s.hydrating = false;
   attachSubscriptions(s);
+  subscribeLive(s);
 
   if (s.dirty.size || s.deleted.size || s.profileDirty) await flush();
 }
@@ -318,6 +700,9 @@ export async function stopSync() {
   if (!s) return;
   await flush();
   clearTimers(s);
+  if (s.remoteTimer) clearTimeout(s.remoteTimer);
   s.unsubscribes.forEach((fn) => fn());
+  if (s.channel) void s.supabase.removeChannel(s.channel);
+  useTeam.setState({ peers: [] });
   session = null;
 }

@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { isReadOnly } from "./access";
 import { activeAccountId, profileKey } from "./accounts";
 import {
   DEFAULT_ACTIONS,
@@ -113,7 +114,15 @@ export function defaultProfileData(): ProfileData {
 
 export const useProfile = create<ProfileState>()(
   persist(
-    (set) => ({
+    (rawSet) => {
+      // Viewers can't change a shared profile; see the same guard in store.ts.
+      const set = (
+        partial: Partial<ProfileState> | ((s: ProfileState) => Partial<ProfileState>)
+      ) => {
+        if (isReadOnly()) return;
+        rawSet(partial);
+      };
+      return {
       ...defaultProfileData(),
       update: (patch) => set(patch),
       // Newest first: the library is scanned visually, and what you just
@@ -140,7 +149,8 @@ export const useProfile = create<ProfileState>()(
         ),
       removeCompetitor: (id) =>
         set((s) => ({ competitors: s.competitors.filter((c) => c.id !== id) })),
-    }),
+      };
+    },
     { name: profileKey(activeAccountId()) }
   )
 );
@@ -190,4 +200,10 @@ export function suggestBuckets(
       description: "Offers, products, and clear calls to action.",
     },
   ];
+}
+
+// Dev-only, like `__cfPlanner`: lets sync/merge behaviour be exercised through
+// the real store. Stripped from production builds.
+if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
+  (window as unknown as { __cfProfile?: unknown }).__cfProfile = useProfile;
 }

@@ -39,3 +39,11 @@ The content OS for creators — plan, script, organize, and publish from one wor
 - Cards have Plan/Script/Post tabs that auto-select from status (Ideas→Plan, Scripting/Filming/Editing→Script, Ready/Posted→Post); sections carry a `phase`
 - Sections accept pasted clipboard images (compressed to ~900px JPEG data URLs)
 - Mobile (≤900px): bottom nav (Create/Pipeline/Plan) + sub-tabs + account bubble
+
+## Accounts, cloud sync & teams (added after phase 1)
+- Supabase auth (magic link / Google) + one-time Stripe purchase keyed by email (`purchases`); the server gate is `src/app/page.tsx`
+- Cloud is the source of truth when signed in: `cards` (one row per card) + `profiles.data` (brand setup, inspiration, competitors). `src/lib/sync.ts` saves with optimistic concurrency on `updated_at` and three-way merges conflicts (`src/lib/merge.ts`); Realtime + presence keep teammates live
+- **Teams**: a profile can be shared by email as editor/viewer — see `docs/TEAMS.md`. Owner = `profiles.user_id`; members in `profile_members`; memberships/invites are created ONLY by `/api/team/*` (service role, licence-checked). RLS in `supabase/migrations/0004_teams.sql`
+- Profile ids are GLOBAL primary keys — never send the local placeholder id `"default"` to the cloud for a new user (only the first customer could ever own it)
+- Deploy check: `curl https://creatorflo.io/api/version` → commit sha. Hostinger's GLIBC caps Next at 16.2.x; the image optimizer is disabled in `next.config.ts` for that reason
+

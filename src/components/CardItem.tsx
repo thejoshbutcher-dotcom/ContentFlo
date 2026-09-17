@@ -4,6 +4,7 @@ import type { MouseEvent } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { STATUS_COLORS, STATUSES } from "@/lib/seed";
 import { useProfile } from "@/lib/profile";
+import { initialOf, useTeam } from "@/lib/team";
 import { ContentCard } from "@/lib/types";
 
 const TYPE_CLASS: Record<string, string> = {
@@ -35,6 +36,9 @@ export function CardBody({
   showBucket?: boolean;
 }) {
   const buckets = useProfile((s) => s.buckets);
+  // Teammates with this card open — so you can see a collision coming.
+  const peers = useTeam((s) => s.peers);
+  const inCard = peers.filter((p) => p.cardId === card.id);
   const status = STATUSES.find((s) => s.id === card.status);
   const bucket = buckets.find((b) => b.id === card.bucketId);
   const overdue =
@@ -50,7 +54,21 @@ export function CardBody({
           <img src={card.thumbnail} alt="" />
         </div>
       )}
-      <div className="card-title">{card.title || "Untitled"}</div>
+      <div className="card-title">
+        {card.title || "Untitled"}
+        {inCard.length > 0 && (
+          <span
+            className="peer-stack in-card"
+            title={`Open now: ${inCard.map((p) => p.email).join(", ")}`}
+          >
+            {inCard.slice(0, 2).map((p) => (
+              <span key={p.userId} className="peer-dot">
+                {initialOf(p.email)}
+              </span>
+            ))}
+          </span>
+        )}
+      </div>
       <div className="card-meta">
         {card.contentType && (
           <span className={`tag ${typeTagClass(card.contentType)}`}>

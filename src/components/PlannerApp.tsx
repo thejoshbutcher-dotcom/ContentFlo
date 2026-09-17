@@ -31,6 +31,10 @@ import CalendarView from "./CalendarView";
 import CardModal from "./CardModal";
 import CompetitorsView from "./CompetitorsView";
 import InspoAddDialog from "./InspoAddDialog";
+import ShareDialog from "./ShareDialog";
+import TeamInvites from "./TeamInvites";
+import TeamPresence from "./TeamPresence";
+import { useTeam } from "@/lib/team";
 import InspoView from "./InspoView";
 import SetupWizard from "./SetupWizard";
 import TableView from "./TableView";
@@ -121,6 +125,7 @@ export default function PlannerApp() {
   const [refreshing, setRefreshing] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [showAddInspo, setShowAddInspo] = useState(false);
+  const viewOnly = useTeam((s) => s.role === "viewer");
 
   async function handleRefresh() {
     if (refreshing) return;
@@ -187,6 +192,7 @@ export default function PlannerApp() {
   };
 
   function newIdea() {
+    if (viewOnly) return;
     const card = addCard({
       title: "",
       contentType: view.newCardType ?? "Short form",
@@ -230,7 +236,7 @@ export default function PlannerApp() {
   ];
 
   return (
-    <div className="app-frame">
+    <div className={`app-frame${viewOnly ? " view-only" : ""}`}>
       <aside className="sidebar">
         <div className="sidebar-brand">
           <Image
@@ -319,17 +325,19 @@ export default function PlannerApp() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <TeamPresence />
           {/* Quick capture from anywhere: paste a link, it lands in the
               library, get back to what you were doing. */}
           <button
             className="btn btn-ghost"
+            disabled={viewOnly}
             onClick={() => setShowAddInspo(true)}
             title="Paste a YouTube link straight into your inspiration library"
           >
             <Images size={15} />{" "}
             <span className="btn-label">Add inspiration</span>
           </button>
-          <button className="btn btn-amber" onClick={newIdea}>
+          <button className="btn btn-amber" onClick={newIdea} disabled={viewOnly}>
             <Plus size={15} /> <span className="btn-label">New idea</span>
           </button>
         </div>
@@ -389,6 +397,8 @@ export default function PlannerApp() {
       </nav>
 
       <CloudSync />
+      <TeamInvites onJoined={() => handleAccountSwitched(false)} />
+      <ShareDialog onLeft={() => handleAccountSwitched(false)} />
 
       {openCardId && (
         <CardModal cardId={openCardId} onClose={() => setOpenCardId(null)} />

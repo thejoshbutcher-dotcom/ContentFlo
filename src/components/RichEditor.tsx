@@ -1,5 +1,6 @@
 "use client";
 
+import { useTeam } from "@/lib/team";
 import {
   useCallback,
   useEffect,
@@ -608,6 +609,15 @@ export default function RichEditor({
       editor.view.dispatch(editor.state.tr);
     }
   }, [editor, placeholder]);
+
+  // On a profile shared as view-only the document is read, not written. (The
+  // store and the database both refuse a viewer's edits anyway; this stops
+  // the editor accepting keystrokes it would only throw away.)
+  const viewOnly = useTeam((s) => s.role === "viewer");
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    if (editor.isEditable === viewOnly) editor.setEditable(!viewOnly);
+  }, [editor, viewOnly]);
 
   /** While blocks are picked (the BlockPick decoration paints them), hide the
    *  native character selection so the pick reads as objects, never as

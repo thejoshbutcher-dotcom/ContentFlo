@@ -8,8 +8,11 @@ import {
   Pencil,
   Plus,
   Trash2,
+  UserPlus,
   UserRound,
+  Users,
 } from "lucide-react";
+import { useTeam } from "@/lib/team";
 import { useAccounts } from "@/lib/accounts";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import {
@@ -76,6 +79,10 @@ function AccountMenu({
     setEditName(current);
   }
 
+  // A profile shared WITH you can't be renamed or deleted — only left — and
+  // only profiles you own can be shared onward.
+  const ownedCount = accounts.filter((a) => (a.role ?? "owner") === "owner").length;
+
   function commitRename() {
     if (editingId) void renameAccount(editingId, editName);
     setEditingId(null);
@@ -110,30 +117,70 @@ function AccountMenu({
                   <span className="acct-check" />
                 )}
                 <span className="acct-name">{a.name}</span>
+                {a.role && a.role !== "owner" && (
+                  <span
+                    className="acct-shared"
+                    title={`Shared by ${a.sharedBy ?? "a teammate"} · ${
+                      a.role === "editor" ? "you can edit" : "view only"
+                    }`}
+                  >
+                    <Users size={10} />
+                    {a.role === "editor" ? "Shared" : "View"}
+                  </span>
+                )}
               </button>
-              <button
-                className="acct-edit"
-                aria-label={`Rename ${a.name}`}
-                onClick={() => startRename(a.id, a.name)}
-              >
-                <Pencil size={12} />
-              </button>
-              {accounts.length > 1 && (
+              {(a.role ?? "owner") === "owner" ? (
+                <>
+                  {email && (
+                    <button
+                      className="acct-edit"
+                      aria-label={`Share ${a.name}`}
+                      title="Share with a teammate"
+                      onClick={() => {
+                        onDone();
+                        useTeam.setState({ shareFor: { id: a.id, name: a.name } });
+                      }}
+                    >
+                      <UserPlus size={12} />
+                    </button>
+                  )}
+                  <button
+                    className="acct-edit"
+                    aria-label={`Rename ${a.name}`}
+                    onClick={() => startRename(a.id, a.name)}
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  {ownedCount > 1 && (
+                    <button
+                      className="acct-del"
+                      aria-label={`Delete ${a.name}`}
+                      onClick={async () => {
+                        if (
+                          confirm(
+                            `Delete profile "${a.name}" and all of its content? This can't be undone${"."}`
+                          )
+                        ) {
+                          await deleteAccount(a.id);
+                          onSwitched(false);
+                        }
+                      }}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                </>
+              ) : (
                 <button
-                  className="acct-del"
-                  aria-label={`Delete ${a.name}`}
-                  onClick={async () => {
-                    if (
-                      confirm(
-                        `Delete profile "${a.name}" and all of its content? This can't be undone.`
-                      )
-                    ) {
-                      await deleteAccount(a.id);
-                      onSwitched(false);
-                    }
+                  className="acct-edit"
+                  aria-label={`Team for ${a.name}`}
+                  title="See the team, or leave"
+                  onClick={() => {
+                    onDone();
+                    useTeam.setState({ shareFor: { id: a.id, name: a.name } });
                   }}
                 >
-                  <Trash2 size={12} />
+                  <Users size={12} />
                 </button>
               )}
             </>

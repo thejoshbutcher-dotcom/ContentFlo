@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { Account, plannerKey, profileKey } from "./accounts";
 import { cardToRow } from "./mapping";
 import { defaultProfileData } from "./profile";
+import { newId } from "./templates";
 import { ContentCard } from "./types";
 
 /** zustand's persist wrapper. */
@@ -56,11 +57,19 @@ export function hasLocalData(): boolean {
   });
 }
 
-/** Does this user already have profiles in the cloud? */
-export async function hasCloudData(supabase: SupabaseClient): Promise<boolean> {
+/**
+ * Does this user already have profiles OF THEIR OWN in the cloud? A profile
+ * someone shared with them doesn't count — they may still have local work
+ * worth importing.
+ */
+export async function hasCloudData(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<boolean> {
   const { count, error } = await supabase
     .from("profiles")
-    .select("id", { count: "exact", head: true });
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
   if (error) throw error;
   return (count ?? 0) > 0;
 }
@@ -83,7 +92,12 @@ export async function importLocalData(
   supabase: SupabaseClient,
   userId: string
 ): Promise<ImportResult> {
-  const accounts = readLocalAccounts();
+  // Profile ids are global primary keys; the local placeholder "default"
+  // can belong to only one customer ever. Give it a real id on the way up.
+  const accounts = readLocalAccounts().map((a) => ({
+    ...a,
+    cloudId: a.id === "default" ? newId("acct") : a.id,
+  }));
   let cardCount = 0;
 
   const profileRows = accounts.map((a, i) => {
@@ -92,7 +106,7 @@ export async function importLocalData(
     // `update` is an action, not data — never persisted, but be defensive.
     delete (data as Record<string, unknown>).update;
     return {
-      id: a.id,
+      id: a.cloudId,
       user_id: userId,
       name: a.name,
       sort: i,
@@ -108,7 +122,7 @@ export async function importLocalData(
     const cards = normalizeCards(env?.state?.cards ?? [], env?.version);
     if (!cards.length) continue;
 
-    const rows = cards.map((c) => cardToRow(c, userId, a.id));
+    const rows = cards.map((c) => cardToRow(c, userId, a.cloudId));
     // Chunked so a large library doesn't blow the request size.
     for (let i = 0; i < rows.length; i += 100) {
       const { error } = await supabase.from("cards").upsert(rows.slice(i, i + 100));

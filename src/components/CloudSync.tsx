@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { CloudUpload, Loader2, TriangleAlert, X } from "lucide-react";
 import { useAccounts } from "@/lib/accounts";
-import type { ProfileRow } from "@/lib/mapping";
 import {
   hasCloudData,
   hasLocalData,
@@ -11,8 +10,15 @@ import {
 } from "@/lib/migrate-local";
 import { defaultProfileData } from "@/lib/profile";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
-import { setCloudUser, startSync } from "@/lib/sync";
-import { readActiveProfileId } from "@/lib/workspace";
+import { setCloudUser } from "@/lib/sync";
+import { loadIncomingInvites } from "@/lib/team";
+import { newId } from "@/lib/templates";
+import {
+  loadAccounts,
+  openInitialAccount,
+  readActiveProfileId,
+  refreshAccounts,
+} from "@/lib/workspace";
 
 type Phase =
   | "idle"
@@ -23,11 +29,17 @@ type Phase =
   | "ready"
   | "error";
 
-/** Reuse the local profile's id/name so a later import lines up, else default. */
+/**
+ * Identity for a brand-new user's first cloud profile. Profile ids are
+ * GLOBAL primary keys, so the local-only placeholder id "default" must never
+ * be sent up: the first customer to do so owns it, and everyone after them
+ * would fail to create theirs.
+ */
 function seedProfileIdentity(): { id: string; name: string } {
   const { accounts, activeId } = useAccounts.getState();
   const active = accounts.find((a) => a.id === activeId);
-  return { id: active?.id ?? "default", name: active?.name ?? "My Brand" };
+  const id = active && active.id !== "default" ? active.id : newId("acct");
+  return { id, name: active?.name ?? "My Brand" };
 }
 
 /**
@@ -50,11 +62,11 @@ export default function CloudSync({ onReady }: { onReady?: () => void }) {
       } = await supabase.auth.getUser();
       if (cancelled || !user) return;
 
-      setCloudUser(user.id);
+      setCloudUser(user.id, user.email ?? null);
       setPhase("checking");
 
       try {
-        const cloudHasData = await hasCloudData(supabase);
+        const cloudHasData = await hasCloudData(supabase, user.id);
         if (cancelled) return;
 
         if (!cloudHasData && hasLocalData()) {
@@ -73,8 +85,21 @@ export default function CloudSync({ onReady }: { onReady?: () => void }) {
       }
     })();
 
+    // Coming back to the tab: an invite may have arrived, or access changed.
+    let last = 0;
+    const onFocus = () => {
+      if (Date.now() - last < 30_000) return;
+      last = Date.now();
+      void refreshAccounts();
+      void supabase.auth
+        .getUser()
+        .then(({ data }) => loadIncomingInvites(data.user?.email ?? null));
+    };
+    window.addEventListener("focus", onFocus);
+
     return () => {
       cancelled = true;
+      window.removeEventListener("focus", onFocus);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -85,43 +110,29 @@ export default function CloudSync({ onReady }: { onReady?: () => void }) {
     const userId = (await supabase.auth.getUser()).data.user?.id;
     if (!userId) throw new Error("No session");
 
-    const { data, error: err } = await supabase
-      .from("profiles")
-      .select("*")
-      .order("sort", { ascending: true });
-    if (err) throw err;
+    let { owned, all } = await loadAccounts(supabase, userId);
 
-    let rows = (data ?? []) as ProfileRow[];
-
-    // A signed-in user with nothing in the cloud (fresh account, or they chose
-    // "Start empty") still needs a profile row: cards.profile_id references it,
-    // so the very first card save would otherwise fail a foreign-key check.
-    if (!rows.length) {
+    // A signed-in user with no profile OF THEIR OWN (fresh account, "Start
+    // empty", or someone who so far only has profiles shared with them) still
+    // gets one: it's their private space, and cards.profile_id references it.
+    if (!owned.length) {
       const { id, name } = seedProfileIdentity();
-      const { data: created, error: insErr } = await supabase
-        .from("profiles")
-        .insert({
-          id,
-          user_id: userId,
-          name,
-          sort: 0,
-          data: defaultProfileData(),
-        })
-        .select()
-        .single();
+      const { error: insErr } = await supabase.from("profiles").insert({
+        id,
+        user_id: userId,
+        name,
+        sort: 0,
+        data: defaultProfileData(),
+      });
       if (insErr) throw insErr;
-      rows = [created as ProfileRow];
+      ({ owned, all } = await loadAccounts(supabase, userId));
     }
 
-    useAccounts.setState({
-      accounts: rows.map((r) => ({ id: r.id, name: r.name })),
-    });
-
     const saved = readActiveProfileId();
-    const activeId = rows.find((r) => r.id === saved)?.id ?? rows[0].id;
-    useAccounts.getState().setActive(activeId);
+    const activeId = all.find((a) => a.id === saved)?.id ?? owned[0].id;
+    await openInitialAccount(userId, activeId);
 
-    await startSync(userId, activeId);
+    void loadIncomingInvites((await supabase.auth.getUser()).data.user?.email ?? null);
 
     setPhase("ready");
     onReady?.();

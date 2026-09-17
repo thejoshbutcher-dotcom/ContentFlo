@@ -7,6 +7,10 @@ import { newId } from "./templates";
 export interface Account {
   id: string;
   name: string;
+  /** Absent means owner — every profile made before sharing existed. */
+  role?: "owner" | "editor" | "viewer";
+  /** Who shared it with you (their email), for profiles you don't own. */
+  sharedBy?: string;
 }
 
 interface AccountsState {

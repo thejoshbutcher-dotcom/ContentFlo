@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import { ViewId } from "@/lib/types";
 
@@ -25,7 +32,7 @@ interface TourStep {
   placement?: "right" | "left" | "top" | "bottom";
 }
 
-const STEPS: TourStep[] = [
+const ALL_STEPS: TourStep[] = [
   {
     selector: '[data-tour="brand-setup"]',
     title: "1. Brand setup",
@@ -115,6 +122,23 @@ const STEPS: TourStep[] = [
     placement: "right",
   },
 ];
+/**
+ * The tour for this profile. With Brainstorm switched off its three steps are
+ * dropped — pointing at a nav item that isn't there would strand the tour —
+ * and the rest are renumbered so the titles still count 1, 2, 3…
+ */
+function stepsFor(showBrainstorm: boolean): TourStep[] {
+  const kept = showBrainstorm
+    ? ALL_STEPS
+    : ALL_STEPS.filter((s) => s.view !== "ideate");
+  return kept.map((s, i) => ({
+    ...s,
+    title: s.title.replace(/^\d+\.\s*/, `${i + 1}. `),
+    body: showBrainstorm
+      ? s.body
+      : s.body.replace(" The Brainstorm generator is built entirely from these.", ""),
+  }));
+}
 
 interface Rect {
   top: number;
@@ -129,11 +153,14 @@ const DIALOG_W = 312;
 
 export default function Tutorial({
   controller,
+  showBrainstorm,
   onExit,
 }: {
   controller: TourController;
+  showBrainstorm: boolean;
   onExit: () => void;
 }) {
+  const STEPS = useMemo(() => stepsFor(showBrainstorm), [showBrainstorm]);
   const [step, setStep] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
   const targetRef = useRef<Element | null>(null);
@@ -151,8 +178,11 @@ export default function Tutorial({
   const isFirst = step === 0;
   const isLast = step === STEPS.length - 1;
 
-  const next = () => setStep((i) => Math.min(i + 1, STEPS.length - 1));
-  const back = () => setStep((i) => Math.max(i - 1, 0));
+  const next = useCallback(
+    () => setStep((i) => Math.min(i + 1, STEPS.length - 1)),
+    [STEPS]
+  );
+  const back = useCallback(() => setStep((i) => Math.max(i - 1, 0)), []);
 
   // Put the app into the state each step needs (view / card editor open).
   useEffect(() => {
@@ -161,7 +191,7 @@ export default function Tutorial({
     if (s.view) c.setView(s.view);
     if (s.closeCard) c.closeCard();
     if (s.openCard) c.openSampleCard();
-  }, [step]);
+  }, [step, STEPS]);
 
   // Track the target's position every frame so the spotlight stays glued to it
   // through view switches, scrolling and layout shifts.
@@ -191,7 +221,7 @@ export default function Tutorial({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [step]);
+  }, [step, STEPS]);
 
   useLayoutEffect(() => {
     if (dialogRef.current) setDialogH(dialogRef.current.offsetHeight);
@@ -208,7 +238,7 @@ export default function Tutorial({
     };
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
-  }, [step, current.clickAdvance]);
+  }, [step, current.clickAdvance, next]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -218,7 +248,7 @@ export default function Tutorial({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onExit]);
+  }, [onExit, next, back]);
 
   const vw = typeof window !== "undefined" ? window.innerWidth : 1280;
   const vh = typeof window !== "undefined" ? window.innerHeight : 800;

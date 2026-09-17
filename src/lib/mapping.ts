@@ -38,6 +38,7 @@ export interface ProfileDataRow {
   feelings?: string[];
   actions?: string[];
   setupComplete?: boolean;
+  showBrainstorm?: boolean;
   inspo?: InspoItem[];
   competitors?: Competitor[];
 }

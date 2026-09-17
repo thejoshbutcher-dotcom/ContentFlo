@@ -74,6 +74,10 @@ type ProfileData = {
   feelings: string[];
   actions: string[];
   setupComplete: boolean;
+  /** Whether the Brainstorm idea generator appears under Ideation. Off by
+   *  default: the library and competitor walls turned out to be where ideas
+   *  actually come from, so the generator is opt-in rather than the home page. */
+  showBrainstorm: boolean;
   /** The inspiration library. It lives here so it inherits this store's
    *  per-profile key swapping and cloud sync — the items are small enough
    *  (ids and text, never image data) that the whole library rides along. */
@@ -107,6 +111,7 @@ export function defaultProfileData(): ProfileData {
     feelings: [...DEFAULT_FEELINGS],
     actions: [...DEFAULT_ACTIONS],
     setupComplete: false,
+    showBrainstorm: false,
     inspo: [],
     competitors: [],
   };

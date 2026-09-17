@@ -270,7 +270,7 @@ export default function SetupWizard({ onClose }: { onClose: () => void }) {
             <div className="setup-panel">
               <h3 className="setup-title">Who are you making content as?</h3>
               <p className="setup-sub">
-                This tailors the suggestions across the rest of setup and Brainstorm.
+                This tailors the suggestions across the rest of setup.
               </p>
 
               <div className="prop-label t-eyebrow">Brand / creator name</div>
@@ -306,6 +306,23 @@ export default function SetupWizard({ onClose }: { onClose: () => void }) {
                 placeholder="e.g. newsletter, community, product, service"
                 onChange={(e) => update({ offer: e.target.value })}
               />
+
+              <label className="switch-row">
+                <input
+                  type="checkbox"
+                  checked={profile.showBrainstorm}
+                  onChange={(e) => update({ showBrainstorm: e.target.checked })}
+                />
+                <span className="switch" aria-hidden />
+                <span className="switch-text">
+                  <strong>Brainstorm generator</strong>
+                  <span>
+                    Adds an idea generator to the Ideation menu that mixes your
+                    topics, buckets, feelings and formats into video ideas. Off
+                    by default &mdash; turn it on if you find it useful.
+                  </span>
+                </span>
+              </label>
             </div>
           )}
 

@@ -109,7 +109,7 @@ export default function PlannerApp() {
   // Restored on first render rather than after it, so the app opens straight
   // onto your last view with no flash of Brainstorm. Safe to read storage
   // here because nothing renders until `mounted` is true anyway.
-  const [viewId, setViewId] = useState<ViewId>(() => {
+  const [savedViewId, setViewId] = useState<ViewId>(() => {
     if (typeof window === "undefined") return "ideate";
     try {
       const saved = localStorage.getItem(LAST_VIEW_KEY);
@@ -119,6 +119,14 @@ export default function PlannerApp() {
     }
     return "ideate";
   });
+  // Brainstorm is opt-in (Brand setup → Brand). While it's off it isn't in the
+  // nav, and anything that would land on it lands on the library instead —
+  // derived, so flipping the switch takes effect without chasing state.
+  const showBrainstorm = useProfile((s) => s.showBrainstorm);
+  const viewId: ViewId =
+    savedViewId === "ideate" && !showBrainstorm ? "inspo" : savedViewId;
+  const offered = (ids: ViewId[]) =>
+    ids.filter((id) => id !== "ideate" || showBrainstorm);
   const [search, setSearch] = useState("");
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [showSetup, setShowSetup] = useState(false);
@@ -178,8 +186,9 @@ export default function PlannerApp() {
 
   const view = VIEW_DEFS.find((v) => v.id === viewId)!;
   const activeGroup = groupOf(viewId);
-  const groupViews =
-    MOBILE_GROUPS.find((g) => g.id === activeGroup)?.views ?? [];
+  const groupViews = offered(
+    MOBILE_GROUPS.find((g) => g.id === activeGroup)?.views ?? []
+  );
 
   const countFor = (id: ViewId) => {
     const def = VIEW_DEFS.find((v) => v.id === id)!;
@@ -256,7 +265,7 @@ export default function PlannerApp() {
             data-tour={g.label === "Pipeline" ? "pipeline-group" : undefined}
           >
             <div className="nav-group-label t-eyebrow">{g.label}</div>
-            {g.ids.map((id) => {
+            {offered(g.ids).map((id) => {
               const def = VIEW_DEFS.find((v) => v.id === id)!;
               const count = countFor(id);
               return (
@@ -384,7 +393,7 @@ export default function PlannerApp() {
           <button
             key={g.id}
             className={`bottom-tab${activeGroup === g.id ? " on" : ""}`}
-            onClick={() => setViewId(g.views[0])}
+            onClick={() => setViewId(offered(g.views)[0])}
           >
             {g.icon}
             <span>{g.label}</span>
@@ -411,7 +420,7 @@ export default function PlannerApp() {
       )}
       {showSetup && <SetupWizard onClose={() => setShowSetup(false)} />}
       {showTour && (
-        <Tutorial controller={tourController} onExit={() => setShowTour(false)} />
+        <Tutorial controller={tourController} showBrainstorm={showBrainstorm} onExit={() => setShowTour(false)} />
       )}
     </div>
   );

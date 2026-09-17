@@ -99,6 +99,7 @@ function profileDataOf(p: ProfileData): ProfileData {
     feelings: p.feelings,
     actions: p.actions,
     setupComplete: p.setupComplete,
+    showBrainstorm: p.showBrainstorm,
     inspo: p.inspo,
     competitors: p.competitors,
   };

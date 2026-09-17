@@ -5003,3 +5003,72 @@ summary:focus-visible {
     display: none;
   }
 }
+
+/* ————— Settings switch (Brand setup) ————— */
+
+.switch-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 22px;
+  padding: 14px;
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-input);
+  cursor: pointer;
+}
+
+.switch-row input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 36px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 999px;
+  background: var(--ink-3);
+  transition: background 0.15s ease;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text-3);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.switch-row input:checked + .switch {
+  background: var(--amber);
+}
+
+.switch-row input:checked + .switch::after {
+  transform: translateX(16px);
+  background: var(--ink);
+}
+
+.switch-row input:focus-visible + .switch {
+  box-shadow: 0 0 0 3px rgba(247, 201, 72, 0.3);
+}
+
+.switch-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.switch-text span {
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.5;
+}

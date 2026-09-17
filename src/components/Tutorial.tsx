@@ -63,6 +63,29 @@ const ALL_STEPS: TourStep[] = [
     placement: "top",
   },
   {
+    selector: '[data-tour="nav-inspo"]',
+    title: "0. Inspiration",
+    body: "Your swipe file. Save the videos whose titles, thumbnails and formats are worth modelling, tag them, and search them later when you're packaging your own.",
+    view: "inspo",
+    clickAdvance: true,
+    placement: "right",
+  },
+  {
+    selector: '[data-tour="add-inspo"]',
+    title: "0. Save from anywhere",
+    body: "Paste a YouTube link and it's saved instantly — no matter which screen you're on. Paste a playlist or channel link to pick from its videos; anything you already have is flagged.",
+    view: "inspo",
+    placement: "bottom",
+  },
+  {
+    selector: '[data-tour="nav-competitors"]',
+    title: "0. Competitors",
+    body: "Add the channels you study to see their recent uploads, all-time hits and Shorts side by side. Outlier badges mark videos that beat that channel's normal — bookmark any of them straight into Inspiration.",
+    view: "competitors",
+    clickAdvance: true,
+    placement: "right",
+  },
+  {
     selector: '[data-tour="pipeline-group"]',
     title: "5. Your pipelines",
     body: "Each content type gets its own board — Short form, Long form, Podcast and Carousels. Every card moves through the same production stages.",
@@ -94,7 +117,7 @@ const ALL_STEPS: TourStep[] = [
   {
     selector: '[data-tour="card-tabs"]',
     title: "9. Plan · Script · Post",
-    body: "Every card has three phases. Plan holds the idea and references, Script is your full writing space, and Post covers the caption, checklist and publishing details. The tab auto-picks from the card's status.",
+    body: "Every card has three phases. Plan holds the idea and references, Script is your full writing space, and Post covers the caption, checklist and publishing details. The tab auto-picks from the card's status. Title and thumbnail boxes have an Inspiration button to pin references from your library.",
     view: "board-short",
     openCard: true,
     placement: "bottom",
@@ -117,9 +140,15 @@ const ALL_STEPS: TourStep[] = [
   {
     selector: '[data-tour="nav-table"]',
     title: "12. All Content",
-    body: "Every card and every property in one table. Select rows to duplicate or delete, and click any property to edit it inline. That's the tour — you're all set!",
+    body: "Every card and every property in one table. Select rows to duplicate or delete, and click any property to edit it inline.",
     view: "table",
     placement: "right",
+  },
+  {
+    selector: '[data-tour="profiles"]',
+    title: "0. Profiles & your team",
+    body: "Each profile is its own workspace — one per channel or brand. Open this menu to switch, add another, or share a profile with a teammate as an editor or viewer; their changes show up live. That's the tour — you're all set!",
+    placement: "top",
   },
 ];
 /**

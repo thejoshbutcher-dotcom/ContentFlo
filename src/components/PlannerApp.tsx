@@ -339,6 +339,7 @@ export default function PlannerApp() {
               library, get back to what you were doing. */}
           <button
             className="btn btn-ghost"
+            data-tour="add-inspo"
             disabled={viewOnly}
             onClick={() => setShowAddInspo(true)}
             title="Paste a YouTube link straight into your inspiration library"

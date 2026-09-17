@@ -252,7 +252,7 @@ export function AccountSwitcher({
   const active = accounts.find((a) => a.id === activeId);
 
   return (
-    <div className="acct-switch">
+    <div className="acct-switch" data-tour="profiles">
       <button className="acct-btn" onClick={() => setOpen((v) => !v)}>
         <span className="dot" />
         <span className="acct-name">{active?.name ?? "Profile"}</span>

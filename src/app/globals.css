@@ -5167,3 +5167,104 @@ summary:focus-visible {
     justify-content: space-between;
   }
 }
+
+/* ————— Install card ————— */
+
+.install-card {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 94;
+  width: min(380px, calc(100vw - 24px));
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--ink-2);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+}
+
+.install-x {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  padding: 5px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.install-x:hover {
+  color: #fff;
+  background: var(--ink-3);
+}
+
+.install-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 22px;
+}
+
+.install-icon {
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.install-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.install-sub {
+  margin-top: 2px;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.install-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.install-steps {
+  list-style: decimal;
+  margin: 14px 0 0;
+  padding: 12px 12px 12px 30px;
+  border-radius: var(--radius-input);
+  background: var(--ink);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.install-steps li + li {
+  margin-top: 6px;
+}
+
+.install-steps li::marker {
+  color: var(--amber);
+  font-weight: 700;
+}
+
+.install-glyph {
+  display: inline;
+  vertical-align: -2px;
+  color: var(--amber);
+}
+
+@media (max-width: 900px) {
+  .install-card {
+    bottom: 78px; /* clear the bottom nav */
+  }
+  /* The phone top bar has no room for it; Share lives in the Profile menu. */
+  .topbar [data-tour="share"] {
+    display: none;
+  }
+}

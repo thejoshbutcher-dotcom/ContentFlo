@@ -18,6 +18,7 @@ import {
   Smartphone,
   Swords,
   Table2,
+  Download,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -38,6 +39,8 @@ import ShareDialog from "./ShareDialog";
 import TeamInvites from "./TeamInvites";
 import TeamPresence from "./TeamPresence";
 import UpdatePrompt from "./UpdatePrompt";
+import InstallPrompt from "./InstallPrompt";
+import { openInstall, useInstall } from "@/lib/install";
 import { useTeam } from "@/lib/team";
 import InspoView from "./InspoView";
 import SetupWizard, { SETUP_STEP_BUCKETS } from "./SetupWizard";
@@ -139,6 +142,8 @@ export default function PlannerApp() {
   const [refreshing, setRefreshing] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [showAddInspo, setShowAddInspo] = useState(false);
+  // Offered only where installing is possible and we aren't installed already.
+  const canInstall = useInstall((s) => s.kind !== null);
   const viewOnly = useTeam((s) => s.role === "viewer");
   const isOwner = useTeam((s) => s.role === "owner");
   const me = useTeam((s) => s.me);
@@ -234,6 +239,12 @@ export default function PlannerApp() {
     if (isNew) openSetup();
   }
 
+  const installAction = {
+    label: "Install app",
+    icon: <Download size={13} />,
+    onClick: openInstall,
+  };
+
   const setupAction = {
     label: "Brand setup",
     icon: <Settings2 size={13} />,
@@ -312,6 +323,12 @@ export default function PlannerApp() {
             <GraduationCap size={13} />
             <span className="label">Tutorial</span>
           </button>
+          {canInstall && (
+            <button className="foot-btn" onClick={openInstall}>
+              <Download size={13} />
+              <span className="label">Install app</span>
+            </button>
+          )}
           <button
             className="foot-btn"
             data-tour="brand-setup"
@@ -443,7 +460,7 @@ export default function PlannerApp() {
         ))}
         <ProfileNavButton
           onSwitched={handleAccountSwitched}
-          actions={[setupAction]}
+          actions={canInstall ? [setupAction, installAction] : [setupAction]}
         />
       </nav>
 
@@ -456,6 +473,7 @@ export default function PlannerApp() {
         }}
       />
       <UpdatePrompt />
+      <InstallPrompt />
       <TeamInvites onJoined={() => handleAccountSwitched(false)} />
       <ShareDialog onLeft={() => handleAccountSwitched(false)} />
 

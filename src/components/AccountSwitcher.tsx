@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Check,
   ChevronUp,
@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { useTeam } from "@/lib/team";
 import { useAccounts } from "@/lib/accounts";
-import { getSupabaseBrowser } from "@/lib/supabase/client";
 import {
   createAccount,
   deleteAccount,
@@ -42,20 +41,8 @@ function AccountMenu({
   const [draft, setDraft] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
-  const [email, setEmail] = useState<string | null>(null);
-
-  // Only signed-in users get a Sign out control.
-  useEffect(() => {
-    const supabase = getSupabaseBrowser();
-    if (!supabase) return;
-    let cancelled = false;
-    supabase.auth.getUser().then(({ data }) => {
-      if (!cancelled) setEmail(data.user?.email ?? null);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Only signed-in users get Share and Sign out.
+  const email = useTeam((s) => s.me?.email ?? null);
 
   async function pick(id: string) {
     if (id !== activeId) {

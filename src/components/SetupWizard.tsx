@@ -214,10 +214,20 @@ function FormatListEditor({
   );
 }
 
-export default function SetupWizard({ onClose }: { onClose: () => void }) {
+/** Index of the Buckets step, for shortcuts that open setup straight onto it. */
+export const SETUP_STEP_BUCKETS = STEPS.indexOf("Buckets");
+
+export default function SetupWizard({
+  onClose,
+  initialStep = 0,
+}: {
+  onClose: () => void;
+  /** Open on this step instead of the start (e.g. "Edit content buckets"). */
+  initialStep?: number;
+}) {
   const profile = useProfile();
   const update = useProfile((s) => s.update);
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(initialStep);
 
   const suggestions = suggestBuckets(profile.niche, profile.audience).filter(
     (s) => !profile.buckets.some((b) => b.name.toLowerCase() === s.name.toLowerCase())

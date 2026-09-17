@@ -18,7 +18,10 @@ import {
   Smartphone,
   Swords,
   Table2,
+  UserPlus,
+  Users,
 } from "lucide-react";
+import { useAccounts } from "@/lib/accounts";
 import { usePlanner } from "@/lib/store";
 import { useProfile } from "@/lib/profile";
 import { refreshFromCloud } from "@/lib/sync";
@@ -36,7 +39,7 @@ import TeamInvites from "./TeamInvites";
 import TeamPresence from "./TeamPresence";
 import { useTeam } from "@/lib/team";
 import InspoView from "./InspoView";
-import SetupWizard from "./SetupWizard";
+import SetupWizard, { SETUP_STEP_BUCKETS } from "./SetupWizard";
 import TableView from "./TableView";
 import Tutorial, { TourController } from "./Tutorial";
 import { VIEW_DEFS } from "./views";
@@ -130,10 +133,17 @@ export default function PlannerApp() {
   const [search, setSearch] = useState("");
   const [openCardId, setOpenCardId] = useState<string | null>(null);
   const [showSetup, setShowSetup] = useState(false);
+  // Which setup step to open on; shortcuts like "Edit content buckets" skip ahead.
+  const [setupStep, setSetupStep] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [showAddInspo, setShowAddInspo] = useState(false);
   const viewOnly = useTeam((s) => s.role === "viewer");
+  const isOwner = useTeam((s) => s.role === "owner");
+  const me = useTeam((s) => s.me);
+  const activeAccount = useAccounts((s) =>
+    s.accounts.find((a) => a.id === s.activeId)
+  );
 
   async function handleRefresh() {
     if (refreshing) return;
@@ -211,17 +221,22 @@ export default function PlannerApp() {
   }
 
   // Only surface Brand setup automatically right after a new profile is created.
+  function openSetup(step = 0) {
+    setSetupStep(step);
+    setShowSetup(true);
+  }
+
   function handleAccountSwitched(isNew: boolean) {
     setOpenCardId(null);
     setViewId("ideate");
     setSearch("");
-    if (isNew) setShowSetup(true);
+    if (isNew) openSetup();
   }
 
   const setupAction = {
     label: "Brand setup",
     icon: <Settings2 size={13} />,
-    onClick: () => setShowSetup(true),
+    onClick: () => openSetup(),
   };
 
   const tourController: TourController = {
@@ -299,7 +314,7 @@ export default function PlannerApp() {
           <button
             className="foot-btn"
             data-tour="brand-setup"
-            onClick={() => setShowSetup(true)}
+            onClick={() => openSetup()}
           >
             <Settings2 size={13} />
             <span className="label">Brand setup</span>
@@ -313,8 +328,13 @@ export default function PlannerApp() {
           <span className="view-title">{view.title}</span>
           <span className="view-note">{view.note}</span>
           {view.id === "board-buckets" && (
-            <button className="btn btn-ghost" onClick={() => setShowSetup(true)}>
-              <Settings2 size={14} /> <span className="btn-label">Brand setup</span>
+            <button
+              className="btn btn-ghost"
+              disabled={viewOnly}
+              onClick={() => openSetup(SETUP_STEP_BUCKETS)}
+            >
+              <Settings2 size={14} />{" "}
+              <span className="btn-label">Edit content buckets</span>
             </button>
           )}
           {view.kind !== "slate" && (
@@ -335,6 +355,26 @@ export default function PlannerApp() {
             onChange={(e) => setSearch(e.target.value)}
           />
           <TeamPresence />
+          {me && (
+            <button
+              className="btn btn-ghost"
+              data-tour="share"
+              onClick={() =>
+                activeAccount &&
+                useTeam.setState({
+                  shareFor: { id: activeAccount.id, name: activeAccount.name },
+                })
+              }
+              title={
+                isOwner
+                  ? "Invite a teammate to this profile"
+                  : "See who's on this profile"
+              }
+            >
+              {isOwner ? <UserPlus size={15} /> : <Users size={15} />}{" "}
+              <span className="btn-label">{isOwner ? "Share" : "Team"}</span>
+            </button>
+          )}
           {/* Quick capture from anywhere: paste a link, it lands in the
               library, get back to what you were doing. */}
           <button
@@ -419,7 +459,9 @@ export default function PlannerApp() {
           onGoToLibrary={() => setViewId("inspo")}
         />
       )}
-      {showSetup && <SetupWizard onClose={() => setShowSetup(false)} />}
+      {showSetup && (
+        <SetupWizard initialStep={setupStep} onClose={() => setShowSetup(false)} />
+      )}
       {showTour && (
         <Tutorial controller={tourController} showBrainstorm={showBrainstorm} onExit={() => setShowTour(false)} />
       )}

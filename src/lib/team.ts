@@ -30,6 +30,10 @@ export interface Peer {
 }
 
 interface TeamState {
+  /** The signed-in user, or null in local-only mode. Set once at bootstrap —
+   *  UI reads it from here rather than re-asking Supabase each time, so
+   *  signed-in-only controls (Share) never flicker in late or go missing. */
+  me: { id: string; email: string } | null;
   /** My role on the open profile. */
   role: Role;
   peers: Peer[];
@@ -41,6 +45,7 @@ interface TeamState {
 }
 
 export const useTeam = create<TeamState>()(() => ({
+  me: null,
   role: "owner",
   peers: [],
   incoming: [],

@@ -66,6 +66,7 @@ let cloudUserEmail: string | null = null;
 export function setCloudUser(id: string | null, email: string | null = null) {
   cloudUserId = id;
   cloudUserEmail = email;
+  useTeam.setState({ me: id ? { id, email: email ?? "" } : null });
 }
 
 export function getCloudUser(): string | null {

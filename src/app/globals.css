@@ -5072,3 +5072,60 @@ summary:focus-visible {
   font-size: 12px;
   line-height: 1.5;
 }
+
+/* ————— Post tab: publishing checklist, tucked into the side panel ————— */
+
+.side-checklist {
+  margin-top: 16px;
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-input);
+}
+
+.side-checklist summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  user-select: none;
+}
+
+.side-checklist summary::-webkit-details-marker {
+  display: none;
+}
+
+.side-checklist-caret {
+  color: var(--text-3);
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+.side-checklist[open] .side-checklist-caret {
+  transform: rotate(90deg);
+}
+
+.side-checklist-count {
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.side-checklist-items {
+  padding: 2px 0 6px;
+  border-top: 1px solid var(--ink-3);
+}
+
+.side-checklist .check-row {
+  padding: 5px 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.side-checklist .check-row:last-child {
+  padding-bottom: 6px;
+}

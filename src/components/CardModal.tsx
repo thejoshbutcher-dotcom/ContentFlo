@@ -1,12 +1,20 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { BookOpen, ImagePlus, Images, Trash2, X } from "lucide-react";
+import {
+  BookOpen,
+  ChevronRight,
+  ImagePlus,
+  Images,
+  Trash2,
+  X,
+} from "lucide-react";
 import { usePlanner } from "@/lib/store";
 import { useProfile } from "@/lib/profile";
 import { STATUS_COLORS, statusesFor } from "@/lib/seed";
 import {
   HINT_OVERRIDES,
+  CHECKLIST_TITLE,
   migrateCardSections,
   REF_SECTION_TITLE,
   REFERENCE_LIBRARY,
@@ -330,6 +338,61 @@ function ThumbnailField({ card }: { card: ContentCard }) {
   );
 }
 
+/**
+ * The publishing checklist, collapsed by default. It reads the section's
+ * to-do-list markup and flips `data-checked` in place, so the stored content
+ * stays an ordinary task list (and anything else in it is left alone).
+ */
+function SideChecklist({
+  html,
+  disabled,
+  onChange,
+}: {
+  html: string;
+  disabled: boolean;
+  onChange: (html: string) => void;
+}) {
+  const doc = new DOMParser().parseFromString(html || "", "text/html");
+  const rows = [...doc.querySelectorAll('li[data-type="taskItem"]')];
+  if (!rows.length) return null;
+
+  const items = rows.map((li) => ({
+    text: li.textContent?.trim() ?? "",
+    done: li.getAttribute("data-checked") === "true",
+  }));
+  const doneCount = items.filter((i) => i.done).length;
+
+  function toggle(i: number) {
+    rows[i].setAttribute("data-checked", items[i].done ? "false" : "true");
+    onChange(doc.body.innerHTML);
+  }
+
+  return (
+    <details className="side-checklist">
+      <summary>
+        <ChevronRight size={13} className="side-checklist-caret" />
+        <span>Publishing checklist</span>
+        <span className="side-checklist-count t-mono">
+          {doneCount}/{items.length}
+        </span>
+      </summary>
+      <div className="side-checklist-items">
+        {items.map((it, i) => (
+          <label key={i} className={`check-row${it.done ? " done" : ""}`}>
+            <input
+              type="checkbox"
+              checked={it.done}
+              disabled={disabled}
+              onChange={() => toggle(i)}
+            />
+            <span>{it.text}</span>
+          </label>
+        ))}
+      </div>
+    </details>
+  );
+}
+
 export default function CardModal({
   cardId,
   onClose,
@@ -391,7 +454,12 @@ export default function CardModal({
 
   const planSections = card.sections.filter((s) => sectionPhase(s) === "plan");
   const scriptSections = card.sections.filter((s) => sectionPhase(s) === "script");
-  const postSections = card.sections.filter((s) => sectionPhase(s) === "post");
+  // The publishing checklist is optional housekeeping, not something you write
+  // in — it lives tucked away in the Post tab's side panel, not as a big box.
+  const checklistSec = card.sections.find((s) => s.title === CHECKLIST_TITLE);
+  const postSections = card.sections.filter(
+    (s) => sectionPhase(s) === "post" && s !== checklistSec
+  );
 
   // Keep a card's saved value selectable even if it's no longer in the profile list
   function withCurrent(list: string[], current?: string) {
@@ -825,6 +893,17 @@ export default function CardModal({
               <div style={{ fontSize: 13, fontWeight: 600 }}>
                 {card.action ?? "—"}
               </div>
+
+              {checklistSec && (
+                <SideChecklist
+                  key={checklistSec.id}
+                  html={checklistSec.content}
+                  disabled={viewOnly}
+                  onChange={(html) =>
+                    updateSectionMain(card.id, checklistSec.id, { content: html })
+                  }
+                />
+              )}
 
               <div className="props-divider">
                 <div className="t-eyebrow" style={{ color: "var(--amber)" }}>

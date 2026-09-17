@@ -81,6 +81,19 @@ const POST_TITLES = [
   "Email (for sharing video)",
 ];
 
+/** The optional pre-publish to-do list; shown in the Post tab's side panel. */
+export const CHECKLIST_TITLE = "Publishing Checklist ✅";
+
+/**
+ * Boxes that used to be part of a template and no longer are. They're removed
+ * from saved cards ONLY while empty (or still holding their untouched
+ * scaffold) — anything a person actually wrote stays exactly where it is.
+ */
+const RETIRED_SECTIONS: Record<string, string> = {
+  "Questions ❓ (from reference video)":
+    "Reference video title: \n\nGoal of the reference video: \n\n3 points or secrets to reveal:\n1. \n2. \n3. \n\nMain question: \n\nWhat does the viewer want to know?\n- \n\nWhat do I want the viewer to know?\n- \n\nWhat do I want the viewer to LEARN?\n- \n\nObjections or obvious answers:\n- ",
+};
+
 export function sectionPhase(sec: Section): SectionPhase {
   if (sec.phase === "plan" && POST_TITLES.includes(sec.title)) return "post";
   if (sec.phase) return sec.phase;
@@ -142,14 +155,6 @@ export function longFormSections(): Section[] {
         "Other creators' videos and thumbnails to model — pull them from your inspiration library, or paste screenshots from your clipboard"
       ),
       allowRefs: true,
-    },
-    {
-      ...text(
-        "Questions ❓ (from reference video)",
-        "Reference title · goal · 3 points/secrets to reveal · main question · what the viewer wants to know · what I want them to LEARN · objections"
-      ),
-      placeholder:
-        "Reference video title: \n\nGoal of the reference video: \n\n3 points or secrets to reveal:\n1. \n2. \n3. \n\nMain question: \n\nWhat does the viewer want to know?\n- \n\nWhat do I want the viewer to know?\n- \n\nWhat do I want the viewer to LEARN?\n- \n\nObjections or obvious answers:\n- ",
     },
     script("Outline", "Beat-by-beat structure before you write the full script"),
     script("Script", "Hook → Intro → Value → CTA"),
@@ -284,7 +289,7 @@ function migrateLongForm(old: Section[]): Section[] | null {
     .filter(Boolean)
     .join("");
 
-  return longFormSections().map((t) => {
+  const next = longFormSections().map((t) => {
     if (t.title === "Script") {
       const existing = find("Script")?.content;
       return {
@@ -294,6 +299,13 @@ function migrateLongForm(old: Section[]): Section[] | null {
     }
     return carryContent(t, find(t.title));
   });
+
+  // Retired boxes aren't in the template any more, so rebuilding from it would
+  // lose them. Carry them across; `dropRetiredSections` removes the empty ones.
+  const retired = old.filter((s) => s.title in RETIRED_SECTIONS);
+  const at = next.findIndex((s) => sectionPhase(s) !== "plan");
+  next.splice(at === -1 ? next.length : at, 0, ...retired);
+  return next;
 }
 
 /**
@@ -390,6 +402,17 @@ function syncTemplateFields(
   return changed ? next : null;
 }
 
+function dropRetiredSections(sections: Section[]): Section[] | null {
+  const next = sections.filter((s) => {
+    const scaffold = RETIRED_SECTIONS[s.title];
+    if (scaffold === undefined) return true;
+    if (s.images?.length || s.refs?.length) return true;
+    const n = scaffoldNorm(s.content);
+    return !(n === "" || n === scaffoldNorm(scaffold));
+  });
+  return next.length === sections.length ? null : next;
+}
+
 /** Returns reconciled sections for a card, or null if it's already current. */
 export function migrateCardSections(card: ContentCard): Section[] | null {
   let cur = card.sections;
@@ -407,6 +430,7 @@ export function migrateCardSections(card: ContentCard): Section[] | null {
   // These run for every content type — podcasts have checklists too.
   step(convertChecklists(cur));
   step(syncTemplateFields(cur, card.contentType));
+  step(dropRetiredSections(cur));
 
   return changed ? cur : null;
 }

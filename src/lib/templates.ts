@@ -87,7 +87,8 @@ const RETIRED_SECTIONS: Record<string, string[]> = {
     "Reference video title: \n\nGoal of the reference video: \n\n3 points or secrets to reveal:\n1. \n2. \n3. \n\nMain question: \n\nWhat does the viewer want to know?\n- \n\nWhat do I want the viewer to know?\n- \n\nWhat do I want the viewer to LEARN?\n- \n\nObjections or obvious answers:\n- ",
   ],
   // The default to-do lists the checklist shipped with. Ticks don't count as
-  // writing; a list someone re-worded does, and stays (in the Post side panel).
+  // writing, and neither does stray text under the stock items; only a list
+  // re-worded from scratch stays (in the Post side panel).
   [CHECKLIST_TITLE]: [
     "Upload ad-free version if sponsored Add description (friendly, no hey guys — below sponsor CTA) Ensure sponsor CTA has details + test the link Add tags Add end screen (custom playlist if needed) Send for captioning once uploaded as Unlisted Add video to most relevant playlist Schedule for publish at 5–6pm GMT",
     "Edit full episode Cut 3–5 short clips Write episode description Schedule audio + video versions Post clips across platforms",
@@ -391,7 +392,13 @@ function dropRetiredSections(sections: Section[]): Section[] | null {
     if (scaffolds === undefined) return true;
     if (s.images?.length || s.refs?.length) return true;
     const n = scaffoldNorm(s.content);
-    return !(n === "" || scaffolds.some((x) => n === scaffoldNorm(x)));
+    if (n === "" || scaffolds.some((x) => n === scaffoldNorm(x))) return false;
+    // The checklist is retired outright: the stock list with stray text tacked
+    // on is still the stock list. Only one re-worded from scratch survives.
+    if (s.title === CHECKLIST_TITLE) {
+      return !scaffolds.some((x) => n.includes(scaffoldNorm(x)));
+    }
+    return true;
   });
   return next.length === sections.length ? null : next;
 }

@@ -447,7 +447,14 @@ export default function PlannerApp() {
         />
       </nav>
 
-      <CloudSync />
+      <CloudSync
+        onFirstRun={() => {
+          // A new customer's first sign-in: show them around. The tour is
+          // built on the desktop sidebar, so phones get Brand setup instead.
+          if (window.matchMedia("(min-width: 901px)").matches) setShowTour(true);
+          else openSetup();
+        }}
+      />
       <UpdatePrompt />
       <TeamInvites onJoined={() => handleAccountSwitched(false)} />
       <ShareDialog onLeft={() => handleAccountSwitched(false)} />

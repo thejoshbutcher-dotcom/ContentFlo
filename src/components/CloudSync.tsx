@@ -46,7 +46,15 @@ function seedProfileIdentity(): { id: string; name: string } {
  * Headless bootstrap. Runs only when a Supabase session exists — signed-out
  * users keep the original localStorage-only behaviour untouched.
  */
-export default function CloudSync({ onReady }: { onReady?: () => void }) {
+export default function CloudSync({
+  onReady,
+  onFirstRun,
+}: {
+  onReady?: () => void;
+  /** Fired once, the first time an account ever signs in (its first profile
+   *  was just created) — the moment to show someone around. */
+  onFirstRun?: () => void;
+}) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState("");
 
@@ -115,7 +123,8 @@ export default function CloudSync({ onReady }: { onReady?: () => void }) {
     // A signed-in user with no profile OF THEIR OWN (fresh account, "Start
     // empty", or someone who so far only has profiles shared with them) still
     // gets one: it's their private space, and cards.profile_id references it.
-    if (!owned.length) {
+    const firstRun = !owned.length;
+    if (firstRun) {
       const { id, name } = seedProfileIdentity();
       const { error: insErr } = await supabase.from("profiles").insert({
         id,
@@ -136,6 +145,7 @@ export default function CloudSync({ onReady }: { onReady?: () => void }) {
 
     setPhase("ready");
     onReady?.();
+    if (firstRun) onFirstRun?.();
   }
 
   async function runImport() {

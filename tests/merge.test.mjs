@@ -46,6 +46,22 @@ const scrambled = JSON.parse(JSON.stringify({ updatedAt: "1", sections: [{ kind:
 m = mergeCard(base, card({ title: "Mine" }), scrambled);
 ok("scrambled keys merge cleanly", m.title === "Mine" && m.sections[1].content === "THEIRS", m);
 
+// review notes: two people commenting on the same cut at once
+const cm = (id, text, extra = {}) => ({ id, time: 5, text, author: "a@x.com", createdAt: id, ...extra });
+const ver = (id, comments) => ({ id, url: "u", provider: "youtube", addedAt: "1", addedBy: "a", comments });
+const rbase = card({ review: { versions: [ver("v1", [cm("c1", "first")])] } });
+m = mergeCard(rbase,
+  card({ review: { versions: [ver("v1", [cm("c1", "first"), cm("c2", "MINE")])] } }),
+  card({ review: { versions: [ver("v1", [cm("c1", "first", { resolved: true }), cm("c3", "THEIRS")])] } }));
+ok("both people's notes land", m.review.versions[0].comments.length === 3, m.review);
+ok("their resolve lands", m.review.versions[0].comments.find((c) => c.id === "c1").resolved === true, m.review);
+m = mergeCard(rbase,
+  card({ review: { versions: [ver("v1", [cm("c1", "first"), cm("c2", "note on v1")])] } }),
+  card({ review: { versions: [ver("v1", [cm("c1", "first")]), ver("v2", [])] } }));
+ok("their new cut + our note on the old one", m.review.versions.length === 2 && m.review.versions[0].comments.length === 2, m.review);
+m = mergeCard(card(), card({ review: { versions: [ver("v1", [])] } }), card({ title: "Theirs" }));
+ok("first cut added while they edit elsewhere", m.review.versions.length === 1 && m.title === "Theirs", m);
+
 // lists
 const I = (id, t = "") => ({ id, t });
 let l = mergeById([I("1"), I("2")], [I("new-mine"), I("1"), I("2")], [I("new-theirs"), I("1"), I("2")], (x) => x.id);

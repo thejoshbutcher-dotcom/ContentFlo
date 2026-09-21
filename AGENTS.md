@@ -55,3 +55,9 @@ The content OS for creators — plan, script, organize, and publish from one wor
 - Moving a card to a pipeline with another format rebuilds its boxes on open; anything written in boxes the new layout lacks is carried along (`writtenLeftovers`), never dropped
 - `sync.ts` `LATE_KEYS`: profile keys added after launch (`pipelines`, `showBrainstorm`) get restored if a stale-build client saves the blob without them. Add any new top-level profile key there
 
+## Review tab (video feedback — `src/lib/review.ts`, `ReviewTab.tsx`, `ReviewPlayer.tsx`)
+- Card tabs are Plan · Script · **Review** · Post. Paste a link to a cut; it plays on the card and teammates leave notes pinned to a moment (or general), resolve them, and add new versions (each with its own notes). Data is `card.review.versions[].comments[]` in the card body, so it syncs/merges like everything else — `mergeCard` merges review two levels deep (by version, then by comment) so simultaneous reviewers never clobber each other
+- ONLY YouTube, Vimeo and Dropbox FILE links, deliberately: a timestamped note needs to read + seek the player, which those allow (YT IFrame API, Vimeo player.js, `<video>` on a Dropbox `raw=1` link). Drive/Frame.io can't, so they're refused with a reason rather than half-supported. No video hosting — Josh explicitly doesn't want storage/billing in the product yet
+- `ReviewPlayer` exposes just `getTime / seek / pause`; both SDK players are POLLED for position (Vimeo sends no timeupdate for a paused seek). YT.Player replaces the node it's given — always hand it a throwaway child, never a React-owned element
+- The note box sits directly under the video (watch → type where you're looking); typing pauses the video and stamps the note with the moment typing STARTED. Viewers can read but not add notes (notes live in the card, which viewers can't write)
+

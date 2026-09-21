@@ -1,3 +1,4 @@
+import type { CardReview, ReviewVersion } from "./review";
 import type { ContentCard, Section } from "./types";
 
 /**
@@ -140,6 +141,32 @@ function mergeFields<T extends object>(
   return out as T;
 }
 
+/**
+ * Review notes merge two levels deep — by cut, then by comment — because a
+ * review is exactly when two people write on the same card at the same time.
+ * Both people's notes land; only an edit to the SAME note is last-write-wins.
+ */
+function mergeReview(
+  base: CardReview | undefined,
+  ours: CardReview,
+  theirs: CardReview
+): CardReview {
+  const baseV = base?.versions ?? [];
+  const versions = mergeById<ReviewVersion>(baseV, ours.versions, theirs.versions, (v) => v.id);
+  return {
+    versions: versions.map((v) => {
+      const o = ours.versions.find((x) => x.id === v.id);
+      const t = theirs.versions.find((x) => x.id === v.id);
+      if (!o || !t) return v;
+      const b = baseV.find((x) => x.id === v.id);
+      return {
+        ...v,
+        comments: mergeById(b?.comments ?? [], o.comments, t.comments, (c) => c.id),
+      };
+    }),
+  };
+}
+
 export function mergeCard(
   base: ContentCard | undefined,
   ours: ContentCard,
@@ -147,6 +174,7 @@ export function mergeCard(
 ): ContentCard {
   const merged = mergeFields<ContentCard>(base, ours, theirs, {
     sections: (b, o, t) => mergeById<Section>(b ?? [], o, t, (s) => s.id),
+    review: (b, o, t) => (o && t ? mergeReview(b, o, t) : (o ?? t)),
   });
   // Not content — just "when was this last touched".
   merged.updatedAt =

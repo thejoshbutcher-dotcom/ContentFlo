@@ -31,15 +31,19 @@ import { htmlToText, textToHtml, toEditorHtml } from "@/lib/richtext";
 import { parseYouTubeId, SectionRef } from "@/lib/inspo";
 import InspoPicker from "./InspoPicker";
 import RichEditor from "./RichEditor";
+import ReviewTab from "./ReviewTab";
+import { openNotes } from "@/lib/review";
 import { setOpenCard } from "@/lib/sync";
 import { initialOf, useTeam } from "@/lib/team";
 import { ContentCard, Section, Who } from "@/lib/types";
 
-type Tab = "plan" | "script" | "post";
+type Tab = "plan" | "script" | "review" | "post";
 
+// In production order: you script it, cut it, review the cut, then post it.
 const TAB_LABELS: { id: Tab; label: string }[] = [
   { id: "plan", label: "Plan" },
   { id: "script", label: "Script" },
+  { id: "review", label: "Review" },
   { id: "post", label: "Post" },
 ];
 
@@ -410,11 +414,13 @@ export default function CardModal({
   // Open on the tab that matches the card's production status.
   const pipelines = useProfile((s) => s.pipelines);
   // Open on the tab that matches where the card is in its pipeline.
-  const [tab, setTab] = useState<Tab>(() =>
-    card
-      ? tabForStage(pipelineOf(card, pipelines), effectiveStageId(card, pipelines))
-      : "plan"
-  );
+  const [tab, setTab] = useState<Tab>(() => {
+    if (!card) return "plan";
+    const stage = effectiveStageId(card, pipelines);
+    // In Editing with a cut already up for review, the notes are why you're here.
+    if (stage === "editing" && card.review?.versions.length) return "review";
+    return tabForStage(pipelineOf(card, pipelines), stage);
+  });
   const [showRef, setShowRef] = useState(false);
 
   useEffect(() => {
@@ -498,7 +504,7 @@ export default function CardModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className={`modal${tab === "script" || tab === "plan" ? " full" : ""}`}
+        className={`modal${tab === "post" ? "" : " full"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-head">
@@ -533,6 +539,9 @@ export default function CardModal({
                 onClick={() => setTab(t.id)}
               >
                 {t.label}
+                {t.id === "review" && openNotes(card.review) > 0 && (
+                  <span className="tab-count">{openNotes(card.review)}</span>
+                )}
               </button>
             ))}
           </div>
@@ -846,6 +855,8 @@ export default function CardModal({
             )}
           </div>
         )}
+
+        {tab === "review" && <ReviewTab card={card} />}
 
         {tab === "post" && (
           <div className="modal-body">

@@ -5524,3 +5524,568 @@ summary:focus-visible {
   color: var(--amber);
 }
 
+
+/* ————— Card · Review tab ————— */
+
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--amber);
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.tag-notes {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(247, 201, 72, 0.14);
+  color: var(--amber);
+}
+
+.review-body {
+  display: block;
+  overflow-y: auto;
+  padding: 18px 22px 22px;
+}
+
+.review-body.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.review-empty {
+  width: min(560px, 100%);
+  text-align: center;
+}
+
+.review-empty h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.review-empty p {
+  margin: 0 0 16px;
+  color: var(--text-2);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.review-muted {
+  color: var(--text-3) !important;
+  font-size: 12px !important;
+  line-height: 1.55;
+}
+
+.review-muted.pad {
+  padding: 12px 14px;
+  margin: 0;
+}
+
+.review-linkform {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 5px 5px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-input);
+  background: var(--ink);
+  color: var(--text-3);
+}
+
+.review-linkform:focus-within {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px rgba(247, 201, 72, 0.14);
+}
+
+.review-linkform input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  outline: none;
+}
+
+.review-linkform .btn {
+  flex: none;
+  padding: 7px 12px;
+  font-size: 12.5px;
+}
+
+.review-versions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.review-v {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-v.on {
+  border-color: var(--amber);
+  background: var(--amber);
+  color: var(--ink);
+}
+
+.review-v.add {
+  border-style: dashed;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+.review-v.add:hover {
+  color: var(--amber);
+  border-color: var(--amber-deep);
+}
+
+.review-v-count {
+  min-width: 15px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(247, 201, 72, 0.18);
+  color: var(--amber);
+  font-size: 10px;
+  line-height: 15px;
+  text-align: center;
+}
+
+.review-v.on .review-v-count {
+  background: rgba(24, 26, 32, 0.18);
+  color: var(--ink);
+}
+
+.review-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+
+.review-source a,
+.review-source button {
+  display: inline-flex;
+  padding: 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.review-source a:hover {
+  color: var(--amber);
+}
+
+.review-source button:hover {
+  color: var(--rec);
+}
+
+.review-add {
+  margin-bottom: 14px;
+}
+
+.review-add .review-muted {
+  margin: 7px 2px 0;
+}
+
+.review-cut {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.review-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-input);
+  background: #000;
+  overflow: hidden;
+}
+
+.review-stage iframe,
+.review-stage video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.review-error {
+  margin-top: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--rec);
+  border-radius: var(--radius-input);
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.review-strip {
+  position: relative;
+  height: 18px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: var(--ink-3);
+  cursor: pointer;
+}
+
+.review-playhead {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  margin-left: -1px;
+  background: #fff;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.review-pin {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  padding: 0;
+  border: 2px solid var(--ink-3);
+  border-radius: 50%;
+  background: var(--amber);
+  cursor: pointer;
+}
+
+.review-pin.done {
+  background: var(--text-3);
+}
+
+.review-pin:hover {
+  transform: scale(1.35);
+}
+
+/* The panel is exactly as tall as the video column beside it, and scrolls
+   inside — a long review never pushes the player off screen. */
+.review-notes-wrap {
+  position: relative;
+  min-height: 320px;
+}
+
+.review-notes {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius);
+  background: var(--ink);
+  overflow: hidden;
+}
+
+.review-notes-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--ink-3);
+  color: var(--text-2);
+}
+
+.review-link {
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.review-link:hover {
+  color: var(--amber);
+}
+
+.review-list {
+  flex: 1;
+  min-height: 80px;
+  overflow-y: auto;
+}
+
+.review-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 14px 12px 14px 14px;
+  border-bottom: 1px solid var(--ink-3);
+  border-left: 2px solid transparent;
+  transition: background 120ms ease;
+}
+
+.review-note:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.review-note .share-x {
+  opacity: 0;
+}
+
+.review-note:hover .share-x,
+.review-note .share-x:focus-visible {
+  opacity: 1;
+}
+
+.review-note.here {
+  border-left-color: var(--amber);
+  background: rgba(247, 201, 72, 0.05);
+}
+
+.review-note.done .review-text {
+  color: var(--text);
+  font-size: 13.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.review-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  padding: 0;
+  border: 1.5px solid var(--text-3);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.review-check:hover:not(:disabled) {
+  border-color: var(--green, #32d583);
+}
+
+.review-check.on {
+  border-color: #32d583;
+  background: #32d583;
+}
+
+.review-note-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.review-note-meta {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 6px;
+}
+
+.review-time {
+  padding: 2px 9px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(247, 201, 72, 0.14);
+  color: var(--amber);
+  font-family: var(--font-mono), monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-time.general {
+  background: var(--ink-3);
+  color: var(--text-3);
+  cursor: default;
+}
+
+button.review-time:hover {
+  background: var(--amber);
+  color: var(--ink);
+}
+
+.review-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+
+.review-author .peer-dot {
+  width: 16px;
+  height: 16px;
+  font-size: 8.5px;
+}
+
+.review-text {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The note box lives right under the video: watch, then type where you're
+   already looking. */
+.review-composer {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--ink);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.review-composer:focus-within {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px rgba(247, 201, 72, 0.14);
+}
+
+.review-composer-me {
+  margin-top: 3px;
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+  background: var(--amber);
+  color: var(--ink);
+}
+
+.review-composer-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.review-composer-hint {
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.review-viewonly {
+  margin: 16px 2px 0 !important;
+}
+
+.review-composer textarea {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  padding: 4px 0 8px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-body), sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  resize: none;
+  outline: none;
+}
+
+
+.review-composer-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ink-3);
+}
+
+.review-composer-bar .btn {
+  flex: none;
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.review-stamp {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(247, 201, 72, 0.14);
+  color: var(--amber);
+  font-size: 11.5px;
+  overflow: hidden;
+}
+
+.review-stamp button,
+button.review-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-mono), monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-stamp button:hover {
+  background: rgba(247, 201, 72, 0.18);
+}
+
+button.review-stamp.general {
+  background: var(--ink-3);
+  color: var(--text-3);
+  font-family: var(--font-body), sans-serif;
+  font-weight: 500;
+}
+
+@media (max-width: 900px) {
+  .review-body {
+    padding: 12px;
+  }
+  .review-cut {
+    grid-template-columns: 1fr;
+  }
+  .review-notes-wrap {
+    min-height: 0;
+  }
+  .review-notes {
+    position: static;
+  }
+  .review-list {
+    max-height: 50vh;
+  }
+  .review-composer-hint {
+    display: none;
+  }
+}
+
+
+
+

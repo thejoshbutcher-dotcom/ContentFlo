@@ -1,8 +1,10 @@
 "use client";
 
 import type { MouseEvent } from "react";
+import { MessageSquare } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { isDone, pipelineOf, stageOf } from "@/lib/pipelines";
+import { openNotes } from "@/lib/review";
 import { STATUS_COLORS } from "@/lib/seed";
 import { useProfile } from "@/lib/profile";
 import { initialOf, useTeam } from "@/lib/team";
@@ -72,6 +74,11 @@ export function CardBody({
         )}
       </div>
       <div className="card-meta">
+        {openNotes(card.review) > 0 && (
+          <span className="tag tag-notes" title="Open review notes on the latest cut">
+            <MessageSquare size={10} /> {openNotes(card.review)}
+          </span>
+        )}
         {card.contentType && (
           <span className={`tag ${typeTagClass(card.contentType)}`}>
             {pipelineOf(card, pipelines)?.name ?? card.contentType}

@@ -13,6 +13,7 @@ export interface ChecklistItem {
 export type SectionPhase = "plan" | "script" | "post";
 
 import type { SectionRef } from "./inspo";
+import type { CardReview } from "./review";
 
 export interface Section {
   id: string;
@@ -62,6 +63,8 @@ export interface ContentCard {
   hook?: string;
   delivery?: string;
   sections: Section[];
+  /** Cuts under review and the notes on them — see review.ts. */
+  review?: CardReview;
   createdAt: string;
   updatedAt: string;
 }

@@ -6,7 +6,7 @@ import { WHO_OPTIONS, randomOf } from "@/lib/ideation";
 import { useProfile } from "@/lib/profile";
 import { usePlanner } from "@/lib/store";
 import { sectionsFor } from "@/lib/templates";
-import { ContentType, Who } from "@/lib/types";
+import { Who } from "@/lib/types";
 
 interface Pick {
   topic?: string;
@@ -15,10 +15,9 @@ interface Pick {
   action?: string;
   feeling?: string;
   format?: string;
-  dest: ContentType;
+  /** Pipeline id the idea is sent to. */
+  dest: string;
 }
-
-const DESTS: ContentType[] = ["Short form", "Long form", "Podcast", "Carousel"];
 
 function Chip({
   label,
@@ -107,7 +106,7 @@ export default function BrainstormView({
   onOpenSetup,
 }: {
   onOpen: (id: string) => void;
-  onGoToBoard: (dest: ContentType) => void;
+  onGoToBoard: (pipelineId: string) => void;
   onOpenSetup: () => void;
 }) {
   const addCard = usePlanner((s) => s.addCard);
@@ -117,7 +116,10 @@ export default function BrainstormView({
   const feelings = useProfile((s) => s.feelings);
   const actions = useProfile((s) => s.actions);
   const brandName = useProfile((s) => s.brandName);
-  const [pick, setPick] = useState<Pick>({ dest: "Short form" });
+  const pipelines = useProfile((s) => s.pipelines);
+  const [pick, setPick] = useState<Pick>(() => ({ dest: pipelines[0]?.id ?? "short" }));
+  // The chosen pipeline can be deleted while this view is open.
+  const destPipeline = pipelines.find((p) => p.id === pick.dest) ?? pipelines[0];
   const [title, setTitle] = useState("");
   const [goal, setGoal] = useState("");
   const [sent, setSent] = useState<string | null>(null);
@@ -149,7 +151,7 @@ export default function BrainstormView({
 
   function send() {
     const finalTitle = title.trim() || autoTitle || "Untitled idea";
-    const sections = sectionsFor(pick.dest);
+    const sections = sectionsFor(destPipeline?.format);
     const scriptSection = sections.find((s) => s.title.startsWith("My Script"));
     if (scriptSection) {
       // Seed the script as editor HTML: the beats and the feel→do line as a
@@ -164,8 +166,9 @@ export default function BrainstormView({
     }
     const card = addCard({
       title: finalTitle,
-      status: "ideas",
-      contentType: pick.dest,
+      status: destPipeline?.stages[0]?.id ?? "ideas",
+      contentType: destPipeline?.format,
+      pipelineId: destPipeline?.id,
       bucketId: pick.bucketId,
       format: pick.format,
       topic: pick.topic,
@@ -180,7 +183,7 @@ export default function BrainstormView({
     setTitle("");
     setGoal("");
     // Drop the user straight onto the board they sent it to.
-    onGoToBoard(pick.dest);
+    if (destPipeline) onGoToBoard(destPipeline.id);
   }
 
   const resultBlock = (
@@ -221,13 +224,13 @@ export default function BrainstormView({
           <span className="t-eyebrow" style={{ color: "var(--text-3)" }}>
             Send as
           </span>
-          {DESTS.map((d) => (
+          {pipelines.map((p) => (
             <Chip
-              key={d}
-              label={d}
-              on={pick.dest === d}
+              key={p.id}
+              label={p.name}
+              on={destPipeline?.id === p.id}
               onClick={() => {
-                setPick((p) => ({ ...p, dest: d }));
+                setPick((cur) => ({ ...cur, dest: p.id }));
                 setSent(null);
               }}
             />
@@ -244,7 +247,7 @@ export default function BrainstormView({
         <div className="slate-line" style={{ marginTop: 10 }}>
           <span className="k">Added ✓</span>
           <span className="v">
-            Landed in Ideas —{" "}
+            Landed in {destPipeline?.stages[0]?.name ?? "Ideas"} —{" "}
             <button
               className="mini-chip"
               onClick={() => onOpen(sent)}
@@ -252,7 +255,10 @@ export default function BrainstormView({
             >
               Open card
             </button>
-            <button className="mini-chip" onClick={() => onGoToBoard(pick.dest)}>
+            <button
+              className="mini-chip"
+              onClick={() => destPipeline && onGoToBoard(destPipeline.id)}
+            >
               View board
             </button>
           </span>

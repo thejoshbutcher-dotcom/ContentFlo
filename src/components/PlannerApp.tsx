@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import {
   CalendarDays,
@@ -46,59 +46,41 @@ import InspoView from "./InspoView";
 import SetupWizard, { SETUP_STEP_BUCKETS } from "./SetupWizard";
 import TableView from "./TableView";
 import Tutorial, { TourController } from "./Tutorial";
-import { VIEW_DEFS } from "./views";
+import { viewDefs } from "./views";
+import PipelineEditor from "./PipelineEditor";
+import { viewIdFor } from "@/lib/pipelines";
 
-const NAV_ICONS: Record<ViewId, React.ReactNode> = {
+const NAV_ICONS: Partial<Record<ViewId, React.ReactNode>> = {
   ideate: <Lightbulb size={15} />,
   inspo: <Images size={15} />,
   competitors: <Swords size={15} />,
-  "board-short": <Smartphone size={15} />,
-  "board-long": <MonitorPlay size={15} />,
-  "board-podcast": <Mic size={15} />,
-  "board-carousel": <GalleryHorizontalEnd size={15} />,
   "board-buckets": <LayoutGrid size={15} />,
   calendar: <CalendarDays size={15} />,
   table: <Table2 size={15} />,
 };
 
-const DEST_TO_VIEW: Record<ContentType, ViewId> = {
-  "Short form": "board-short",
-  "Long form": "board-long",
-  Podcast: "board-podcast",
-  Carousel: "board-carousel",
+// A pipeline's icon follows the card format it's built on.
+const FORMAT_ICONS: Record<ContentType, React.ReactNode> = {
+  "Short form": <Smartphone size={15} />,
+  "Long form": <MonitorPlay size={15} />,
+  Podcast: <Mic size={15} />,
+  Carousel: <GalleryHorizontalEnd size={15} />,
 };
 
 type MobileGroup = "ideation" | "pipeline" | "plan";
 
-const MOBILE_GROUPS: {
+const IDEATION_VIEWS: ViewId[] = ["ideate", "inspo", "competitors"];
+const PLAN_VIEWS: ViewId[] = ["board-buckets", "calendar", "table"];
+
+const MOBILE_GROUP_META: {
   id: MobileGroup;
   label: string;
   icon: React.ReactNode;
-  views: ViewId[];
 }[] = [
-  {
-    id: "ideation",
-    label: "Ideate",
-    icon: <Lightbulb size={18} />,
-    views: ["ideate", "inspo", "competitors"],
-  },
-  {
-    id: "pipeline",
-    label: "Pipeline",
-    icon: <Kanban size={18} />,
-    views: ["board-short", "board-long", "board-podcast", "board-carousel"],
-  },
-  {
-    id: "plan",
-    label: "Plan",
-    icon: <CalendarDays size={18} />,
-    views: ["board-buckets", "calendar", "table"],
-  },
+  { id: "ideation", label: "Ideate", icon: <Lightbulb size={18} /> },
+  { id: "pipeline", label: "Pipeline", icon: <Kanban size={18} /> },
+  { id: "plan", label: "Plan", icon: <CalendarDays size={18} /> },
 ];
-
-function groupOf(viewId: ViewId): MobileGroup {
-  return MOBILE_GROUPS.find((g) => g.views.includes(viewId))?.id ?? "ideation";
-}
 
 // Where you were last time. Brainstorm was a fine landing page when it was the
 // only place to start; now that the pipeline and library get daily use, coming
@@ -120,7 +102,7 @@ export default function PlannerApp() {
     if (typeof window === "undefined") return "ideate";
     try {
       const saved = localStorage.getItem(LAST_VIEW_KEY);
-      if (saved && VIEW_DEFS.some((v) => v.id === saved)) return saved as ViewId;
+      if (saved) return saved as ViewId;
     } catch {
       /* private mode / storage disabled — just use the default */
     }
@@ -130,8 +112,20 @@ export default function PlannerApp() {
   // nav, and anything that would land on it lands on the library instead —
   // derived, so flipping the switch takes effect without chasing state.
   const showBrainstorm = useProfile((s) => s.showBrainstorm);
+  const pipelines = useProfile((s) => s.pipelines);
+  const defs = useMemo(() => viewDefs(pipelines), [pipelines]);
+  const pipelineViews = useMemo(
+    () => pipelines.map((p) => viewIdFor(p.id)),
+    [pipelines]
+  );
+  // A remembered view can stop existing (Brainstorm switched off, a pipeline
+  // deleted, a different profile): land on the library instead.
   const viewId: ViewId =
-    savedViewId === "ideate" && !showBrainstorm ? "inspo" : savedViewId;
+    (savedViewId === "ideate" && !showBrainstorm) ||
+    !defs.some((v) => v.id === savedViewId)
+      ? "inspo"
+      : savedViewId;
+  const [editingPipeline, setEditingPipeline] = useState<string | "new" | null>(null);
   const offered = (ids: ViewId[]) =>
     ids.filter((id) => id !== "ideate" || showBrainstorm);
   const [search, setSearch] = useState("");
@@ -169,11 +163,14 @@ export default function PlannerApp() {
   useEffect(() => {
     if (!mounted) return;
     try {
-      localStorage.setItem(LAST_VIEW_KEY, viewId);
+      // The view you CHOSE, not the fallback being shown: a custom board can be
+      // briefly unknown (pipelines still loading on a new device), and that
+      // mustn't overwrite the memory of it.
+      localStorage.setItem(LAST_VIEW_KEY, savedViewId);
     } catch {
       /* not worth surfacing — it only costs the restore */
     }
-  }, [viewId, mounted]);
+  }, [savedViewId, mounted]);
 
   // Cmd/Ctrl+Z undoes the last card delete / move / duplicate. Skip it while a
   // text field is focused so the browser's own text undo keeps working there.
@@ -200,14 +197,21 @@ export default function PlannerApp() {
     );
   }
 
-  const view = VIEW_DEFS.find((v) => v.id === viewId)!;
-  const activeGroup = groupOf(viewId);
-  const groupViews = offered(
-    MOBILE_GROUPS.find((g) => g.id === activeGroup)?.views ?? []
-  );
+  const view = defs.find((v) => v.id === viewId)!;
+  const mobileViews: Record<MobileGroup, ViewId[]> = {
+    ideation: IDEATION_VIEWS,
+    pipeline: pipelineViews,
+    plan: PLAN_VIEWS,
+  };
+  const activeGroup: MobileGroup = view.pipeline
+    ? "pipeline"
+    : PLAN_VIEWS.includes(viewId)
+      ? "plan"
+      : "ideation";
+  const groupViews = offered(mobileViews[activeGroup]);
 
   const countFor = (id: ViewId) => {
-    const def = VIEW_DEFS.find((v) => v.id === id)!;
+    const def = defs.find((v) => v.id === id)!;
     if (def.kind === "calendar") return cards.filter((c) => c.postingDate).length;
     if (def.kind === "table") return cards.length;
     if (def.kind === "inspo") return inspoCount;
@@ -218,10 +222,14 @@ export default function PlannerApp() {
 
   function newIdea() {
     if (viewOnly) return;
+    // From a pipeline's board the idea starts there; from anywhere else, in
+    // the first pipeline.
+    const target = view.pipeline ?? pipelines[0];
     const card = addCard({
       title: "",
-      contentType: view.newCardType ?? "Short form",
-      status: "ideas",
+      contentType: target?.format ?? "Short form",
+      pipelineId: target?.id,
+      status: target?.stages[0]?.id ?? "ideas",
     });
     setOpenCardId(card.id);
   }
@@ -256,19 +264,17 @@ export default function PlannerApp() {
     openSampleCard: () =>
       setOpenCardId((cur) => {
         if (cur) return cur;
-        const sample = cards.find((c) => c.contentType === "Short form") ?? cards[0];
+        const onBoard = defs.find((v) => v.id === pipelineViews[0])?.filter;
+        const sample = cards.find((c) => onBoard?.(c)) ?? cards[0];
         return sample ? sample.id : cur;
       }),
     closeCard: () => setOpenCardId(null),
   };
 
   const groups: { label: string; ids: ViewId[] }[] = [
-    { label: "Ideation", ids: ["ideate", "inspo", "competitors"] },
-    {
-      label: "Pipeline",
-      ids: ["board-short", "board-long", "board-podcast", "board-carousel"],
-    },
-    { label: "Plan", ids: ["board-buckets", "calendar", "table"] },
+    { label: "Ideation", ids: IDEATION_VIEWS },
+    { label: "Pipeline", ids: pipelineViews },
+    { label: "Plan", ids: PLAN_VIEWS },
   ];
 
   return (
@@ -291,9 +297,21 @@ export default function PlannerApp() {
             key={g.label}
             data-tour={g.label === "Pipeline" ? "pipeline-group" : undefined}
           >
-            <div className="nav-group-label t-eyebrow">{g.label}</div>
+            <div className="nav-group-label t-eyebrow">
+              {g.label}
+              {g.label === "Pipeline" && !viewOnly && (
+                <button
+                  className="nav-group-add"
+                  onClick={() => setEditingPipeline("new")}
+                  aria-label="New pipeline"
+                  title="New pipeline"
+                >
+                  <Plus size={12} />
+                </button>
+              )}
+            </div>
             {offered(g.ids).map((id) => {
-              const def = VIEW_DEFS.find((v) => v.id === id)!;
+              const def = defs.find((v) => v.id === id)!;
               const count = countFor(id);
               return (
                 <button
@@ -302,7 +320,7 @@ export default function PlannerApp() {
                   className={`nav-item${viewId === id ? " active" : ""}`}
                   onClick={() => setViewId(id)}
                 >
-                  {NAV_ICONS[id]}
+                  {def.pipeline ? FORMAT_ICONS[def.pipeline.format] : NAV_ICONS[id]}
                   <span className="label">{def.label}</span>
                   {count !== null && <span className="count t-mono">{count}</span>}
                 </button>
@@ -345,6 +363,16 @@ export default function PlannerApp() {
         <div className="topbar">
           <span className="view-title">{view.title}</span>
           <span className="view-note">{view.note}</span>
+          {view.pipeline && !viewOnly && (
+            <button
+              className="btn btn-ghost"
+              data-tour="customize-pipeline"
+              onClick={() => setEditingPipeline(view.pipeline!.id)}
+              title="Rename this pipeline, and rename, add or reorder its steps"
+            >
+              <Settings2 size={14} /> <span className="btn-label">Customize</span>
+            </button>
+          )}
           {view.id === "board-buckets" && (
             <button
               className="btn btn-ghost"
@@ -410,10 +438,10 @@ export default function PlannerApp() {
           </button>
         </div>
 
-        {groupViews.length > 1 && (
+        {(groupViews.length > 1 || activeGroup === "pipeline") && (
           <div className="sub-tabs">
             {groupViews.map((id) => {
-              const def = VIEW_DEFS.find((v) => v.id === id)!;
+              const def = defs.find((v) => v.id === id)!;
               return (
                 <button
                   key={id}
@@ -424,6 +452,27 @@ export default function PlannerApp() {
                 </button>
               );
             })}
+            {/* The sidebar's "+" isn't on phones; this is its stand-in. */}
+            {activeGroup === "pipeline" && !viewOnly && (
+              <>
+                {view.pipeline && (
+                  <button
+                    className="sub-tab sub-tab-add"
+                    onClick={() => setEditingPipeline(view.pipeline!.id)}
+                    aria-label={`Customize ${view.pipeline.name}`}
+                  >
+                    <Settings2 size={13} />
+                  </button>
+                )}
+                <button
+                  className="sub-tab sub-tab-add"
+                  onClick={() => setEditingPipeline("new")}
+                  aria-label="New pipeline"
+                >
+                  <Plus size={13} />
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -441,18 +490,18 @@ export default function PlannerApp() {
         {view.kind === "slate" && (
           <BrainstormView
             onOpen={setOpenCardId}
-            onGoToBoard={(dest) => setViewId(DEST_TO_VIEW[dest])}
+            onGoToBoard={(pipelineId) => setViewId(viewIdFor(pipelineId))}
             onOpenSetup={() => setShowSetup(true)}
           />
         )}
       </div>
 
       <nav className="bottom-nav">
-        {MOBILE_GROUPS.map((g) => (
+        {MOBILE_GROUP_META.map((g) => (
           <button
             key={g.id}
             className={`bottom-tab${activeGroup === g.id ? " on" : ""}`}
-            onClick={() => setViewId(offered(g.views)[0])}
+            onClick={() => setViewId(offered(mobileViews[g.id])[0])}
           >
             {g.icon}
             <span>{g.label}</span>
@@ -474,6 +523,13 @@ export default function PlannerApp() {
       />
       <UpdatePrompt />
       <InstallPrompt />
+      {editingPipeline && (
+        <PipelineEditor
+          pipelineId={editingPipeline === "new" ? null : editingPipeline}
+          onClose={() => setEditingPipeline(null)}
+          onCreated={(id) => setViewId(viewIdFor(id))}
+        />
+      )}
       <TeamInvites onJoined={() => handleAccountSwitched(false)} />
       <ShareDialog onLeft={() => handleAccountSwitched(false)} />
 
@@ -490,7 +546,9 @@ export default function PlannerApp() {
         <SetupWizard initialStep={setupStep} onClose={() => setShowSetup(false)} />
       )}
       {showTour && (
-        <Tutorial controller={tourController} showBrainstorm={showBrainstorm} onExit={() => setShowTour(false)} />
+        <Tutorial controller={tourController} showBrainstorm={showBrainstorm}
+          boardView={pipelineViews[0] ?? "board-short"}
+          onExit={() => setShowTour(false)} />
       )}
     </div>
   );

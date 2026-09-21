@@ -4,16 +4,11 @@ import { useState } from "react";
 import { Copy, Trash2, TriangleAlert, X } from "lucide-react";
 import { usePlanner } from "@/lib/store";
 import { useProfile } from "@/lib/profile";
-import { STATUSES, STATUS_COLORS, statusesFor } from "@/lib/seed";
-import { ContentType, Who } from "@/lib/types";
+import { pipelineMovePatch, pipelineOf, stageOf } from "@/lib/pipelines";
+import { STATUS_COLORS } from "@/lib/seed";
+import { Who } from "@/lib/types";
 import { formatDate, typeTagClass } from "./CardItem";
 
-const CONTENT_TYPES: ContentType[] = [
-  "Short form",
-  "Long form",
-  "Podcast",
-  "Carousel",
-];
 const WHO_VALUES: Who[] = ["TOF", "MOF", "BOF"];
 
 export default function TableView({
@@ -34,13 +29,16 @@ export default function TableView({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const statusOrder = new Map(STATUSES.map((s, i) => [s.id, i]));
+  const pipelines = useProfile((s) => s.pipelines);
+  // Furthest-along last, by each card's position in ITS pipeline's steps.
+  const stepIndex = (c: (typeof cards)[number]) => {
+    const i = pipelineOf(c, pipelines)?.stages.findIndex((s) => s.id === c.status) ?? -1;
+    return i === -1 ? 99 : i;
+  };
   const rows = cards
     .filter((c) => !q || c.title.toLowerCase().includes(q))
     .sort(
-      (a, b) =>
-        (statusOrder.get(a.status) ?? 99) - (statusOrder.get(b.status) ?? 99) ||
-        (a.createdAt < b.createdAt ? 1 : -1)
+      (a, b) => stepIndex(a) - stepIndex(b) || (a.createdAt < b.createdAt ? 1 : -1)
     );
 
   const rowIds = rows.map((c) => c.id);
@@ -110,7 +108,7 @@ export default function TableView({
             </th>
             <th>Title</th>
             <th>Status</th>
-            <th>Type</th>
+            <th>Pipeline</th>
             <th>Format</th>
             <th>Bucket</th>
             <th>Who</th>
@@ -120,7 +118,8 @@ export default function TableView({
         </thead>
         <tbody>
           {rows.map((c) => {
-            const status = STATUSES.find((s) => s.id === c.status);
+            const pipeline = pipelineOf(c, pipelines);
+            const status = stageOf(c, pipelines);
             const colors = status ? STATUS_COLORS[status.color] : STATUS_COLORS.gray;
             const isSel = selected.has(c.id);
             return (
@@ -147,7 +146,7 @@ export default function TableView({
                     value={c.status}
                     onChange={(e) => updateCard(c.id, { status: e.target.value })}
                   >
-                    {statusesFor(c.contentType).map((s) => (
+                    {(pipeline?.stages ?? []).map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
                       </option>
@@ -157,17 +156,15 @@ export default function TableView({
                 <td>
                   <select
                     className={`cell-select cell-tag ${typeTagClass(c.contentType)}`}
-                    value={c.contentType ?? ""}
-                    onChange={(e) =>
-                      updateCard(c.id, {
-                        contentType: (e.target.value || undefined) as ContentType,
-                      })
-                    }
+                    value={pipeline?.id ?? ""}
+                    onChange={(e) => {
+                      const to = pipelines.find((p) => p.id === e.target.value);
+                      if (to) updateCard(c.id, pipelineMovePatch(c, to, pipelines));
+                    }}
                   >
-                    <option value="">—</option>
-                    {CONTENT_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
+                    {pipelines.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
                       </option>
                     ))}
                   </select>

@@ -26,13 +26,15 @@ import {
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { usePlanner } from "@/lib/store";
-import { STATUSES, STATUS_COLORS } from "@/lib/seed";
+import { Pipeline, stageOf } from "@/lib/pipelines";
+import { useProfile } from "@/lib/profile";
+import { STATUS_COLORS } from "@/lib/seed";
 import { ContentCard } from "@/lib/types";
 
 const DOW = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
-function eventColors(card: ContentCard) {
-  const status = STATUSES.find((s) => s.id === card.status);
+function eventColors(card: ContentCard, pipelines: Pipeline[]) {
+  const status = stageOf(card, pipelines);
   return status ? STATUS_COLORS[status.color] : STATUS_COLORS.gray;
 }
 
@@ -46,7 +48,8 @@ function CalEvent({
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: card.id,
   });
-  const colors = eventColors(card);
+  const pipelines = useProfile((s) => s.pipelines);
+  const colors = eventColors(card, pipelines);
   return (
     <div
       ref={setNodeRef}
@@ -106,6 +109,7 @@ export default function CalendarView({
 }) {
   const cards = usePlanner((s) => s.cards);
   const updateCard = usePlanner((s) => s.updateCard);
+  const pipelines = useProfile((s) => s.pipelines);
   const [month, setMonth] = useState(() => new Date());
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -187,8 +191,8 @@ export default function CalendarView({
             <div
               className="cal-event"
               style={{
-                background: eventColors(activeCard).bg,
-                color: eventColors(activeCard).fg,
+                background: eventColors(activeCard, pipelines).bg,
+                color: eventColors(activeCard, pipelines).fg,
                 boxShadow: "var(--shadow-lift)",
                 maxWidth: 180,
               }}

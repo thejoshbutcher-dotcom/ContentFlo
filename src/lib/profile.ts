@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { isReadOnly } from "./access";
+import { defaultPipelines, Pipeline } from "./pipelines";
 import { activeAccountId, profileKey } from "./accounts";
 import {
   DEFAULT_ACTIONS,
@@ -78,6 +79,8 @@ type ProfileData = {
    *  default: the library and competitor walls turned out to be where ideas
    *  actually come from, so the generator is opt-in rather than the home page. */
   showBrainstorm: boolean;
+  /** The boards under "Pipeline" and the steps inside each — see pipelines.ts. */
+  pipelines: Pipeline[];
   /** The inspiration library. It lives here so it inherits this store's
    *  per-profile key swapping and cloud sync — the items are small enough
    *  (ids and text, never image data) that the whole library rides along. */
@@ -112,6 +115,7 @@ export function defaultProfileData(): ProfileData {
     actions: [...DEFAULT_ACTIONS],
     setupComplete: false,
     showBrainstorm: false,
+    pipelines: defaultPipelines(),
     inspo: [],
     competitors: [],
   };

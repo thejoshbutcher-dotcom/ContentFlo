@@ -11,7 +11,14 @@ import {
 } from "lucide-react";
 import { usePlanner } from "@/lib/store";
 import { useProfile } from "@/lib/profile";
-import { STATUS_COLORS, statusesFor } from "@/lib/seed";
+import {
+  effectiveStageId,
+  Pipeline,
+  pipelineMovePatch,
+  pipelineOf,
+  tabForStage,
+} from "@/lib/pipelines";
+import { STATUS_COLORS } from "@/lib/seed";
 import {
   HINT_OVERRIDES,
   CHECKLIST_TITLE,
@@ -26,14 +33,7 @@ import InspoPicker from "./InspoPicker";
 import RichEditor from "./RichEditor";
 import { setOpenCard } from "@/lib/sync";
 import { initialOf, useTeam } from "@/lib/team";
-import { ContentCard, ContentType, Section, Who } from "@/lib/types";
-
-const CONTENT_TYPES: ContentType[] = [
-  "Short form",
-  "Long form",
-  "Podcast",
-  "Carousel",
-];
+import { ContentCard, Section, Who } from "@/lib/types";
 
 type Tab = "plan" | "script" | "post";
 
@@ -43,13 +43,6 @@ const TAB_LABELS: { id: Tab; label: string }[] = [
   { id: "post", label: "Post" },
 ];
 
-/** Which tab a card's production status should surface. */
-function tabForStatus(status: string): Tab {
-  if (status === "ready" || status === "posted") return "post";
-  if (status === "scripting" || status === "filming" || status === "editing")
-    return "script";
-  return "plan"; // ideas, up-next, packaged
-}
 
 function sectionsAreEmpty(card: ContentCard) {
   // Compare on the text behind the markup — sections may hold editor HTML.
@@ -415,7 +408,13 @@ export default function CardModal({
   const profileActions = useProfile((s) => s.actions);
   const socials = useProfile((s) => s.socials);
   // Open on the tab that matches the card's production status.
-  const [tab, setTab] = useState<Tab>(() => tabForStatus(card?.status ?? "ideas"));
+  const pipelines = useProfile((s) => s.pipelines);
+  // Open on the tab that matches where the card is in its pipeline.
+  const [tab, setTab] = useState<Tab>(() =>
+    card
+      ? tabForStage(pipelineOf(card, pipelines), effectiveStageId(card, pipelines))
+      : "plan"
+  );
   const [showRef, setShowRef] = useState(false);
 
   useEffect(() => {
@@ -447,8 +446,10 @@ export default function CardModal({
 
   if (!card) return null;
 
-  const statuses = statusesFor(card.contentType);
-  const status = statuses.find((s) => s.id === card.status);
+  const pipeline = pipelineOf(card, pipelines);
+  const statuses = pipeline?.stages ?? [];
+  const statusId = effectiveStageId(card, pipelines);
+  const status = statuses.find((s) => s.id === statusId);
   const colors = status ? STATUS_COLORS[status.color] : STATUS_COLORS.gray;
   const library = REFERENCE_LIBRARY[card.contentType ?? "Short form"] ?? [];
 
@@ -477,20 +478,21 @@ export default function CardModal({
   const feelingOptions = withCurrent(profileFeelings, card.feeling);
   const actionOptions = withCurrent(profileActions, card.action);
 
-  function setType(type: ContentType) {
-    if (!card) return;
-    if (sectionsAreEmpty(card)) {
-      applyTemplate(card.id, type);
-    } else {
-      updateCard(card.id, { contentType: type });
+  /** Move the card to another pipeline. An untouched card also takes the new
+   *  pipeline's template; one with writing in it keeps its boxes. */
+  function setPipeline(to: Pipeline) {
+    if (!card || to.id === pipeline?.id) return;
+    if (to.format !== card.contentType && sectionsAreEmpty(card)) {
+      applyTemplate(card.id, to.format);
     }
+    updateCard(card.id, pipelineMovePatch(card, to, pipelines));
   }
 
   function setStatus(statusId: string) {
     if (!card) return;
     moveCard(card.id, statusId); // undoable status change
     // Changing status jumps to the matching phase (packaged -> scripting shows Script).
-    setTab(tabForStatus(statusId));
+    setTab(tabForStage(pipeline, statusId));
   }
 
   return (
@@ -504,7 +506,7 @@ export default function CardModal({
             className="prop-select status-select"
             style={{ background: colors.bg, color: colors.fg }}
             disabled={viewOnly}
-            value={card.status}
+            value={statusId}
             onChange={(e) => setStatus(e.target.value)}
           >
             {statuses.map((s) => (
@@ -602,15 +604,15 @@ export default function CardModal({
             </div>
 
             <div className="modal-props">
-              <div className="prop-label t-eyebrow">Content type</div>
+              <div className="prop-label t-eyebrow">Pipeline</div>
               <div className="chip-row">
-                {CONTENT_TYPES.map((t) => (
+                {pipelines.map((p) => (
                   <button
-                    key={t}
-                    className={`mini-chip${card.contentType === t ? " on" : ""}`}
-                    onClick={() => setType(t)}
+                    key={p.id}
+                    className={`mini-chip${pipeline?.id === p.id ? " on" : ""}`}
+                    onClick={() => setPipeline(p)}
                   >
-                    {t}
+                    {p.name}
                   </button>
                 ))}
               </div>

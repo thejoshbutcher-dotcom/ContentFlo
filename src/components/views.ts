@@ -1,3 +1,9 @@
+import {
+  isDone,
+  Pipeline,
+  pipelineOf,
+  viewIdFor,
+} from "@/lib/pipelines";
 import { ContentCard, ViewId } from "@/lib/types";
 
 export interface ViewDef {
@@ -9,9 +15,11 @@ export interface ViewDef {
   groupBy?: "status" | "bucket";
   filter?: (c: ContentCard) => boolean;
   newCardType?: ContentCard["contentType"];
+  /** Set on a pipeline's board: its steps are the columns. */
+  pipeline?: Pipeline;
 }
 
-export const VIEW_DEFS: ViewDef[] = [
+const IDEATION_VIEWS: ViewDef[] = [
   {
     id: "ideate",
     label: "Brainstorm",
@@ -33,67 +41,51 @@ export const VIEW_DEFS: ViewDef[] = [
     note: "What's working for the channels you study",
     kind: "competitors",
   },
-  {
-    id: "board-short",
-    label: "Short Form",
-    title: "Video Status · Short",
-    note: "Shorts pipeline, idea → posted",
-    kind: "board",
-    groupBy: "status",
-    filter: (c) => c.contentType === "Short form",
-    newCardType: "Short form",
-  },
-  {
-    id: "board-long",
-    label: "Long Form",
-    title: "Video Status · Long",
-    note: "Long form (talking head) pipeline",
-    kind: "board",
-    groupBy: "status",
-    filter: (c) => c.contentType === "Long form",
-    newCardType: "Long form",
-  },
-  {
-    id: "board-podcast",
-    label: "Podcast",
-    title: "Video Status · Podcast",
-    note: "Episodes and clips",
-    kind: "board",
-    groupBy: "status",
-    filter: (c) => c.contentType === "Podcast",
-    newCardType: "Podcast",
-  },
-  {
-    id: "board-carousel",
-    label: "Carousels",
-    title: "Carousels",
-    note: "Instagram carousel pipeline",
-    kind: "board",
-    groupBy: "status",
-    filter: (c) => c.contentType === "Carousel",
-    newCardType: "Carousel",
-  },
-  {
-    id: "board-buckets",
-    label: "Content Buckets",
-    title: "Content Buckets",
-    note: "Everything not yet posted, grouped by bucket",
-    kind: "board",
-    groupBy: "bucket",
-    filter: (c) => c.status !== "posted",
-  },
-  {
-    id: "calendar",
-    label: "Posting Schedule",
-    title: "Posting Schedule",
-    note: "Everything with a posting date",
-    kind: "calendar",
-  },
-  {
-    id: "table",
-    label: "All Content",
-    title: "All Content",
-    note: "Every card, every property",
-    kind: "table",
-  },
 ];
+
+/**
+ * Every view for this profile. The pipeline boards are generated from the
+ * profile's pipelines, so renaming or adding one is all it takes for it to
+ * show up in the sidebar, the mobile tabs and the last-view memory.
+ */
+export function viewDefs(pipelines: Pipeline[]): ViewDef[] {
+  return [
+    ...IDEATION_VIEWS,
+    ...pipelines.map(
+      (p): ViewDef => ({
+        id: viewIdFor(p.id),
+        label: p.name,
+        title: p.name,
+        note: `${p.stages[0]?.name ?? "Start"} → ${p.stages[p.stages.length - 1]?.name ?? "done"}`,
+        kind: "board",
+        groupBy: "status",
+        filter: (c) => pipelineOf(c, pipelines)?.id === p.id,
+        newCardType: p.format,
+        pipeline: p,
+      })
+    ),
+    {
+      id: "board-buckets",
+      label: "Content Buckets",
+      title: "Content Buckets",
+      note: "Everything not yet finished, grouped by bucket",
+      kind: "board",
+      groupBy: "bucket",
+      filter: (c) => !isDone(c, pipelines),
+    },
+    {
+      id: "calendar",
+      label: "Posting Schedule",
+      title: "Posting Schedule",
+      note: "Everything with a posting date",
+      kind: "calendar",
+    },
+    {
+      id: "table",
+      label: "All Content",
+      title: "All Content",
+      note: "Every card, every property",
+      kind: "table",
+    },
+  ];
+}

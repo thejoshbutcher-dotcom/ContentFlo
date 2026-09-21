@@ -88,13 +88,13 @@ const ALL_STEPS: TourStep[] = [
   {
     selector: '[data-tour="pipeline-group"]',
     title: "5. Your pipelines",
-    body: "Each content type gets its own board — Short form, Long form, Podcast and Carousels. Every card moves through the same production stages.",
+    body: "Each kind of content gets its own board — Short form, Long form, Podcast and Carousels to start. Rename them, or hit + to add your own.",
     placement: "right",
   },
   {
     selector: '[data-tour="nav-board-short"]',
     title: "6. Open a board",
-    body: "Let's open the Short form board. Each board is a kanban of your content, grouped by production status.",
+    body: "Let's open the first board. Each one is a kanban of your content, grouped by production step.",
     view: "board-short",
     clickAdvance: true,
     placement: "right",
@@ -105,6 +105,13 @@ const ALL_STEPS: TourStep[] = [
     body: "Drag a card between columns as it moves Idea → Up Next → Scripting → Filming → Editing → Ready → Posted. The board is your production status at a glance.",
     view: "board-short",
     placement: "top",
+  },
+  {
+    selector: '[data-tour="customize-pipeline"]',
+    title: "0. Make the steps yours",
+    body: "Customize renames this pipeline and its steps, adds new ones — a step between Filming and Editing, say — and lets you drag them into any order.",
+    view: "board-short",
+    placement: "bottom",
   },
   {
     selector: ".board .content-card",
@@ -156,11 +163,18 @@ const ALL_STEPS: TourStep[] = [
  * dropped — pointing at a nav item that isn't there would strand the tour —
  * and the rest are renumbered so the titles still count 1, 2, 3…
  */
-function stepsFor(showBrainstorm: boolean): TourStep[] {
+function stepsFor(showBrainstorm: boolean, boardView: ViewId): TourStep[] {
   const kept = showBrainstorm
     ? ALL_STEPS
     : ALL_STEPS.filter((s) => s.view !== "ideate");
-  return kept.map((s, i) => ({
+  // The steps are written against the Short Form board, but pipelines are
+  // editable now — walk whichever board is first in THIS profile.
+  const onBoard = (s: TourStep): TourStep => ({
+    ...s,
+    view: s.view === "board-short" ? boardView : s.view,
+    selector: s.selector.replace("nav-board-short", `nav-${boardView}`),
+  });
+  return kept.map(onBoard).map((s, i) => ({
     ...s,
     title: s.title.replace(/^\d+\.\s*/, `${i + 1}. `),
     body: showBrainstorm
@@ -183,13 +197,19 @@ const DIALOG_W = 312;
 export default function Tutorial({
   controller,
   showBrainstorm,
+  boardView,
   onExit,
 }: {
   controller: TourController;
   showBrainstorm: boolean;
+  /** The first pipeline's board — the one the tour walks through. */
+  boardView: ViewId;
   onExit: () => void;
 }) {
-  const STEPS = useMemo(() => stepsFor(showBrainstorm), [showBrainstorm]);
+  const STEPS = useMemo(
+    () => stepsFor(showBrainstorm, boardView),
+    [showBrainstorm, boardView]
+  );
   const [step, setStep] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
   const targetRef = useRef<Element | null>(null);

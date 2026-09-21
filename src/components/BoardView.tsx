@@ -16,7 +16,8 @@ import {
 import { Trash2, TriangleAlert, X } from "lucide-react";
 import { usePlanner } from "@/lib/store";
 import { useProfile } from "@/lib/profile";
-import { STATUS_COLORS, statusesFor } from "@/lib/seed";
+import { effectiveStageId } from "@/lib/pipelines";
+import { STATUS_COLORS } from "@/lib/seed";
 import { ContentCard } from "@/lib/types";
 import CardItem, { CardBody } from "./CardItem";
 import { ViewDef } from "./views";
@@ -106,6 +107,7 @@ export default function BoardView({
   const moveCardsBucket = usePlanner((s) => s.moveCardsBucket);
   const deleteCards = usePlanner((s) => s.deleteCards);
   const addCard = usePlanner((s) => s.addCard);
+  const pipelines = useProfile((s) => s.pipelines);
   const buckets = useProfile((s) => s.buckets);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -184,7 +186,7 @@ export default function BoardView({
 
   const columns: ColumnDef[] =
     groupBy === "status"
-      ? statusesFor(view.newCardType).map((s) => ({
+      ? (view.pipeline?.stages ?? []).map((s) => ({
           id: s.id,
           name: s.name,
           chipBg: STATUS_COLORS[s.color].bg,
@@ -201,7 +203,11 @@ export default function BoardView({
 
   const cardsFor = (colId: string) =>
     visible
-      .filter((c) => (groupBy === "status" ? c.status === colId : c.bucketId === colId))
+      .filter((c) =>
+        groupBy === "status"
+          ? effectiveStageId(c, pipelines) === colId
+          : c.bucketId === colId
+      )
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 
   function toggleSelect(id: string) {
@@ -350,10 +356,13 @@ export default function BoardView({
   }
 
   function handleAdd(colId: string) {
+    // From the buckets board a new idea starts in the first pipeline.
+    const target = view.pipeline ?? pipelines[0];
     const card = addCard({
       title: "",
-      contentType: view.newCardType,
-      status: groupBy === "status" ? colId : "ideas",
+      contentType: target?.format,
+      pipelineId: target?.id,
+      status: groupBy === "status" ? colId : (target?.stages[0]?.id ?? "ideas"),
       bucketId: groupBy === "bucket" ? colId : undefined,
     });
     onOpen(card.id);

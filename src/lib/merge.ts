@@ -170,7 +170,7 @@ export function mergeProfileData<T extends object>(
       Array.isArray(o) && Array.isArray(t)
         ? mergeById<I>(b ?? [], o, t, (x) => x.id)
         : o;
-  const lists = ["inspo", "competitors", "buckets", "formats", "socials"];
+  const lists = ["inspo", "competitors", "buckets", "formats", "socials", "pipelines"];
   const special: Record<string, unknown> = {};
   for (const k of lists) special[k] = byId();
   return mergeFields<T>(base, ours, theirs, special as never);

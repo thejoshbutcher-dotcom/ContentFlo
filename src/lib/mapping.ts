@@ -1,6 +1,7 @@
 import { ContentCard } from "./types";
 import type { Competitor } from "./competitors";
 import type { InspoItem } from "./inspo";
+import type { Pipeline } from "./pipelines";
 import { ProfileFormat, ProfileBucket, SocialAccount } from "./profile";
 
 /** Shape of a row in public.cards. */
@@ -39,6 +40,7 @@ export interface ProfileDataRow {
   actions?: string[];
   setupComplete?: boolean;
   showBrainstorm?: boolean;
+  pipelines?: Pipeline[];
   inspo?: InspoItem[];
   competitors?: Competitor[];
 }

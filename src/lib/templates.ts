@@ -241,24 +241,51 @@ function sameOrder(a: string[], b: string[]): boolean {
   return a.length === b.length && a.every((t, i) => t === b[i]);
 }
 
+/**
+ * Boxes that aren't part of the layout being rebuilt but have something in
+ * them. A card changes layout when it moves to a pipeline with a different
+ * format — and its long-form title ideas must not evaporate because it's now
+ * on a short-form board. They ride along after the template's own boxes.
+ */
+function writtenLeftovers(old: Section[], next: Section[], consumed: string[]): Section[] {
+  const placed = new Set([...next.map((s) => s.title), ...consumed]);
+  return old.filter(
+    (s) =>
+      !placed.has(s.title) &&
+      !(s.title in RETIRED_SECTIONS) &&
+      (!isBlankContent(s.content) || Boolean(s.images?.length) || Boolean(s.refs?.length))
+  );
+}
+
+/** The template's own titles, in the order the card has them — ignoring any
+ *  carried-over extras, so their presence doesn't re-trigger a rebuild. */
+function templateOrder(sections: Section[], phase: SectionPhase, expected: string[]) {
+  return orderedTitles(sections, phase).filter((t) => expected.includes(t));
+}
+
 function migrateShortForm(old: Section[]): Section[] | null {
   const expected = ["Visual Hook", "Outline", "Original Script", "Reference Link 🔗"];
-  if (sameOrder(orderedTitles(old, "plan"), expected)) return null;
+  if (sameOrder(templateOrder(old, "plan", expected), expected)) return null;
 
   const find = (t: string) => old.find((s) => s.title === t);
   const next = shortFormSections().map((t) => carryContent(t, find(t.title)));
 
   // "Notes" is gone from the layout — don't silently drop anything written in it.
   const notes = find("Notes");
+  let notesFolded = false;
   if (notes && !isBlankContent(notes.content)) {
     const outline = next.find((s) => s.title === "Outline");
-    if (outline && isBlankContent(outline.content)) outline.content = notes.content;
+    if (outline && isBlankContent(outline.content)) {
+      outline.content = notes.content;
+      notesFolded = true;
+    }
   }
-  return next;
+  return [...next, ...writtenLeftovers(old, next, notesFolded ? ["Notes"] : [])];
 }
 
 function migrateLongForm(old: Section[]): Section[] | null {
-  if (sameOrder(orderedTitles(old, "script"), ["Outline", "Script"])) return null;
+  const expected = ["Outline", "Script"];
+  if (sameOrder(templateOrder(old, "script", expected), expected)) return null;
 
   const find = (t: string) => old.find((s) => s.title === t);
 
@@ -289,7 +316,14 @@ function migrateLongForm(old: Section[]): Section[] | null {
   const retired = old.filter((s) => s.title in RETIRED_SECTIONS);
   const at = next.findIndex((s) => sectionPhase(s) !== "plan");
   next.splice(at === -1 ? next.length : at, 0, ...retired);
-  return next;
+  // The old Hook/Intro/Value/Outro boxes only count as handled if they were
+  // actually folded into Script; beside an existing script they're kept.
+  const existingScript = find("Script")?.content;
+  const foldedIn = !(existingScript && !isBlankContent(existingScript));
+  return [
+    ...next,
+    ...writtenLeftovers(old, next, foldedIn ? Object.keys(LEGACY_LONG_SCRIPT) : []),
+  ];
 }
 
 /**

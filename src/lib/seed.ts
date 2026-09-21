@@ -1,23 +1,5 @@
 import { sectionsFor, newId } from "./templates";
-import { Bucket, ContentCard, ContentType, Status, StatusColor, Who } from "./types";
-
-export const STATUSES: Status[] = [
-  { id: "ideas", name: "Ideas", color: "slate" },
-  { id: "up-next", name: "Up Next", color: "pink" },
-  { id: "packaged", name: "Packaged", color: "yellow" },
-  { id: "scripting", name: "Scripting", color: "blue" },
-  { id: "filming", name: "Filming", color: "red" },
-  { id: "editing", name: "Editing", color: "purple" },
-  { id: "ready", name: "Ready for Posting", color: "orange" },
-  { id: "posted", name: "Posted", color: "green" },
-];
-
-// "Packaged" is a long-form-only stage (titles + thumbnails before scripting)
-export function statusesFor(contentType?: string): Status[] {
-  return STATUSES.filter(
-    (s) => s.id !== "packaged" || contentType === "Long form"
-  );
-}
+import { Bucket, ContentCard, ContentType, StatusColor, Who } from "./types";
 
 // Broad, niche-agnostic starting buckets. Users rename/replace these in Setup.
 export const BUCKETS: Bucket[] = [

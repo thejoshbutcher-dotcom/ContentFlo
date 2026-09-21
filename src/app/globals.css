@@ -5263,8 +5263,228 @@ summary:focus-visible {
   .install-card {
     bottom: 78px; /* clear the bottom nav */
   }
-  /* The phone top bar has no room for it; Share lives in the Profile menu. */
-  .topbar [data-tour="share"] {
+  /* The phone top bar has no room for these: Share lives in the Profile menu,
+     Customize in the pipeline tab row. */
+  .topbar [data-tour="share"],
+  .topbar [data-tour="customize-pipeline"] {
     display: none;
   }
 }
+
+/* ————— Pipelines: sidebar "+", Customize dialog ————— */
+
+.nav-group-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-group-add {
+  display: inline-flex;
+  padding: 3px;
+  margin: -3px -2px -3px 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.nav-group-add:hover {
+  color: var(--amber);
+  background: var(--ink-2);
+}
+
+.pipe-editor {
+  width: min(480px, 100%);
+}
+
+.pipe-editor .prop-label {
+  margin-top: 14px;
+}
+
+.pipe-muted {
+  color: var(--text-3);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+.pipe-formats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.pipe-format {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-input);
+  background: var(--ink);
+  color: var(--text);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.pipe-format span {
+  color: var(--text-3);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.pipe-format:hover {
+  border-color: var(--text-3);
+}
+
+.pipe-format.on {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px rgba(247, 201, 72, 0.14);
+}
+
+.pipe-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pipe-stage {
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius-input);
+  background: var(--ink);
+}
+
+.pipe-stage.dragging {
+  position: relative;
+  z-index: 2;
+  border-color: var(--amber-deep);
+  box-shadow: var(--shadow-lift);
+}
+
+.pipe-stage-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 4px 2px;
+}
+
+.pipe-grip {
+  display: inline-flex;
+  padding: 6px 3px;
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  cursor: grab;
+  touch-action: none;
+  flex-shrink: 0;
+}
+
+.pipe-grip:active {
+  cursor: grabbing;
+}
+
+.pipe-dot {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.pipe-dot:hover {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.12);
+}
+
+.pipe-stage-name {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 4px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+}
+
+.pipe-stage-name:focus {
+  box-shadow: inset 0 -1px 0 var(--amber);
+}
+
+.pipe-count {
+  color: var(--text-3);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.pipe-stage .share-x:disabled,
+.share-foot .btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pipe-swatches {
+  display: flex;
+  gap: 7px;
+  padding: 4px 10px 10px 36px;
+}
+
+.pipe-swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.pipe-swatch.on {
+  border-color: #fff;
+}
+
+.pipe-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 7px 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-input);
+  background: transparent;
+  color: var(--text-3);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.pipe-add:hover {
+  color: var(--amber);
+  border-color: var(--amber-deep);
+}
+
+.pipe-template {
+  margin: 10px 0 0;
+  color: var(--text-3);
+  font-size: 11.5px;
+  text-align: right;
+}
+
+@media (max-width: 900px) {
+  .pipe-formats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sub-tab-add {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-style: dashed;
+  color: var(--text-3);
+}
+

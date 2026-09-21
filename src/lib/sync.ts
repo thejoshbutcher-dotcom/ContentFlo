@@ -2,8 +2,9 @@
 
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import { isReadOnly } from "./access";
+import { profileKey } from "./accounts";
 import { CardRow, ProfileRow, cardToRow, rowToCard } from "./mapping";
-import { mergeCard, mergeProfileData } from "./merge";
+import { deepEqual, mergeCard, mergeProfileData } from "./merge";
 import { defaultProfileData, useProfile } from "./profile";
 import { getSupabaseBrowser } from "./supabase/client";
 import { usePlanner } from "./store";
@@ -101,9 +102,44 @@ function profileDataOf(p: ProfileData): ProfileData {
     actions: p.actions,
     setupComplete: p.setupComplete,
     showBrainstorm: p.showBrainstorm,
+    pipelines: p.pipelines,
     inspo: p.inspo,
     competitors: p.competitors,
   };
+}
+
+/**
+ * Keys added to the profile blob after launch. A window still running an older
+ * build writes the blob WITHOUT them (it lists the keys it knows), silently
+ * wiping e.g. someone's customised pipelines. A blob that lacks the key
+ * entirely can only be that — a current build always writes it — so the value
+ * is put back from what we last knew, and re-saved.
+ */
+const LATE_KEYS = ["pipelines", "showBrainstorm"] as const;
+
+function restoreDroppedKeys(
+  raw: object,
+  lastKnown: Partial<ProfileData> | null | undefined
+): { patch: Partial<ProfileData>; restored: boolean } {
+  const patch: Record<string, unknown> = {};
+  if (!lastKnown || isReadOnly()) return { patch, restored: false };
+  const defaults = defaultProfileData() as Record<string, unknown>;
+  for (const k of LATE_KEYS) {
+    const known = (lastKnown as Record<string, unknown>)[k];
+    if (k in raw || known === undefined) continue;
+    if (!deepEqual(known, defaults[k])) patch[k] = known;
+  }
+  return { patch: patch as Partial<ProfileData>, restored: Object.keys(patch).length > 0 };
+}
+
+/** This profile's locally cached copy (zustand's persist envelope), if any. */
+function cachedProfile(profileId: string): Partial<ProfileData> | null {
+  try {
+    const rawEnv = localStorage.getItem(profileKey(profileId));
+    return rawEnv ? ((JSON.parse(rawEnv) as { state?: Partial<ProfileData> }).state ?? null) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Write cloud state into a store without it counting as a local edit. */
@@ -258,7 +294,12 @@ async function saveProfile(s: SyncSession) {
 }
 
 function reconcileProfile(s: SyncSession, row: ProfileRow) {
-  const theirs = { ...defaultProfileData(), ...(row.data ?? {}) } as ProfileData;
+  const kept = restoreDroppedKeys(row.data ?? {}, s.profileBase?.data);
+  const theirs = {
+    ...defaultProfileData(),
+    ...(row.data ?? {}),
+    ...kept.patch,
+  } as ProfileData;
   const ours = profileDataOf(useProfile.getState());
   const merged = mergeProfileData(s.profileBase?.data, ours, theirs);
   s.profileBase = { version: row.updated_at, data: theirs };
@@ -379,7 +420,12 @@ export async function pull(supabase: SupabaseClient, profileId: string) {
   const rows = cardRows as CardRow[];
   const cards = rows.map(rowToCard);
   const prow = profileRow as ProfileRow | null;
-  const data = { ...defaultProfileData(), ...(prow?.data ?? {}) } as ProfileData;
+  const kept = restoreDroppedKeys(prow?.data ?? {}, prow ? cachedProfile(profileId) : null);
+  const data = {
+    ...defaultProfileData(),
+    ...(prow?.data ?? {}),
+    ...kept.patch,
+  } as ProfileData;
 
   const apply = () => {
     usePlanner.setState({ cards });
@@ -391,6 +437,11 @@ export async function pull(supabase: SupabaseClient, profileId: string) {
     s.base = new Map(rows.map((r, i) => [r.id, { version: r.updated_at, card: cards[i] }]));
     s.profileBase = prow ? { version: prow.updated_at, data } : null;
     quietly(s, apply);
+    // Put back in the cloud whatever an older build dropped from it.
+    if (kept.restored) {
+      s.profileDirty = true;
+      if (!s.hydrating) scheduleFlush();
+    }
   } else {
     apply();
   }
@@ -484,9 +535,18 @@ async function applyRemoteProfile(s: SyncSession) {
     scheduleFlush();
     return;
   }
-  const theirs = { ...defaultProfileData(), ...(row.data ?? {}) } as ProfileData;
+  const kept = restoreDroppedKeys(row.data ?? {}, s.profileBase?.data);
+  const theirs = {
+    ...defaultProfileData(),
+    ...(row.data ?? {}),
+    ...kept.patch,
+  } as ProfileData;
   s.profileBase = { version: row.updated_at, data: theirs };
   quietly(s, () => useProfile.setState(theirs));
+  if (kept.restored) {
+    s.profileDirty = true;
+    scheduleFlush();
+  }
 }
 
 /**
@@ -686,7 +746,8 @@ export async function startSync(userId: string, profileId: string) {
     const box = loadOutbox(profileId);
     box.dirty.forEach((id) => s.dirty.add(id));
     box.deleted.forEach((id) => s.deleted.add(id));
-    s.profileDirty = box.profileDirty;
+    // `||`: the pull above may already have flagged a restore.
+    s.profileDirty = s.profileDirty || box.profileDirty;
   }
 
   s.hydrating = false;

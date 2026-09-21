@@ -39,6 +39,9 @@ export interface ContentCard {
   status: string;
   bucketId?: string;
   contentType?: ContentType;
+  /** Which pipeline (board) the card lives on. Unset on every card made
+   *  before pipelines were editable: it then follows `contentType`. */
+  pipelineId?: string;
   format?: string;
   who?: Who;
   postingDate?: string;
@@ -91,10 +94,8 @@ export type ViewId =
   | "ideate"
   | "inspo"
   | "competitors"
-  | "board-short"
-  | "board-long"
-  | "board-podcast"
-  | "board-carousel"
-  | "board-buckets"
+  // One per pipeline. The four originals are board-short / -long / -podcast /
+  // -carousel; user-made ones are board-<pipeline id>.
+  | `board-${string}`
   | "calendar"
   | "table";

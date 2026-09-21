@@ -2,7 +2,8 @@
 
 import type { MouseEvent } from "react";
 import { useDraggable } from "@dnd-kit/core";
-import { STATUS_COLORS, STATUSES } from "@/lib/seed";
+import { isDone, pipelineOf, stageOf } from "@/lib/pipelines";
+import { STATUS_COLORS } from "@/lib/seed";
 import { useProfile } from "@/lib/profile";
 import { initialOf, useTeam } from "@/lib/team";
 import { ContentCard } from "@/lib/types";
@@ -39,11 +40,12 @@ export function CardBody({
   // Teammates with this card open — so you can see a collision coming.
   const peers = useTeam((s) => s.peers);
   const inCard = peers.filter((p) => p.cardId === card.id);
-  const status = STATUSES.find((s) => s.id === card.status);
+  const pipelines = useProfile((s) => s.pipelines);
+  const status = stageOf(card, pipelines);
   const bucket = buckets.find((b) => b.id === card.bucketId);
   const overdue =
     card.postingDate &&
-    card.status !== "posted" &&
+    !isDone(card, pipelines) &&
     new Date(card.postingDate) < new Date(new Date().toDateString());
 
   return (
@@ -72,7 +74,7 @@ export function CardBody({
       <div className="card-meta">
         {card.contentType && (
           <span className={`tag ${typeTagClass(card.contentType)}`}>
-            {card.contentType}
+            {pipelineOf(card, pipelines)?.name ?? card.contentType}
           </span>
         )}
         {showStatus && status && (

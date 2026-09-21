@@ -50,6 +50,9 @@ export interface CompetitorSnapshot {
   shortMedianViews?: number;
   counts: { recent: number; top: number; shorts?: number; total: number };
   videos: CompetitorVideo[];
+  /** Exact view counts from the pull before this one — what "views per hour
+   *  RIGHT NOW" is measured against. Only videos with exact counts. */
+  prev?: { fetchedAt: string; views: Record<string, number> };
 }
 
 /** Short form is a duration call, not a YouTube label — Shorts and any tight
@@ -126,7 +129,84 @@ export function loadSnapshot(channelId: string): CompetitorSnapshot | null {
   }
 }
 
+// ————— Views per hour —————
+
+/** How long a gap between two pulls can honestly be called "right now". */
+const VPH_MIN_GAP_H = 0.5;
+const VPH_MAX_GAP_H = 72;
+/** Past this age a lifetime average says nothing about momentum. */
+const VPH_MAX_AGE_DAYS = 30;
+
+export interface Velocity {
+  vph: number;
+  /** "now": gained between our last two pulls. "avg": lifetime average. */
+  kind: "now" | "avg";
+  /** Hours the rate was measured over. */
+  hours: number;
+  /** True when the publish time is YouTube's rounded "3 days ago". */
+  approx: boolean;
+}
+
+/**
+ * Views per hour, the "is this one taking off?" number.
+ *
+ * Best case it's a real measurement: views gained between the previous pull
+ * and this one, which is what a tracker like vidIQ reports. That needs two
+ * pulls, and exact counts — which YouTube only gives for a channel's latest
+ * uploads (the ones where it matters). Until then, or for anything we've only
+ * seen once, it's the lifetime average: views ÷ hours since publishing, shown
+ * only for uploads under a month old, where that still reflects momentum.
+ */
+export function velocityOf(
+  v: CompetitorVideo,
+  snap: Pick<CompetitorSnapshot, "fetchedAt" | "prev">
+): Velocity | null {
+  if (v.views === null) return null;
+  const fetched = Date.parse(snap.fetchedAt);
+
+  const before = v.publishedExact ? snap.prev?.views[v.videoId] : undefined;
+  if (before !== undefined && snap.prev) {
+    const hours = (fetched - Date.parse(snap.prev.fetchedAt)) / 3_600_000;
+    if (hours >= VPH_MIN_GAP_H && hours <= VPH_MAX_GAP_H && v.views >= before) {
+      const vph = (v.views - before) / hours;
+      // An old video idling at a view or two an hour isn't news; say nothing.
+      return vph >= 1 ? { vph, kind: "now", hours, approx: false } : null;
+    }
+  }
+
+  if (!v.published) return null;
+  const hours = Math.max((fetched - Date.parse(v.published)) / 3_600_000, 1);
+  if (hours > VPH_MAX_AGE_DAYS * 24) return null;
+  const vph = v.views / hours;
+  return vph >= 1 ? { vph, kind: "avg", hours, approx: !v.publishedExact } : null;
+}
+
+export function formatVph(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10_000 ? 0 : 1)}K`;
+  if (n >= 10) return String(Math.round(n));
+  return n.toFixed(1);
+}
+
+/**
+ * Saving also rolls the outgoing snapshot's exact counts into `prev`, so the
+ * next render can measure the change. A re-pull within half an hour keeps the
+ * OLDER baseline instead — otherwise mashing Refresh would leave nothing but
+ * a too-short gap to measure over.
+ */
 export function saveSnapshot(snap: CompetitorSnapshot): void {
+  const old = loadSnapshot(snap.channelId);
+  if (old) {
+    const gapH = (Date.parse(snap.fetchedAt) - Date.parse(old.fetchedAt)) / 3_600_000;
+    if (gapH >= VPH_MIN_GAP_H || !old.prev) {
+      const views: Record<string, number> = {};
+      for (const v of old.videos) {
+        if (v.publishedExact && v.views !== null) views[v.videoId] = v.views;
+      }
+      snap.prev = { fetchedAt: old.fetchedAt, views };
+    } else {
+      snap.prev = old.prev;
+    }
+  }
   try {
     localStorage.setItem(CACHE_PREFIX + snap.channelId, JSON.stringify(snap));
   } catch {

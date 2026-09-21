@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Sparkles,
   Trash2,
+  TrendingUp,
   Users,
 } from "lucide-react";
 import { useProfile } from "@/lib/profile";
@@ -23,6 +24,7 @@ import {
   formatAge,
   formatDuration,
   formatViews,
+  formatVph,
   isShort,
   loadSnapshot,
   OUTLIER_MIN,
@@ -30,11 +32,17 @@ import {
   OUTLIER_STRONG,
   saveSnapshot,
   thumbUrl,
+  Velocity,
+  velocityOf,
   watchUrl,
 } from "@/lib/competitors";
 import { newId } from "@/lib/templates";
 
-type Sort = "views" | "newest";
+type Sort = "views" | "newest" | "trending";
+
+/** A cached wall older than this is re-pulled when opened — views per hour
+ *  is only as current as the last pull. */
+const STALE_AFTER_MS = 60 * 60_000;
 type Kind = "all" | "long" | "short";
 
 /**
@@ -285,7 +293,7 @@ function CompetitorWall({
           setError(data?.error ?? "Couldn't load that channel's videos.");
           return;
         }
-        saveSnapshot(data as CompetitorSnapshot);
+        saveSnapshot(data as CompetitorSnapshot); // also attaches `prev`
         setSnap(data as CompetitorSnapshot);
       } catch {
         setError("Couldn't reach YouTube — try again in a moment.");
@@ -299,12 +307,20 @@ function CompetitorWall({
   // Only fetch when there's nothing cached; Refresh calls pull() directly.
   // Kicked off a tick later so the effect body itself writes no state — the
   // spinner is already up from the initial value above.
-  const hasSnap = snap !== null;
+  // Same for a cached wall that's gone stale: it paints instantly from the
+  // cache, then quietly refreshes — which is also what gives views-per-hour a
+  // second reading to measure against.
+  // Decided once, on open (reading the clock during render isn't allowed, and
+  // a wall shouldn't start refetching itself just because an hour ticked by).
+  const [needsPull] = useState(() => {
+    const cached = loadSnapshot(competitor.channelId);
+    return !cached || Date.now() - Date.parse(cached.fetchedAt) > STALE_AFTER_MS;
+  });
   useEffect(() => {
-    if (hasSnap) return;
+    if (!needsPull) return;
     const id = window.setTimeout(() => void pull(), 0);
     return () => window.clearTimeout(id);
-  }, [hasSnap, pull]);
+  }, [needsPull, pull]);
 
   const videos = useMemo(() => {
     const all = snap?.videos ?? [];
@@ -315,6 +331,14 @@ function CompetitorWall({
       if (q && !v.title.toLowerCase().includes(q)) return false;
       return true;
     });
+    if (sort === "trending" && snap) {
+      // Fastest first; anything with no rate (older than a month) after, by views.
+      const rate = new Map(filtered.map((v) => [v.videoId, velocityOf(v, snap)?.vph ?? -1]));
+      return filtered.sort(
+        (a, b) =>
+          rate.get(b.videoId)! - rate.get(a.videoId)! || (b.views ?? 0) - (a.views ?? 0)
+      );
+    }
     return filtered.sort((a, b) =>
       sort === "views"
         ? (b.views ?? 0) - (a.views ?? 0)
@@ -344,6 +368,13 @@ function CompetitorWall({
             </button>
             <button className={sort === "newest" ? "on" : ""} onClick={() => setSort("newest")}>
               Newest
+            </button>
+            <button
+              className={sort === "trending" ? "on" : ""}
+              onClick={() => setSort("trending")}
+              title="Fastest views per hour first"
+            >
+              Trending
             </button>
           </div>
           <div className="comp-seg">
@@ -396,6 +427,7 @@ function CompetitorWall({
             <VideoTile
               key={v.videoId}
               video={v}
+              velocity={snap ? velocityOf(v, snap) : null}
               saved={saved.has(v.videoId)}
               onSave={() => save(v)}
             />
@@ -406,12 +438,20 @@ function CompetitorWall({
   );
 }
 
+function formatHours(h: number): string {
+  if (h < 1) return `${Math.round(h * 60)} min`;
+  if (h < 48) return `${Math.round(h)} hour${Math.round(h) === 1 ? "" : "s"}`;
+  return `${Math.round(h / 24)} days`;
+}
+
 function VideoTile({
   video: v,
+  velocity,
   saved,
   onSave,
 }: {
   video: CompetitorVideo;
+  velocity: Velocity | null;
   saved: boolean;
   onSave: () => void;
 }) {
@@ -481,6 +521,20 @@ function VideoTile({
       <span className="comp-tile-meta">
         {/* Shorts publish no date, so don't leave a dangling separator. */}
         {[`${formatViews(v.views)} views`, formatAge(v)].filter(Boolean).join(" · ")}
+        {velocity && (
+          <span
+            className={`comp-vph${velocity.kind === "now" ? " now" : ""}`}
+            title={
+              velocity.kind === "now"
+                ? `Gained over the last ${formatHours(velocity.hours)} — views per hour right now`
+                : `Average since it was posted (${velocity.approx ? "about " : ""}${formatHours(velocity.hours)} ago). Refresh later to measure what it's doing right now.`
+            }
+          >
+            {velocity.kind === "now" && <TrendingUp size={10} />}
+            {velocity.approx ? "~" : ""}
+            {formatVph(velocity.vph)} VPH
+          </span>
+        )}
       </span>
     </div>
   );

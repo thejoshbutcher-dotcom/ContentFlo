@@ -5498,3 +5498,29 @@ summary:focus-visible {
   box-shadow: var(--shadow-lift);
   cursor: grabbing;
 }
+
+/* ————— Competitors: views per hour ————— */
+
+.comp-vph {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 7px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--ink-3);
+  color: var(--text-2);
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+
+/* Measured between two pulls — the real "right now" number. */
+.comp-vph.now {
+  background: rgba(247, 201, 72, 0.14);
+  color: var(--amber);
+}
+

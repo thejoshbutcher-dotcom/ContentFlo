@@ -5488,3 +5488,13 @@ summary:focus-visible {
   color: var(--text-3);
 }
 
+
+/* ————— Sidebar: dragging a pipeline to reorder ————— */
+
+.nav-item.nav-dragging {
+  position: relative;
+  z-index: 3;
+  background: var(--ink-2);
+  box-shadow: var(--shadow-lift);
+  cursor: grabbing;
+}

@@ -48,6 +48,7 @@ import TableView from "./TableView";
 import Tutorial, { TourController } from "./Tutorial";
 import { viewDefs } from "./views";
 import PipelineEditor from "./PipelineEditor";
+import { SortableNav, SortableNavItem } from "./SortableNav";
 import { viewIdFor } from "@/lib/pipelines";
 
 const NAV_ICONS: Partial<Record<ViewId, React.ReactNode>> = {
@@ -220,6 +221,15 @@ export default function PlannerApp() {
     return cards.filter((c) => !def.filter || def.filter(c)).length;
   };
 
+  /** Drag order in the sidebar IS the pipeline order — everywhere: mobile
+   *  tabs, the card editor's chips, the table's dropdown, Brainstorm. */
+  function reorderPipelines(from: number, to: number) {
+    const next = [...useProfile.getState().pipelines];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    useProfile.getState().update({ pipelines: next });
+  }
+
   function newIdea() {
     if (viewOnly) return;
     // From a pipeline's board the idea starts there; from anywhere else, in
@@ -310,22 +320,30 @@ export default function PlannerApp() {
                 </button>
               )}
             </div>
-            {offered(g.ids).map((id) => {
-              const def = defs.find((v) => v.id === id)!;
-              const count = countFor(id);
-              return (
-                <button
-                  key={id}
-                  data-tour={`nav-${id}`}
-                  className={`nav-item${viewId === id ? " active" : ""}`}
-                  onClick={() => setViewId(id)}
-                >
-                  {def.pipeline ? FORMAT_ICONS[def.pipeline.format] : NAV_ICONS[id]}
-                  <span className="label">{def.label}</span>
-                  {count !== null && <span className="count t-mono">{count}</span>}
-                </button>
-              );
-            })}
+            <SortableNav
+              ids={offered(g.ids)}
+              disabled={g.label !== "Pipeline" || viewOnly}
+              onReorder={reorderPipelines}
+            >
+              {offered(g.ids).map((id) => {
+                const def = defs.find((v) => v.id === id)!;
+                const count = countFor(id);
+                return (
+                  <SortableNavItem
+                    key={id}
+                    id={id}
+                    sortable={g.label === "Pipeline" && !viewOnly}
+                    data-tour={`nav-${id}`}
+                    className={`nav-item${viewId === id ? " active" : ""}`}
+                    onClick={() => setViewId(id)}
+                  >
+                    {def.pipeline ? FORMAT_ICONS[def.pipeline.format] : NAV_ICONS[id]}
+                    <span className="label">{def.label}</span>
+                    {count !== null && <span className="count t-mono">{count}</span>}
+                  </SortableNavItem>
+                );
+              })}
+            </SortableNav>
           </nav>
         ))}
 

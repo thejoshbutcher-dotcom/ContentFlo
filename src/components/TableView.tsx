@@ -4,12 +4,11 @@ import { useState } from "react";
 import { Copy, Trash2, TriangleAlert, X } from "lucide-react";
 import { usePlanner } from "@/lib/store";
 import { useProfile } from "@/lib/profile";
+import AssigneeCell, { BulkAssign } from "./AssigneeCell";
 import { pipelineMovePatch, pipelineOf, stageOf } from "@/lib/pipelines";
 import { STATUS_COLORS } from "@/lib/seed";
-import { Who } from "@/lib/types";
 import { formatDate, typeTagClass } from "./CardItem";
 
-const WHO_VALUES: Who[] = ["TOF", "MOF", "BOF"];
 
 export default function TableView({
   search,
@@ -83,6 +82,7 @@ export default function TableView({
           <span className="bulk-count">
             {selected.size} selected
           </span>
+          <BulkAssign ids={[...selected]} onDone={clearSelection} />
           <button className="btn btn-ghost" onClick={doDuplicate}>
             <Copy size={14} /> <span className="btn-label">Duplicate</span>
           </button>
@@ -111,7 +111,7 @@ export default function TableView({
             <th>Pipeline</th>
             <th>Format</th>
             <th>Bucket</th>
-            <th>Who</th>
+            <th>Assigned to</th>
             <th>Posting date</th>
             <th>Added</th>
           </tr>
@@ -201,21 +201,8 @@ export default function TableView({
                     ))}
                   </select>
                 </td>
-                <td>
-                  <select
-                    className="cell-select cell-mono"
-                    value={c.who ?? ""}
-                    onChange={(e) =>
-                      updateCard(c.id, { who: (e.target.value || undefined) as Who })
-                    }
-                  >
-                    <option value="">—</option>
-                    {WHO_VALUES.map((w) => (
-                      <option key={w} value={w}>
-                        {w}
-                      </option>
-                    ))}
-                  </select>
+                <td className="col-assignees">
+                  <AssigneeCell card={c} />
                 </td>
                 <td className="t-mono cell-open" onClick={() => onOpen(c.id)}>
                   {formatDate(c.postingDate)}

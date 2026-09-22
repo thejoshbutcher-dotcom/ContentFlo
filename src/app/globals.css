@@ -6296,3 +6296,72 @@ button.review-stamp.general {
   pointer-events: none;
 }
 
+
+/* ————— All Content · Assigned to ————— */
+
+.col-assignees {
+  min-width: 150px;
+}
+
+/* Titles come first; the table scrolls sideways before they get crushed. */
+.data-table .cell-open {
+  min-width: 240px;
+}
+
+.cell-assignees {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.cell-assignee {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 5px 2px 2px;
+  border-radius: 999px;
+  background: var(--ink-3);
+  color: var(--text);
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cell-assignee .peer-dot {
+  background: var(--amber);
+  color: var(--ink);
+}
+
+.cell-assignee button {
+  display: inline-flex;
+  padding: 2px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.cell-assignee button:hover {
+  color: var(--rec);
+}
+
+.cell-assignee-add {
+  padding: 3px 8px;
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+.cell-muted {
+  color: var(--text-3);
+}
+
+.bulk-assign {
+  padding: 6px 10px;
+  border-color: var(--line-strong);
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+

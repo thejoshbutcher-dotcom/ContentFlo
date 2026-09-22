@@ -19,7 +19,15 @@ import { useProfile } from "@/lib/profile";
 import { effectiveStageId } from "@/lib/pipelines";
 import { STATUS_COLORS } from "@/lib/seed";
 import { ContentCard } from "@/lib/types";
+import { useTeam } from "@/lib/team";
+import {
+  applyFilters,
+  placeInOrder,
+  sortColumn,
+  useViewPrefs,
+} from "@/lib/viewPrefs";
 import CardItem, { CardBody } from "./CardItem";
+import FilterBar from "./FilterBar";
 import { ViewDef } from "./views";
 
 interface ColumnDef {
@@ -39,6 +47,7 @@ function Column({
   selected,
   pending,
   onToggleSelect,
+  dropHint,
 }: {
   col: ColumnDef;
   cards: ContentCard[];
@@ -48,8 +57,11 @@ function Column({
   selected: Set<string>;
   pending: Set<string>;
   onToggleSelect: (id: string, additive: boolean) => void;
+  /** Where a dragged card would land in this column, when it's ordered. */
+  dropHint: DropHint | null;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.id });
+  const hint = dropHint?.colId === col.id ? dropHint : null;
 
   return (
     <div className="column">
@@ -63,8 +75,13 @@ function Column({
         </span>
         <span className="column-count t-mono">{cards.length}</span>
       </div>
-      <div ref={setNodeRef} className={`column-cards${isOver ? " drop-hover" : ""}`}>
+      <div
+        ref={setNodeRef}
+        data-col-id={col.id}
+        className={`column-cards${isOver ? " drop-hover" : ""}`}
+      >
         {cards.map((c) => (
+          <DropSlot key={c.id} show={hint?.beforeId === c.id}>
           <CardItem
             key={c.id}
             card={c}
@@ -75,13 +92,55 @@ function Column({
             preselected={pending.has(c.id)}
             onToggleSelect={onToggleSelect}
           />
+          </DropSlot>
         ))}
+        {hint && hint.beforeId === null && <div className="drop-line" />}
         <button className="add-in-column" onClick={() => onAdd(col.id)}>
           + New idea
         </button>
       </div>
     </div>
   );
+}
+
+function DropSlot({ show, children }: { show: boolean; children: React.ReactNode }) {
+  return (
+    <>
+      {show && <div className="drop-line" />}
+      {children}
+    </>
+  );
+}
+
+interface DropHint {
+  colId: string;
+  /** Visible card it lands before; null = after the last visible card. */
+  beforeId: string | null;
+  afterId: string | null;
+}
+
+/** The pointer's current Y during a dnd-kit drag. */
+function pointerY(e: DragMoveEvent | DragEndEvent): number | null {
+  const ev = e.activatorEvent as MouseEvent | TouchEvent | null;
+  if (!ev) return null;
+  const startY =
+    "touches" in ev ? (ev.touches[0] ?? ev.changedTouches[0])?.clientY : ev.clientY;
+  return typeof startY === "number" ? startY + e.delta.y : null;
+}
+
+/** Which visible card in a column the pointer is above. */
+function dropPosition(colId: string, y: number, moving: Set<string>): DropHint {
+  const el = document.querySelector(`.column-cards[data-col-id="${CSS.escape(colId)}"]`);
+  const tiles = el
+    ? [...el.querySelectorAll<HTMLElement>(".content-card[data-card-id]")].filter(
+        (t) => !moving.has(t.dataset.cardId!)
+      )
+    : [];
+  for (const t of tiles) {
+    const r = t.getBoundingClientRect();
+    if (y < r.top + r.height / 2) return { colId, beforeId: t.dataset.cardId!, afterId: null };
+  }
+  return { colId, beforeId: null, afterId: tiles.at(-1)?.dataset.cardId ?? null };
 }
 
 interface Marquee {
@@ -178,10 +237,17 @@ export default function BoardView({
     return () => window.removeEventListener("keydown", onKey);
   }, [selected, deleteCards]);
 
-  const visible = cards.filter(
-    (c) =>
-      (!view.filter || view.filter(c)) &&
-      (!q || c.title.toLowerCase().includes(q))
+  const [prefs, updatePrefs] = useViewPrefs(view.id);
+  const me = useTeam((s) => s.me?.email ?? null);
+  const [dropHint, setDropHint] = useState<DropHint | null>(null);
+
+  // Every card on this board, before this person's filters — what "full
+  // column order" means for manual ordering and what the filter menu offers.
+  const onBoard = cards.filter((c) => !view.filter || view.filter(c));
+  const visible = applyFilters(
+    onBoard.filter((c) => !q || c.title.toLowerCase().includes(q)),
+    prefs.filters,
+    { me, pipelines }
   );
 
   const columns: ColumnDef[] =
@@ -201,14 +267,23 @@ export default function BoardView({
           dot: "#6c7a8a",
         }));
 
+  const inColumn = (c: ContentCard, colId: string) =>
+    groupBy === "status" ? effectiveStageId(c, pipelines) === colId : c.bucketId === colId;
+
   const cardsFor = (colId: string) =>
-    visible
-      .filter((c) =>
-        groupBy === "status"
-          ? effectiveStageId(c, pipelines) === colId
-          : c.bucketId === colId
-      )
-      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+    sortColumn(
+      visible.filter((c) => inColumn(c, colId)),
+      prefs.sort,
+      prefs.order[colId]
+    );
+
+  /** Every card in a column (filters ignored), in the order currently shown. */
+  const fullOrder = (colId: string) =>
+    sortColumn(
+      onBoard.filter((c) => inColumn(c, colId)),
+      prefs.sort,
+      prefs.order[colId]
+    ).map((c) => c.id);
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -307,6 +382,7 @@ export default function BoardView({
   // ————— Drag (single, or the whole selection together) —————
   function handleDragStart(e: DragStartEvent) {
     const id = String(e.active.id);
+    setDropHint(null);
     setActiveId(id);
     lastDragX.current = 0;
     smoothVx.current = 0;
@@ -320,6 +396,27 @@ export default function BoardView({
   }
 
   function handleDragMove(e: DragMoveEvent) {
+    // Show where the card will land wherever order is up to the user: always
+    // in Manual, and within its own column under any sort (dropping there
+    // switches the board to Manual).
+    const y = pointerY(e);
+    const over = e.over ? String(e.over.id) : null;
+    const ids = dragGroup.current ?? [String(e.active.id)];
+    const from = cards.find((c) => c.id === String(e.active.id));
+    const ordered =
+      over !== null &&
+      (prefs.sort === "manual" || (from !== undefined && inColumn(from, over)));
+    if (!ordered || y === null) {
+      setDropHint((h) => (h ? null : h));
+    } else {
+      const next = dropPosition(over, y, new Set(ids));
+      setDropHint((h) =>
+        h && h.colId === next.colId && h.beforeId === next.beforeId && h.afterId === next.afterId
+          ? h
+          : next
+      );
+    }
+
     if (reducedMotion.current) return;
     // Raw per-event velocity is spiky, so low-pass filter it before mapping to
     // a gentle lean; the CSS transition then glides between the filtered
@@ -342,9 +439,33 @@ export default function BoardView({
     if (settleTimer.current) clearTimeout(settleTimer.current);
     const group = dragGroup.current;
     dragGroup.current = null;
+    setDropHint(null);
     if (!e.over) return;
     const cardId = String(e.active.id);
     const colId = String(e.over.id);
+    const ids = group && group.length > 1 ? group : [cardId];
+    const sameColumn = ids.every((id) => {
+      const c = cards.find((x) => x.id === id);
+      return c ? inColumn(c, colId) : false;
+    });
+    const y = pointerY(e);
+
+    // Your own card order. Reordering within a column under a sort means you
+    // want a different order than the sort gives: switch to Manual, keeping
+    // every column exactly as it looks right now, then place the card.
+    if (y !== null && (prefs.sort === "manual" || sameColumn)) {
+      const pos = dropPosition(colId, y, new Set(ids));
+      const switching = prefs.sort !== "manual";
+      updatePrefs((p) => {
+        const order = { ...p.order };
+        if (switching) for (const col of columns) order[col.id] = fullOrder(col.id);
+        const base = order[colId] ?? fullOrder(colId);
+        order[colId] = placeInOrder(base, ids, pos.beforeId, pos.afterId);
+        return { ...p, sort: "manual", order };
+      });
+    }
+    if (sameColumn) return;
+
     if (group && group.length > 1) {
       if (groupBy === "status") moveCards(group, colId);
       else moveCardsBucket(group, colId);
@@ -379,6 +500,7 @@ export default function BoardView({
       onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
     >
+      <FilterBar prefs={prefs} update={updatePrefs} cards={onBoard} mode="board" />
       <div className="board-scroll" onMouseDown={onBoardMouseDown}>
         <div className="board" data-tour="board">
           {columns.map((col) => (
@@ -392,6 +514,7 @@ export default function BoardView({
               selected={selected}
               pending={pending}
               onToggleSelect={toggleSelect}
+              dropHint={dropHint}
             />
           ))}
         </div>

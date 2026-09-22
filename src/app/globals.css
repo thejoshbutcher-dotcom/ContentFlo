@@ -6398,3 +6398,279 @@ button.review-stamp.general {
 
 
 
+
+/* ————— Filter / sort bar (boards + All Content) ————— */
+
+.filter-bar {
+  padding: 12px 22px 0;
+  flex-shrink: 0;
+}
+
+.table-wrap .filter-bar {
+  padding: 0 0 12px;
+}
+
+.fb-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.fb-anchor {
+  position: relative;
+}
+
+.fb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fb-btn:hover {
+  color: #fff;
+  border-color: var(--text-3);
+}
+
+.fb-btn.active {
+  border-color: var(--amber-deep);
+  color: var(--amber);
+}
+
+.fb-btn.on {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--ink);
+}
+
+.fb-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  width: min(380px, calc(100vw - 24px));
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: var(--shadow-lift);
+}
+
+.fb-pop-sort {
+  width: 230px;
+  padding: 6px;
+}
+
+.fb-group + .fb-group {
+  margin-top: 14px;
+}
+
+.fb-group-title {
+  margin-bottom: 7px;
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.fb-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fb-opt {
+  padding: 5px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.fb-opt:hover {
+  border-color: var(--text-3);
+}
+
+.fb-opt.none {
+  color: var(--text-3);
+  font-style: italic;
+}
+
+.fb-opt.on {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--ink);
+  font-style: normal;
+}
+
+.fb-more {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px 0 2px;
+  border: none;
+  border-top: 1px solid var(--ink-3);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.fb-more .flip {
+  transform: rotate(180deg);
+}
+
+.fb-more-sub {
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.fb-sort-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fb-sort-opt span {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.fb-sort-opt:hover {
+  background: var(--ink-3);
+}
+
+.fb-sort-opt.on {
+  color: var(--amber);
+  font-weight: 600;
+}
+
+.fb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 320px;
+  padding: 4px 6px 4px 11px;
+  border-radius: 999px;
+  background: var(--ink-3);
+  color: var(--text);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fb-chip button {
+  display: inline-flex;
+  padding: 2px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.fb-chip button:hover {
+  color: #fff;
+}
+
+.fb-clear {
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.fb-clear:hover {
+  color: var(--amber);
+}
+
+/* Where a dragged card will land. */
+.drop-line {
+  height: 3px;
+  margin: -2px 4px 4px;
+  border-radius: 3px;
+  background: var(--amber);
+}
+
+/* All Content: sortable headers */
+.th-sort button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.th-sort-idle {
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.th-sort:hover .th-sort-idle {
+  opacity: 0.6;
+}
+
+.th-sort.on button {
+  color: var(--amber);
+}
+
+.table-empty {
+  padding: 18px 4px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .filter-bar {
+    position: relative;
+    padding: 10px 14px 0;
+  }
+  /* Anchor the panels to the bar, not the button, so they fit the screen. */
+  .fb-anchor {
+    position: static;
+  }
+  .fb-pop,
+  .fb-pop-sort {
+    left: 14px;
+    right: 14px;
+    width: auto;
+  }
+}
+
+
+

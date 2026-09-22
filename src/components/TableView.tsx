@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Trash2, TriangleAlert, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Copy, Trash2, TriangleAlert, X } from "lucide-react";
 import { usePlanner } from "@/lib/store";
 import { useProfile } from "@/lib/profile";
 import AssigneeCell, { BulkAssign } from "./AssigneeCell";
+import FilterBar from "./FilterBar";
+import { personName, useTeam } from "@/lib/team";
+import { applyFilters, TableSortKey, useViewPrefs } from "@/lib/viewPrefs";
 import { pipelineMovePatch, pipelineOf, stageOf } from "@/lib/pipelines";
 import { STATUS_COLORS } from "@/lib/seed";
 import { formatDate, typeTagClass } from "./CardItem";
@@ -34,11 +37,85 @@ export default function TableView({
     const i = pipelineOf(c, pipelines)?.stages.findIndex((s) => s.id === c.status) ?? -1;
     return i === -1 ? 99 : i;
   };
-  const rows = cards
-    .filter((c) => !q || c.title.toLowerCase().includes(q))
-    .sort(
-      (a, b) => stepIndex(a) - stepIndex(b) || (a.createdAt < b.createdAt ? 1 : -1)
+  const [prefs, updatePrefs] = useViewPrefs("table");
+  const me = useTeam((s) => s.me?.email ?? null);
+  useTeam((s) => s.directory); // "Assigned to" sorts by display name
+
+  const pipeIndex = (c: (typeof cards)[number]) => {
+    const p = pipelineOf(c, pipelines);
+    return p ? pipelines.indexOf(p) : 99;
+  };
+  const bucketName = (c: (typeof cards)[number]) =>
+    buckets.find((b) => b.id === c.bucketId)?.name ?? "";
+  const firstAssignee = (c: (typeof cards)[number]) =>
+    c.assignees?.length ? personName(c.assignees[0], me) : "";
+
+  /** Text-ish comparison where blanks always sink, whichever direction. */
+  const text = (a: string, b: string, dir: number) =>
+    !a !== !b ? (a ? -1 : 1) : dir * a.localeCompare(b, undefined, { sensitivity: "base", numeric: true });
+
+  const byColumn = (key: TableSortKey, dir: number) => (a: (typeof cards)[number], b: (typeof cards)[number]) => {
+    switch (key) {
+      case "title":
+        return text(a.title.trim(), b.title.trim(), dir);
+      case "status":
+        return dir * (pipeIndex(a) - pipeIndex(b) || stepIndex(a) - stepIndex(b));
+      case "pipeline":
+        return dir * (pipeIndex(a) - pipeIndex(b));
+      case "format":
+        return text(a.format ?? "", b.format ?? "", dir);
+      case "bucket":
+        return text(bucketName(a), bucketName(b), dir);
+      case "assigned":
+        return text(firstAssignee(a), firstAssignee(b), dir);
+      case "posting":
+        return text(a.postingDate ?? "", b.postingDate ?? "", dir);
+      default:
+        return dir * a.createdAt.localeCompare(b.createdAt);
+    }
+  };
+
+  const scoped = cards.filter((c) => !q || c.title.toLowerCase().includes(q));
+  const tableSort = prefs.table ?? null;
+  const rows = applyFilters(scoped, prefs.filters, { me, pipelines }).sort((a, b) =>
+    tableSort
+      ? byColumn(tableSort.key, tableSort.dir)(a, b) || (a.createdAt < b.createdAt ? 1 : -1)
+      : stepIndex(a) - stepIndex(b) || (a.createdAt < b.createdAt ? 1 : -1)
+  );
+
+  /** Header click: ascending → descending → off (back to the default order). */
+  function sortBy(key: TableSortKey) {
+    updatePrefs((p) => {
+      const cur = p.table;
+      const next =
+        !cur || cur.key !== key
+          ? { key, dir: 1 as const }
+          : cur.dir === 1
+            ? { key, dir: -1 as const }
+            : null;
+      return { ...p, table: next };
+    });
+  }
+
+  const th = (k: TableSortKey, children: React.ReactNode) => {
+    const on = tableSort?.key === k;
+    return (
+      <th
+        key={k}
+        className={`th-sort${on ? " on" : ""}`}
+        aria-sort={on ? (tableSort!.dir === 1 ? "ascending" : "descending") : "none"}
+      >
+        <button onClick={() => sortBy(k)}>
+          {children}
+          {on ? (
+            tableSort!.dir === 1 ? <ArrowUp size={11} /> : <ArrowDown size={11} />
+          ) : (
+            <ArrowUpDown size={11} className="th-sort-idle" />
+          )}
+        </button>
+      </th>
     );
+  };
 
   const rowIds = rows.map((c) => c.id);
   const allSelected = rowIds.length > 0 && rowIds.every((id) => selected.has(id));
@@ -95,6 +172,10 @@ export default function TableView({
         </div>
       )}
 
+      <FilterBar prefs={prefs} update={updatePrefs} cards={scoped} mode="table" />
+      {rows.length === 0 && scoped.length > 0 && (
+        <div className="table-empty">No cards match these filters.</div>
+      )}
       <table className="data-table">
         <thead>
           <tr>
@@ -106,14 +187,14 @@ export default function TableView({
                 aria-label="Select all"
               />
             </th>
-            <th>Title</th>
-            <th>Status</th>
-            <th>Pipeline</th>
-            <th>Format</th>
-            <th>Bucket</th>
-            <th>Assigned to</th>
-            <th>Posting date</th>
-            <th>Added</th>
+            {th("title", "Title")}
+            {th("status", "Status")}
+            {th("pipeline", "Pipeline")}
+            {th("format", "Format")}
+            {th("bucket", "Bucket")}
+            {th("assigned", "Assigned to")}
+            {th("posting", "Posting date")}
+            {th("added", "Added")}
           </tr>
         </thead>
         <tbody>

@@ -16,7 +16,6 @@ import {
   Pipeline,
   pipelineMovePatch,
   pipelineOf,
-  tabForStage,
 } from "@/lib/pipelines";
 import { STATUS_COLORS } from "@/lib/seed";
 import {
@@ -39,6 +38,18 @@ import Avatar, { Name } from "./Avatar";
 import { ContentCard, Section, Who } from "@/lib/types";
 
 type Tab = "plan" | "script" | "review" | "post";
+
+const LAST_TAB_KEY = "cf-card-tab";
+
+function readLastTab(): Tab {
+  try {
+    const saved = localStorage.getItem(LAST_TAB_KEY);
+    if (saved && TAB_LABELS.some((t) => t.id === saved)) return saved as Tab;
+  } catch {
+    /* ignore */
+  }
+  return "plan";
+}
 
 // In production order: you script it, cut it, review the cut, then post it.
 const TAB_LABELS: { id: Tab; label: string }[] = [
@@ -483,16 +494,20 @@ export default function CardModal({
   const profileFeelings = useProfile((s) => s.feelings);
   const profileActions = useProfile((s) => s.actions);
   const socials = useProfile((s) => s.socials);
-  // Open on the tab that matches the card's production status.
   const pipelines = useProfile((s) => s.pipelines);
-  // Open on the tab that matches where the card is in its pipeline.
-  const [tab, setTab] = useState<Tab>(() => {
-    if (!card) return "plan";
-    const stage = effectiveStageId(card, pipelines);
-    // In Editing with a cut already up for review, the notes are why you're here.
-    if (stage === "editing" && card.review?.versions.length) return "review";
-    return tabForStage(pipelineOf(card, pipelines), stage);
-  });
+  // Open on whichever tab was used last. It used to follow the card's status
+  // (Scripting → Script, and so on), but steps are user-defined now, so the
+  // app can't know what a step means — and a tab that jumps around between
+  // cards is worse than one that stays put.
+  const [tab, setTabState] = useState<Tab>(readLastTab);
+  const setTab = (next: Tab) => {
+    setTabState(next);
+    try {
+      localStorage.setItem(LAST_TAB_KEY, next);
+    } catch {
+      /* private mode — it just won't be remembered */
+    }
+  };
   const [showRef, setShowRef] = useState(false);
 
   useEffect(() => {
@@ -569,14 +584,12 @@ export default function CardModal({
   function setStatus(statusId: string) {
     if (!card) return;
     moveCard(card.id, statusId); // undoable status change
-    // Changing status jumps to the matching phase (packaged -> scripting shows Script).
-    setTab(tabForStage(pipeline, statusId));
   }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div
-        className={`modal${tab === "post" ? "" : " full"}`}
+        className="modal full"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-head">
@@ -631,8 +644,15 @@ export default function CardModal({
             </span>
           )}
           {viewOnly && <span className="view-only-chip">View only</span>}
-          {tab === "script" && (
-            <button className="ref-toggle" onClick={() => setShowRef((v) => !v)}>
+          {/* Always laid out, only visible on Script — so the tab strip sits in
+              exactly the same place on every tab. */}
+          {(
+            <button
+              className={`ref-toggle${tab === "script" ? "" : " ref-toggle-hidden"}`}
+              aria-hidden={tab !== "script"}
+              tabIndex={tab === "script" ? 0 : -1}
+              onClick={() => setShowRef((v) => !v)}
+            >
               <BookOpen
                 size={11}
                 style={{ display: "inline", marginRight: 5, verticalAlign: -1 }}

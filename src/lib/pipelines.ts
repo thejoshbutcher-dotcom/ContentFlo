@@ -19,15 +19,10 @@ import type { ContentCard, ContentType, StatusColor } from "./types";
  * content type — exactly where it always was.
  */
 
-export type StageTab = "plan" | "script" | "post";
-
 export interface PipelineStage {
   id: string;
   name: string;
   color: StatusColor;
-  /** Which card tab a card in this step opens on. Custom steps leave it unset
-   *  and take their neighbour's, so it stays right when steps are reordered. */
-  tab?: StageTab;
 }
 
 export interface Pipeline {
@@ -71,14 +66,14 @@ export const STAGE_COLORS: StatusColor[] = [
  *  was always long-form only. */
 export function defaultStages(format: ContentType): PipelineStage[] {
   const all: PipelineStage[] = [
-    { id: "ideas", name: "Ideas", color: "slate", tab: "plan" },
-    { id: "up-next", name: "Up Next", color: "pink", tab: "plan" },
-    { id: "packaged", name: "Packaged", color: "yellow", tab: "plan" },
-    { id: "scripting", name: "Scripting", color: "blue", tab: "script" },
-    { id: "filming", name: "Filming", color: "red", tab: "script" },
-    { id: "editing", name: "Editing", color: "purple", tab: "script" },
-    { id: "ready", name: "Ready for Posting", color: "orange", tab: "post" },
-    { id: "posted", name: "Posted", color: "green", tab: "post" },
+    { id: "ideas", name: "Ideas", color: "slate" },
+    { id: "up-next", name: "Up Next", color: "pink" },
+    { id: "packaged", name: "Packaged", color: "yellow" },
+    { id: "scripting", name: "Scripting", color: "blue" },
+    { id: "filming", name: "Filming", color: "red" },
+    { id: "editing", name: "Editing", color: "purple" },
+    { id: "ready", name: "Ready for Posting", color: "orange" },
+    { id: "posted", name: "Posted", color: "green" },
   ];
   return all.filter((s) => s.id !== "packaged" || format === "Long form");
 }
@@ -158,17 +153,6 @@ export function isDone(
   const p = pipelineOf(card, pipelines);
   if (!p || p.stages.length < 2) return false;
   return p.stages[p.stages.length - 1].id === card.status;
-}
-
-/** Which card tab a step opens on: its own, else the nearest earlier step's,
- *  else the nearest later one's. */
-export function tabForStage(pipeline: Pipeline | undefined, stageId: string): StageTab {
-  const stages = pipeline?.stages ?? [];
-  const i = stages.findIndex((s) => s.id === stageId);
-  if (i === -1) return "plan";
-  for (let j = i; j >= 0; j--) if (stages[j].tab) return stages[j].tab!;
-  for (let j = i + 1; j < stages.length; j++) if (stages[j].tab) return stages[j].tab!;
-  return "plan";
 }
 
 /**

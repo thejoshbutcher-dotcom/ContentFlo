@@ -6290,3 +6290,9 @@ button.review-stamp.general {
   object-fit: cover;
 }
 
+
+.ref-toggle-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+

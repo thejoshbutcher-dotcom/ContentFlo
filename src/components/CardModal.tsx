@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   BookOpen,
+  ChevronDown,
   ChevronRight,
   ImagePlus,
   Images,
@@ -509,6 +510,14 @@ export default function CardModal({
     }
   };
   const [showRef, setShowRef] = useState(false);
+  const titleRef = useRef<HTMLTextAreaElement | null>(null);
+  // Grow the title box to fit its text (one or two lines; more scrolls).
+  useLayoutEffect(() => {
+    const el = titleRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [card?.title, tab]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -596,26 +605,45 @@ export default function CardModal({
             centre so it's always obvious where you are, actions on the right. */}
         <div className="modal-head">
           <div className="head-left">
-            <select
-              className="prop-select status-select"
+            {/* A pill that's only as wide as the current step's name; the real
+                <select> sits invisibly on top, so it opens the native menu. */}
+            <label
+              className={`status-pill${viewOnly ? " disabled" : ""}`}
               style={{ background: colors.bg, color: colors.fg }}
-              disabled={viewOnly}
-              value={statusId}
-              onChange={(e) => setStatus(e.target.value)}
+              title="Change status"
             >
-              {statuses.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-            <input
+              <span className="status-dot" style={{ background: colors.dot }} />
+              <span className="status-pill-name">{status?.name ?? "Status"}</span>
+              <ChevronDown size={12} />
+              <select
+                disabled={viewOnly}
+                value={statusId}
+                onChange={(e) => setStatus(e.target.value)}
+                aria-label="Status"
+              >
+                {statuses.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {/* Wraps to a second line instead of cutting a long title off. */}
+            <textarea
+              ref={titleRef}
               className="modal-title-input"
               value={card.title}
+              rows={1}
               placeholder="Untitled idea"
               readOnly={viewOnly}
               autoFocus={!card.title}
-              onChange={(e) => updateCard(card.id, { title: e.target.value })}
+              onChange={(e) => updateCard(card.id, { title: e.target.value.replace(/\n/g, " ") })}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.currentTarget.blur();
+                }
+              }}
             />
           </div>
 

@@ -18,7 +18,7 @@ create function storage.foldername(n text) returns text[] language sql as $$ sel
 grant usage on schema auth to authenticated, anon, service_role;
 create publication supabase_realtime;
 `);
-for (const f of ["0001_init.sql","0002_grants.sql","0003_purchases.sql","0004_teams.sql","0004_teams.sql","0005_user_profiles.sql","0005_user_profiles.sql"]) {
+for (const f of ["0001_init.sql","0002_grants.sql","0003_purchases.sql","0004_teams.sql","0004_teams.sql","0005_user_profiles.sql","0005_user_profiles.sql","0006_view_prefs.sql","0006_view_prefs.sql"]) {
   await db.exec(fs.readFileSync(M+f,"utf8"));
 }
 const U = { owner:"00000000-0000-0000-0000-000000000001", editor:"00000000-0000-0000-0000-000000000002", viewer:"00000000-0000-0000-0000-000000000003", stranger:"00000000-0000-0000-0000-000000000004" };
@@ -124,6 +124,12 @@ r = await as("stranger", `select name from user_profiles where user_id=$1`,[U.ed
 r = await as("stranger", `insert into user_profiles (user_id,name) values ($1,'Impostor')`,[U.owner]); ok("can't create someone else's profile", !!r.err, j(r));
 r = await as("stranger", `update user_profiles set name='Hacked' where user_id=$1`,[U.editor]); ok("can't rename someone else", r.n===0, j(r));
 r = await as("editor", `update user_profiles set avatar='http://evil' where user_id=$1`,[U.editor]); ok("avatar must be an inline JPEG", !!r.err, j(r));
+
+// — view_prefs: strictly your own
+r = await as("editor", `insert into view_prefs (user_id,key,prefs) values ($1,'p:board','{"sort":"title"}')`,[U.editor]); ok("user saves own view prefs", !r.err, r.err);
+r = await as("stranger", `select * from view_prefs`); ok("nobody else can read your view prefs", r.rows.length===0, j(r));
+r = await as("stranger", `insert into view_prefs (user_id,key,prefs) values ($1,'x','{}')`,[U.editor]); ok("can't write someone else's view prefs", !!r.err, j(r));
+r = await as("owner", `update view_prefs set prefs='{}' where user_id=$1`,[U.editor]); ok("even a profile owner can't change a member's views", r.n===0, j(r));
 
 // — anon gets nothing
 await db.exec(`select set_config('request.jwt.claims','',false); set role anon`);

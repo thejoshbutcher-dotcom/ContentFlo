@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAccounts } from "./accounts";
 import { isDone, Pipeline, pipelineOf, stageOf } from "./pipelines";
 import { openNotes } from "./review";
+import { getSupabaseBrowser } from "./supabase/client";
 import { useTeam } from "./team";
 import { ContentCard, Who } from "./types";
 
@@ -13,7 +14,9 @@ import { ContentCard, Who } from "./types";
  * editor filtering to "Mine" must not change what the owner sees. (What IS
  * shared is the work itself: status, assignees, content.)
  *
- * Stored per user × profile × view, on this device.
+ * Stored per user × profile × view: on the device for an instant paint, and
+ * in `view_prefs` (readable only by its owner) so every device you sign in
+ * on shows the same views. Newest change wins.
  */
 
 export type PostingFilter = "week" | "month" | "overdue" | "none";
@@ -57,6 +60,8 @@ export interface ViewPrefs {
   table?: { key: TableSortKey; dir: 1 | -1 } | null;
   /** Manual order: column id → card ids, top to bottom. */
   order: Record<string, string[]>;
+  /** When these were last changed — how devices decide whose copy wins. */
+  at?: string;
 }
 
 const EMPTY: ViewPrefs = { filters: {}, sort: "manual", table: null, order: {} };
@@ -71,11 +76,58 @@ function load(key: string): ViewPrefs {
   return EMPTY;
 }
 
+function saveLocal(key: string, prefs: ViewPrefs) {
+  try {
+    localStorage.setItem(key, JSON.stringify(prefs));
+  } catch {
+    /* private mode: works for this session only */
+  }
+}
+
+// ————— Cloud copy —————
+// Debounced per key: dragging cards around fires many updates in a row.
+const pushTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function pushRemote(uid: string, remoteKey: string, prefs: ViewPrefs) {
+  if (uid === "local") return;
+  const t = pushTimers.get(remoteKey);
+  if (t) clearTimeout(t);
+  pushTimers.set(
+    remoteKey,
+    setTimeout(() => {
+      pushTimers.delete(remoteKey);
+      const supabase = getSupabaseBrowser();
+      if (!supabase) return;
+      void supabase
+        .from("view_prefs")
+        .upsert({ user_id: uid, key: remoteKey, prefs, updated_at: prefs.at })
+        .then(() => {}); // missing table (migration not run) → local-only, silently
+    }, 600)
+  );
+}
+
+async function pullRemote(remoteKey: string): Promise<ViewPrefs | null> {
+  const supabase = getSupabaseBrowser();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("view_prefs")
+    .select("prefs,updated_at")
+    .eq("key", remoteKey)
+    .maybeSingle();
+  if (error || !data) return null;
+  const row = data as { prefs: Partial<ViewPrefs>; updated_at: string };
+  return { ...EMPTY, ...row.prefs, at: row.updated_at };
+}
+
+const newer = (a: string | undefined, b: string | undefined) =>
+  Boolean(a) && (!b || Date.parse(a!) > Date.parse(b));
+
 /** This person's prefs for a view, re-read when the view/profile/user changes. */
 export function useViewPrefs(viewId: string) {
   const uid = useTeam((s) => s.me?.id ?? "local");
   const pid = useAccounts((s) => s.activeId);
   const key = `cf-view:${uid}:${pid}:${viewId}`;
+  const remoteKey = `${pid}:${viewId}`;
   const [state, setState] = useState(() => ({ key, prefs: load(key) }));
   // Reset during render when the key changes (React's "adjust state on prop
   // change" pattern) so a board never paints with another board's filters.
@@ -85,19 +137,44 @@ export function useViewPrefs(viewId: string) {
     setState(current);
   }
 
+  // Adopt the cloud copy when another device changed it more recently — on
+  // open, and whenever this window comes back into focus.
+  useEffect(() => {
+    if (uid === "local") return;
+    let live = true;
+    const sync = () =>
+      void pullRemote(remoteKey).then((remote) => {
+        if (!live || !remote) return;
+        setState((s) => {
+          if (s.key !== key) return s;
+          if (newer(remote.at, s.prefs.at)) {
+            saveLocal(key, remote);
+            return { key, prefs: remote };
+          }
+          // Ours is newer (changed offline, or before the table existed):
+          // send it up instead.
+          if (newer(s.prefs.at, remote.at)) pushRemote(uid, remoteKey, s.prefs);
+          return s;
+        });
+      });
+    sync();
+    window.addEventListener("focus", sync);
+    return () => {
+      live = false;
+      window.removeEventListener("focus", sync);
+    };
+  }, [uid, key, remoteKey]);
+
   const update = useCallback(
     (fn: (p: ViewPrefs) => ViewPrefs) => {
       setState((s) => {
-        const next = fn(s.prefs);
-        try {
-          localStorage.setItem(s.key, JSON.stringify(next));
-        } catch {
-          /* private mode: works for this session only */
-        }
+        const next = { ...fn(s.prefs), at: new Date().toISOString() };
+        saveLocal(s.key, next);
+        pushRemote(uid, remoteKey, next);
         return { ...s, prefs: next };
       });
     },
-    []
+    [uid, remoteKey]
   );
 
   return [current.prefs, update] as const;

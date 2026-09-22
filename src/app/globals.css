@@ -1429,16 +1429,30 @@ body {
   padding: 0;
 }
 
+/* Equal side columns keep the tab strip on the exact centre line no matter
+   how long the title is or which actions are showing. */
 .modal-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
-  padding: 13px 20px;
+  gap: 16px;
+  padding: 10px 20px;
   background: var(--ink);
   border-bottom: 1px solid var(--ink-3);
   color: #fff;
   flex-shrink: 0;
-  flex-wrap: wrap;
+}
+
+.head-left,
+.head-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.head-right {
+  justify-content: flex-end;
 }
 
 .status-select {
@@ -1477,19 +1491,19 @@ body {
   display: flex;
   background: var(--ink-2);
   border-radius: 999px;
-  padding: 3px;
-  gap: 2px;
+  padding: 4px;
+  gap: 3px;
   flex-shrink: 0;
 }
 
 .tab-btn {
-  padding: 5px 16px;
+  padding: 9px 22px;
   border-radius: 999px;
   border: none;
   background: transparent;
   color: var(--text-3);
   font-family: var(--font-display), sans-serif;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background 150ms ease, color 150ms ease;
@@ -3315,15 +3329,37 @@ summary:focus-visible {
     border: none;
   }
 
+  /* Phones: card on top, tabs full-width under it, actions in the top row. */
   .modal-head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 10px;
     padding: 10px 12px;
-    gap: 8px;
+  }
+
+  .head-left {
+    flex-wrap: wrap;
   }
 
   .modal-title-input {
-    order: 10;
     flex-basis: 100%;
     font-size: 15px;
+  }
+
+  .head-right {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .tab-switch {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: stretch;
+  }
+
+  .tab-switch .tab-btn {
+    flex: 1;
+    padding: 8px 6px;
+    font-size: 13px;
   }
 
   .modal-body {
@@ -6291,11 +6327,6 @@ button.review-stamp.general {
 }
 
 
-.ref-toggle-hidden {
-  visibility: hidden;
-  pointer-events: none;
-}
-
 
 /* ————— All Content · Assigned to ————— */
 
@@ -6363,5 +6394,7 @@ button.review-stamp.general {
   font-size: 12.5px;
   color: var(--text);
 }
+
+
 
 

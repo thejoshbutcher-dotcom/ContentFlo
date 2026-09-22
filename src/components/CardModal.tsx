@@ -592,28 +592,33 @@ export default function CardModal({
         className="modal full"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Three zones: the card (status + title) on the left, the tabs dead
+            centre so it's always obvious where you are, actions on the right. */}
         <div className="modal-head">
-          <select
-            className="prop-select status-select"
-            style={{ background: colors.bg, color: colors.fg }}
-            disabled={viewOnly}
-            value={statusId}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            {statuses.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          <input
-            className="modal-title-input"
-            value={card.title}
-            placeholder="Untitled idea"
-            readOnly={viewOnly}
-            autoFocus={!card.title}
-            onChange={(e) => updateCard(card.id, { title: e.target.value })}
-          />
+          <div className="head-left">
+            <select
+              className="prop-select status-select"
+              style={{ background: colors.bg, color: colors.fg }}
+              disabled={viewOnly}
+              value={statusId}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              {statuses.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <input
+              className="modal-title-input"
+              value={card.title}
+              placeholder="Untitled idea"
+              readOnly={viewOnly}
+              autoFocus={!card.title}
+              onChange={(e) => updateCard(card.id, { title: e.target.value })}
+            />
+          </div>
+
           <div className="tab-switch" role="tablist" data-tour="card-tabs">
             {TAB_LABELS.map((t) => (
               <button
@@ -630,55 +635,51 @@ export default function CardModal({
               </button>
             ))}
           </div>
-          {here.length > 0 && (
-            <span
-              className="peer-stack"
-              title={`Also in this card: ${here.map((p) => personName(p.email, null)).join(", ")}`}
-            >
-              {here.slice(0, 3).map((p) => (
-                <Avatar key={p.userId} email={p.email} size={24} />
-              ))}
-              <span className="peer-label">
-                {here.length === 1 ? "is here too" : "are here too"}
+
+          <div className="head-right">
+            {here.length > 0 && (
+              <span
+                className="peer-stack"
+                title={`Also in this card: ${here.map((p) => personName(p.email, null)).join(", ")}`}
+              >
+                {here.slice(0, 3).map((p) => (
+                  <Avatar key={p.userId} email={p.email} size={24} />
+                ))}
+                <span className="peer-label">
+                  {here.length === 1 ? "is here too" : "are here too"}
+                </span>
               </span>
-            </span>
-          )}
-          {viewOnly && <span className="view-only-chip">View only</span>}
-          {/* Always laid out, only visible on Script — so the tab strip sits in
-              exactly the same place on every tab. */}
-          {(
+            )}
+            {viewOnly && <span className="view-only-chip">View only</span>}
+            {tab === "script" && (
+              <button className="ref-toggle" onClick={() => setShowRef((v) => !v)}>
+                <BookOpen
+                  size={11}
+                  style={{ display: "inline", marginRight: 5, verticalAlign: -1 }}
+                />
+                {showRef ? "Hide guides" : "Hooks & guides"}
+              </button>
+            )}
+            {!viewOnly && (
+              <button
+                className="btn btn-danger"
+                onClick={() => {
+                  deleteCard(card.id);
+                  onClose();
+                }}
+                aria-label="Delete card"
+              >
+                <Trash2 size={15} />
+              </button>
+            )}
             <button
-              className={`ref-toggle${tab === "script" ? "" : " ref-toggle-hidden"}`}
-              aria-hidden={tab !== "script"}
-              tabIndex={tab === "script" ? 0 : -1}
-              onClick={() => setShowRef((v) => !v)}
+              className="btn btn-ghost head-close"
+              onClick={onClose}
+              aria-label="Close"
             >
-              <BookOpen
-                size={11}
-                style={{ display: "inline", marginRight: 5, verticalAlign: -1 }}
-              />
-              {showRef ? "Hide guides" : "Hooks & guides"}
+              <X size={15} />
             </button>
-          )}
-          {!viewOnly && (
-            <button
-              className="btn btn-danger"
-              onClick={() => {
-                deleteCard(card.id);
-                onClose();
-              }}
-              aria-label="Delete card"
-            >
-              <Trash2 size={15} />
-            </button>
-          )}
-          <button
-            className="btn btn-ghost head-close"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            <X size={15} />
-          </button>
+          </div>
         </div>
 
         {tab === "plan" && (

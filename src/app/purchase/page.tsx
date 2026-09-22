@@ -1,11 +1,13 @@
 import Image from "next/image";
+import { redirect } from "next/navigation";
+import { hasPurchase } from "@/lib/entitlement";
 import { getUser } from "@/lib/supabase/server";
-import { isStripeConfigured } from "@/lib/stripe";
 import BuyButton from "./BuyButton";
 
 export default async function PurchasePage() {
   const user = await getUser();
-  const configured = isStripeConfigured();
+  // Someone who already owns it has nothing to buy here.
+  if (user && (await hasPurchase(user.email))) redirect("/");
 
   return (
     <div className="auth-screen">
@@ -25,14 +27,7 @@ export default async function PurchasePage() {
             : "Buy once and it's yours. Plan, script, and publish from one workspace."}
         </p>
 
-        {configured ? (
-          <BuyButton email={user?.email ?? undefined} />
-        ) : (
-          <p className="auth-error">
-            Payments aren&apos;t configured yet. Add your Stripe keys to enable
-            checkout.
-          </p>
-        )}
+        <BuyButton email={user?.email ?? undefined} />
 
         <p className="auth-foot">
           Already bought?{" "}

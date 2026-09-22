@@ -7,7 +7,7 @@ import { isDone, pipelineOf, stageOf } from "@/lib/pipelines";
 import { openNotes } from "@/lib/review";
 import { STATUS_COLORS } from "@/lib/seed";
 import { useProfile } from "@/lib/profile";
-import { initialOf, useTeam } from "@/lib/team";
+import { initialOf, personName, useTeam } from "@/lib/team";
 import { ContentCard } from "@/lib/types";
 
 const TYPE_CLASS: Record<string, string> = {
@@ -41,6 +41,7 @@ export function CardBody({
   const buckets = useProfile((s) => s.buckets);
   // Teammates with this card open — so you can see a collision coming.
   const peers = useTeam((s) => s.peers);
+  const me = useTeam((s) => s.me);
   const inCard = peers.filter((p) => p.cardId === card.id);
   const pipelines = useProfile((s) => s.pipelines);
   const status = stageOf(card, pipelines);
@@ -84,6 +85,12 @@ export function CardBody({
             {pipelineOf(card, pipelines)?.name ?? card.contentType}
           </span>
         )}
+        {(card.assignees ?? []).map((email) => (
+          <span key={email} className="tag tag-person" title={email}>
+            <span className="peer-dot">{initialOf(email)}</span>
+            {personName(email, me?.email)}
+          </span>
+        ))}
         {showStatus && status && (
           <span
             className="tag"

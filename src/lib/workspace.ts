@@ -8,7 +8,7 @@ import { defaultProfileData, useProfile } from "./profile";
 import { usePlanner } from "./store";
 import { getSupabaseBrowser } from "./supabase/client";
 import { getCloudUser, startSync, stopSync } from "./sync";
-import { Role, useTeam } from "./team";
+import { loadRoster, Role, useTeam } from "./team";
 
 const ACTIVE_KEY = "cf-active-profile";
 
@@ -20,7 +20,8 @@ export function roleOf(id: string): Role {
 function applyRole(id: string) {
   const role = roleOf(id);
   setReadOnly(role === "viewer");
-  useTeam.setState({ role, peers: [] });
+  useTeam.setState({ role, peers: [], roster: [] });
+  void loadRoster(id);
 }
 
 /** Aim both persisted stores at a profile's local cache keys. */

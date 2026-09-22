@@ -1,44 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { CreditCard, Loader2 } from "lucide-react";
+import { CreditCard } from "lucide-react";
+
+/**
+ * Checkout is a Stripe Payment Link, configured in the Stripe dashboard (price,
+ * promotion codes, the thank-you redirect). The signed-in email is pre-filled
+ * so the purchase is keyed to the account that will sign in afterwards.
+ */
+const PAYMENT_LINK =
+  process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK ??
+  "https://buy.stripe.com/8x2fZhaQA416a7SaOl18c02";
 
 export default function BuyButton({ email }: { email?: string }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  async function buy() {
-    setBusy(true);
-    setError("");
-    try {
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.url) throw new Error(data.error ?? "Checkout failed");
-      window.location.href = data.url;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-      setBusy(false);
-    }
-  }
+  const href = email
+    ? `${PAYMENT_LINK}?prefilled_email=${encodeURIComponent(email)}`
+    : PAYMENT_LINK;
 
   return (
-    <>
-      <button className="btn btn-amber auth-cta" onClick={buy} disabled={busy}>
-        {busy ? (
-          <>
-            <Loader2 size={15} className="spin" /> Redirecting…
-          </>
-        ) : (
-          <>
-            <CreditCard size={15} /> Buy CreatorFlo
-          </>
-        )}
-      </button>
-      {error && <p className="auth-error">{error}</p>}
-    </>
+    <a className="btn btn-amber auth-cta" href={href}>
+      <CreditCard size={15} /> Buy CreatorFlo
+    </a>
   );
 }

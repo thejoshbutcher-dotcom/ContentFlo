@@ -6,6 +6,7 @@ import { getCloudEmail } from "@/lib/sync";
 import {
   deleteInvite,
   Invite,
+  loadRoster,
   loadTeam,
   Member,
   MemberRole,
@@ -78,6 +79,7 @@ function Dialog({
     const team = await loadTeam(id);
     setMembers(team.members);
     setInvites(team.invites);
+    void loadRoster(id);
   }, [id]);
 
   useEffect(() => {

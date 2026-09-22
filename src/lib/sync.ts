@@ -8,7 +8,7 @@ import { deepEqual, mergeCard, mergeProfileData } from "./merge";
 import { defaultProfileData, useProfile } from "./profile";
 import { getSupabaseBrowser } from "./supabase/client";
 import { usePlanner } from "./store";
-import { Peer, useTeam } from "./team";
+import { loadRoster, Peer, useTeam } from "./team";
 import { ContentCard } from "./types";
 
 const FLUSH_IDLE_MS = 800; // quiet period after the last keystroke
@@ -620,6 +620,16 @@ function subscribeLive(s: SyncSession) {
         if (sameVersion(s.profileBase?.version, row?.updated_at)) return;
         void applyRemoteProfile(s);
       }
+    )
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "profile_members",
+        filter: `profile_id=eq.${s.profileId}`,
+      },
+      () => void loadRoster(s.profileId)
     )
     .on("presence", { event: "sync" }, () => {
       const state = channel.presenceState<Peer>();

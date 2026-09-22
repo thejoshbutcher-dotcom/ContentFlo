@@ -63,6 +63,8 @@ export interface ContentCard {
   hook?: string;
   delivery?: string;
   sections: Section[];
+  /** Emails of the teammates working on this one (from the profile's roster). */
+  assignees?: string[];
   /** Cuts under review and the notes on them — see review.ts. */
   review?: CardReview;
   createdAt: string;

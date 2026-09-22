@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { useAccounts } from "./accounts";
 import { getSupabaseBrowser } from "./supabase/client";
 
 export type Role = "owner" | "editor" | "viewer";
@@ -21,6 +22,12 @@ export interface Invite {
   profileName: string;
 }
 
+/** Someone with access to the open profile — the owner plus every member. */
+export interface Person {
+  email: string;
+  role: Role;
+}
+
 /** A teammate with this profile open right now. */
 export interface Peer {
   userId: string;
@@ -37,6 +44,8 @@ interface TeamState {
   /** My role on the open profile. */
   role: Role;
   peers: Peer[];
+  /** Everyone on the open profile (owner first). Empty when signed out. */
+  roster: Person[];
   /** Invites addressed to me, across all profiles. */
   incoming: Invite[];
   /** The profile whose share dialog is open. Lives here because the dialog
@@ -48,9 +57,38 @@ export const useTeam = create<TeamState>()(() => ({
   me: null,
   role: "owner",
   peers: [],
+  roster: [],
   incoming: [],
   shareFor: null,
 }));
+
+/** "sam.jones@studio.com" → "Sam.jones"; you → "You". */
+export function personName(email: string, me: string | null | undefined): string {
+  if (me && email.toLowerCase() === me.toLowerCase()) return "You";
+  const local = email.split("@")[0] || email;
+  return local.charAt(0).toUpperCase() + local.slice(1);
+}
+
+/**
+ * Who's on this profile: the owner (me, or whoever shared it) plus the
+ * members. What the card's "Assigned to" picker offers.
+ */
+export async function loadRoster(profileId: string): Promise<void> {
+  const me = useTeam.getState().me;
+  const acct = useAccounts.getState().accounts.find((a) => a.id === profileId);
+  const ownerEmail = (acct?.role ?? "owner") === "owner" ? me?.email : acct?.sharedBy;
+  const roster: Person[] = ownerEmail
+    ? [{ email: ownerEmail.toLowerCase(), role: "owner" }]
+    : [];
+  const { members } = await loadTeam(profileId);
+  for (const m of members) {
+    if (!roster.some((p) => p.email === m.email.toLowerCase())) {
+      roster.push({ email: m.email.toLowerCase(), role: m.role });
+    }
+  }
+  // The profile may have changed while we waited.
+  if (useAccounts.getState().activeId === profileId) useTeam.setState({ roster });
+}
 
 /** "sam@studio.com" → "S", for presence dots. */
 export function initialOf(email: string): string {

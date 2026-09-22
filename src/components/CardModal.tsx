@@ -34,7 +34,7 @@ import RichEditor from "./RichEditor";
 import ReviewTab from "./ReviewTab";
 import { openNotes } from "@/lib/review";
 import { setOpenCard } from "@/lib/sync";
-import { initialOf, useTeam } from "@/lib/team";
+import { initialOf, personName, useTeam } from "@/lib/team";
 import { ContentCard, Section, Who } from "@/lib/types";
 
 type Tab = "plan" | "script" | "review" | "post";
@@ -390,6 +390,76 @@ function SideChecklist({
   );
 }
 
+/**
+ * Who's working on this one. The choices are the profile's roster — owner and
+ * members — so nothing is typed by hand and every name links to a real
+ * account. Picking someone puts their chip on the board tile.
+ */
+function AssigneeField({ card }: { card: ContentCard }) {
+  const updateCard = usePlanner((s) => s.updateCard);
+  const roster = useTeam((s) => s.roster);
+  const me = useTeam((s) => s.me);
+  const viewOnly = useTeam((s) => s.role === "viewer");
+  if (!me) return null; // signed-out, local-only mode: no accounts to assign
+
+  const assigned = card.assignees ?? [];
+  // Someone assigned before they were removed from the profile still shows,
+  // so the assignment isn't silently lost.
+  const known = new Set(roster.map((p) => p.email));
+  const options = roster.filter((p) => !assigned.includes(p.email));
+
+  return (
+    <>
+      <div className="prop-label t-eyebrow">Assigned to</div>
+      <div className="assignees">
+        {assigned.map((email) => (
+          <span key={email} className={`assignee${known.has(email) ? "" : " gone"}`} title={email}>
+            <span className="peer-dot">{initialOf(email)}</span>
+            {personName(email, me.email)}
+            {!viewOnly && (
+              <button
+                aria-label={`Unassign ${email}`}
+                onClick={() =>
+                  updateCard(card.id, { assignees: assigned.filter((e) => e !== email) })
+                }
+              >
+                <X size={11} />
+              </button>
+            )}
+          </span>
+        ))}
+        {!viewOnly && (
+          <select
+            className="prop-select assignee-add"
+            value=""
+            disabled={options.length === 0}
+            onChange={(e) => {
+              if (e.target.value) {
+                updateCard(card.id, { assignees: [...assigned, e.target.value] });
+              }
+            }}
+          >
+            <option value="">
+              {options.length
+                ? assigned.length
+                  ? "Add someone…"
+                  : "Choose a teammate…"
+                : roster.length <= 1
+                  ? "Share this profile to add teammates"
+                  : "Everyone's on it"}
+            </option>
+            {options.map((p) => (
+              <option key={p.email} value={p.email}>
+                {personName(p.email, me.email)} · {p.email}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+    </>
+  );
+}
+
 export default function CardModal({
   cardId,
   onClose,
@@ -682,6 +752,8 @@ export default function CardModal({
                   updateCard(card.id, { postingDate: e.target.value || undefined })
                 }
               />
+
+              <AssigneeField card={card} />
 
               <div className="prop-label t-eyebrow">Goal of video</div>
               <input

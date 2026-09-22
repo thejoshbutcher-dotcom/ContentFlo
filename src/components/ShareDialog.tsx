@@ -17,6 +17,7 @@ import {
 } from "@/lib/team";
 import { deleteAccount, roleOf } from "@/lib/workspace";
 import { useAccounts } from "@/lib/accounts";
+import Avatar, { Name } from "./Avatar";
 
 const ROLE_HELP: Record<MemberRole, string> = {
   editor: "Can add, edit and move everything",
@@ -190,8 +191,16 @@ function Dialog({
 
         <div className="share-list">
           <div className="share-row">
-            <span className="share-avatar owner">{(isOwner ? me : sharedBy ?? "?")[0]?.toUpperCase()}</span>
-            <span className="share-email">{isOwner ? `${me} (you)` : sharedBy ?? "Owner"}</span>
+            <Avatar email={isOwner ? me : (sharedBy ?? "?")} size={24} className="share-avatar owner" />
+            <span className="share-email">
+              {isOwner ? (
+                <>You <span className="share-sub">{me}</span></>
+              ) : sharedBy ? (
+                <><Name email={sharedBy} /> <span className="share-sub">{sharedBy}</span></>
+              ) : (
+                "Owner"
+              )}
+            </span>
             <span className="share-role">Owner</span>
           </div>
 
@@ -203,10 +212,9 @@ function Dialog({
 
           {members?.map((m) => (
             <div key={m.userId} className="share-row">
-              <span className="share-avatar">{m.email[0]?.toUpperCase()}</span>
+              <Avatar email={m.email} size={24} className="share-avatar" />
               <span className="share-email">
-                {m.email}
-                {m.email === me ? " (you)" : ""}
+                <Name email={m.email} /> <span className="share-sub">{m.email}</span>
               </span>
               {isOwner ? (
                 <>

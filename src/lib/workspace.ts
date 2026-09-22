@@ -64,12 +64,18 @@ export async function loadAccounts(
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const all: Account[] = [
-    ...owned.map((r) => ({ id: r.id, name: r.name, role: "owner" as const })),
+    ...owned.map((r) => ({
+      id: r.id,
+      name: r.name,
+      role: "owner" as const,
+      ownerId: r.user_id,
+    })),
     ...shared.map((r) => ({
       id: r.id,
       name: r.name,
       role: memberships.get(r.id)!.role,
       sharedBy: memberships.get(r.id)!.inviter_email ?? undefined,
+      ownerId: r.user_id,
     })),
   ];
   if (all.length) useAccounts.setState({ accounts: all });

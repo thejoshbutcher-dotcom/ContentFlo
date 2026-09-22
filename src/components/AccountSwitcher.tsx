@@ -12,7 +12,9 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
-import { useTeam } from "@/lib/team";
+import { ownName, useTeam } from "@/lib/team";
+import Avatar from "./Avatar";
+import IdentityDialog from "./IdentityDialog";
 import { useAccounts } from "@/lib/accounts";
 import {
   createAccount,
@@ -42,7 +44,10 @@ function AccountMenu({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   // Only signed-in users get Share and Sign out.
-  const email = useTeam((s) => s.me?.email ?? null);
+  const me = useTeam((s) => s.me);
+  const email = me?.email ?? null;
+  useTeam((s) => s.directory); // re-render when my name/picture changes
+  const [editingMe, setEditingMe] = useState(false);
 
   async function pick(id: string) {
     if (id !== activeId) {
@@ -207,11 +212,20 @@ function AccountMenu({
         </div>
       )}
 
-      {email && (
+      {email && me && (
         <div className="acct-actions">
-          <div className="acct-email t-mono" title={email}>
-            {email}
-          </div>
+          <button
+            className="acct-me"
+            onClick={() => setEditingMe(true)}
+            title="Edit your name and picture"
+          >
+            <Avatar email={email} size={30} />
+            <span className="acct-me-text">
+              <span className="acct-me-name">{ownName(me.id, email)}</span>
+              <span className="acct-email t-mono">{email}</span>
+            </span>
+            <Pencil size={12} className="acct-me-edit" />
+          </button>
           {/* POST to a route handler so the server can clear the auth cookies. */}
           <form action="/auth/signout" method="post">
             <button type="submit" className="acct-action acct-signout">
@@ -221,6 +235,7 @@ function AccountMenu({
           </form>
         </div>
       )}
+      {editingMe && <IdentityDialog onClose={() => setEditingMe(false)} />}
     </div>
   );
 }

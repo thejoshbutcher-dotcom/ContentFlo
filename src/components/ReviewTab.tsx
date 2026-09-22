@@ -12,7 +12,8 @@ import {
   sortComments,
 } from "@/lib/review";
 import { usePlanner } from "@/lib/store";
-import { initialOf, useTeam } from "@/lib/team";
+import { useTeam } from "@/lib/team";
+import Avatar, { Name } from "./Avatar";
 import { newId } from "@/lib/templates";
 import { ContentCard } from "@/lib/types";
 import ReviewPlayer, { ReviewPlayerHandle } from "./ReviewPlayer";
@@ -278,7 +279,11 @@ function Cut({
           </p>
         ) : (
           <div className={`review-composer${draft ? " has-text" : ""}`}>
-            <span className="peer-dot review-composer-me">{me ? initialOf(me) : "•"}</span>
+            {me ? (
+              <Avatar email={me} size={28} className="review-composer-me" />
+            ) : (
+              <span className="peer-dot review-composer-me">•</span>
+            )}
             <div className="review-composer-field">
               <textarea
                 value={draft}
@@ -383,8 +388,8 @@ function Cut({
                   )}
                   {c.author && (
                     <span className="review-author" title={c.author}>
-                      <span className="peer-dot">{initialOf(c.author)}</span>
-                      {c.author === me ? "You" : c.author.split("@")[0]}
+                      <Avatar email={c.author} size={16} />
+                      <Name email={c.author} />
                     </span>
                   )}
                 </div>

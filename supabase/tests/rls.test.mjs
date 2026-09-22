@@ -18,7 +18,7 @@ create function storage.foldername(n text) returns text[] language sql as $$ sel
 grant usage on schema auth to authenticated, anon, service_role;
 create publication supabase_realtime;
 `);
-for (const f of ["0001_init.sql","0002_grants.sql","0003_purchases.sql","0004_teams.sql","0004_teams.sql"]) {
+for (const f of ["0001_init.sql","0002_grants.sql","0003_purchases.sql","0004_teams.sql","0004_teams.sql","0005_user_profiles.sql","0005_user_profiles.sql"]) {
   await db.exec(fs.readFileSync(M+f,"utf8"));
 }
 const U = { owner:"00000000-0000-0000-0000-000000000001", editor:"00000000-0000-0000-0000-000000000002", viewer:"00000000-0000-0000-0000-000000000003", stranger:"00000000-0000-0000-0000-000000000004" };
@@ -117,6 +117,13 @@ r = await as("owner", `delete from profile_invites where email='viewer@x.com'`);
 // — owner unchanged
 r = await as("owner", `select id from cards order by id`); ok("owner still sees all own cards", j(r.rows.map(x=>x.id))===j(["a1","a2","b1"]), j(r));
 r = await as("owner", `delete from profiles where id='chanB'`); ok("owner deletes own profile", r.n===1, j(r));
+
+// — user_profiles: everyone reads, only you write yours
+r = await as("editor", `insert into user_profiles (user_id,name) values ($1,'Sam')`,[U.editor]); ok("user sets own name", !r.err, r.err);
+r = await as("stranger", `select name from user_profiles where user_id=$1`,[U.editor]); ok("any signed-in user can read a name", r.rows[0]?.name==="Sam", j(r));
+r = await as("stranger", `insert into user_profiles (user_id,name) values ($1,'Impostor')`,[U.owner]); ok("can't create someone else's profile", !!r.err, j(r));
+r = await as("stranger", `update user_profiles set name='Hacked' where user_id=$1`,[U.editor]); ok("can't rename someone else", r.n===0, j(r));
+r = await as("editor", `update user_profiles set avatar='http://evil' where user_id=$1`,[U.editor]); ok("avatar must be an inline JPEG", !!r.err, j(r));
 
 // — anon gets nothing
 await db.exec(`select set_config('request.jwt.claims','',false); set role anon`);

@@ -2,7 +2,8 @@
 
 import { Eye } from "lucide-react";
 import { useAccounts } from "@/lib/accounts";
-import { initialOf, useTeam } from "@/lib/team";
+import { personName, useTeam } from "@/lib/team";
+import Avatar from "./Avatar";
 
 /**
  * Top-bar strip for a shared profile: who else has it open right now, and —
@@ -30,12 +31,10 @@ export default function TeamPresence() {
       {peers.length > 0 && (
         <span
           className="peer-stack"
-          title={`Here now: ${peers.map((p) => p.email).join(", ")}`}
+          title={`Here now: ${peers.map((p) => personName(p.email, null)).join(", ")}`}
         >
           {peers.slice(0, 4).map((p) => (
-            <span key={p.userId} className="peer-dot">
-              {initialOf(p.email)}
-            </span>
+            <Avatar key={p.userId} email={p.email} size={24} />
           ))}
           {peers.length > 4 && <span className="peer-more">+{peers.length - 4}</span>}
         </span>

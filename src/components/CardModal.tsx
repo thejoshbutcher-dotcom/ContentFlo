@@ -34,7 +34,8 @@ import RichEditor from "./RichEditor";
 import ReviewTab from "./ReviewTab";
 import { openNotes } from "@/lib/review";
 import { setOpenCard } from "@/lib/sync";
-import { initialOf, personName, useTeam } from "@/lib/team";
+import { personName, useTeam } from "@/lib/team";
+import Avatar, { Name } from "./Avatar";
 import { ContentCard, Section, Who } from "@/lib/types";
 
 type Tab = "plan" | "script" | "review" | "post";
@@ -400,6 +401,7 @@ function AssigneeField({ card }: { card: ContentCard }) {
   const roster = useTeam((s) => s.roster);
   const me = useTeam((s) => s.me);
   const viewOnly = useTeam((s) => s.role === "viewer");
+  useTeam((s) => s.directory); // option labels follow name changes
   if (!me) return null; // signed-out, local-only mode: no accounts to assign
 
   const assigned = card.assignees ?? [];
@@ -414,8 +416,8 @@ function AssigneeField({ card }: { card: ContentCard }) {
       <div className="assignees">
         {assigned.map((email) => (
           <span key={email} className={`assignee${known.has(email) ? "" : " gone"}`} title={email}>
-            <span className="peer-dot">{initialOf(email)}</span>
-            {personName(email, me.email)}
+            <Avatar email={email} size={20} />
+            <Name email={email} />
             {!viewOnly && (
               <button
                 aria-label={`Unassign ${email}`}
@@ -618,12 +620,10 @@ export default function CardModal({
           {here.length > 0 && (
             <span
               className="peer-stack"
-              title={`Also in this card: ${here.map((p) => p.email).join(", ")}`}
+              title={`Also in this card: ${here.map((p) => personName(p.email, null)).join(", ")}`}
             >
               {here.slice(0, 3).map((p) => (
-                <span key={p.userId} className="peer-dot">
-                  {initialOf(p.email)}
-                </span>
+                <Avatar key={p.userId} email={p.email} size={24} />
               ))}
               <span className="peer-label">
                 {here.length === 1 ? "is here too" : "are here too"}

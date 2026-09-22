@@ -8,7 +8,7 @@ import { deepEqual, mergeCard, mergeProfileData } from "./merge";
 import { defaultProfileData, useProfile } from "./profile";
 import { getSupabaseBrowser } from "./supabase/client";
 import { usePlanner } from "./store";
-import { loadRoster, Peer, useTeam } from "./team";
+import { loadDirectory, loadRoster, Peer, useTeam } from "./team";
 import { ContentCard } from "./types";
 
 const FLUSH_IDLE_MS = 800; // quiet period after the last keystroke
@@ -630,6 +630,14 @@ function subscribeLive(s: SyncSession) {
         filter: `profile_id=eq.${s.profileId}`,
       },
       () => void loadRoster(s.profileId)
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "user_profiles" },
+      (payload) => {
+        const row = payload.new as { user_id?: string } | null;
+        if (row?.user_id) void loadDirectory([row.user_id]);
+      }
     )
     .on("presence", { event: "sync" }, () => {
       const state = channel.presenceState<Peer>();

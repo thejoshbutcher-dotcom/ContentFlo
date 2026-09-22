@@ -24,6 +24,12 @@ they do.
    Without these, invites still work — they appear as a banner the next time the
    invitee opens the app — they just aren't announced by email.
 
+## Names and pictures (one-time, after 0004)
+
+Run `supabase/migrations/0005_user_profiles.sql` the same way. Until then the
+app works, but "Your profile" (bottom-left menu) can't save, and everyone shows
+as an initial plus a name made from their email.
+
 ## How it's enforced
 
 | Layer | What it guarantees |

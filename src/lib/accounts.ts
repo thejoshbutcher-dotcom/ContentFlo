@@ -11,6 +11,8 @@ export interface Account {
   role?: "owner" | "editor" | "viewer";
   /** Who shared it with you (their email), for profiles you don't own. */
   sharedBy?: string;
+  /** The owner's user id — the roster needs it to look up their name. */
+  ownerId?: string;
 }
 
 interface AccountsState {

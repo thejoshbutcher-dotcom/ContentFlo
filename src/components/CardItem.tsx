@@ -7,7 +7,8 @@ import { isDone, pipelineOf, stageOf } from "@/lib/pipelines";
 import { openNotes } from "@/lib/review";
 import { STATUS_COLORS } from "@/lib/seed";
 import { useProfile } from "@/lib/profile";
-import { initialOf, personName, useTeam } from "@/lib/team";
+import { useTeam } from "@/lib/team";
+import Avatar, { Name } from "./Avatar";
 import { ContentCard } from "@/lib/types";
 
 const TYPE_CLASS: Record<string, string> = {
@@ -41,7 +42,6 @@ export function CardBody({
   const buckets = useProfile((s) => s.buckets);
   // Teammates with this card open — so you can see a collision coming.
   const peers = useTeam((s) => s.peers);
-  const me = useTeam((s) => s.me);
   const inCard = peers.filter((p) => p.cardId === card.id);
   const pipelines = useProfile((s) => s.pipelines);
   const status = stageOf(card, pipelines);
@@ -67,9 +67,7 @@ export function CardBody({
             title={`Open now: ${inCard.map((p) => p.email).join(", ")}`}
           >
             {inCard.slice(0, 2).map((p) => (
-              <span key={p.userId} className="peer-dot">
-                {initialOf(p.email)}
-              </span>
+              <Avatar key={p.userId} email={p.email} size={18} />
             ))}
           </span>
         )}
@@ -87,8 +85,8 @@ export function CardBody({
         )}
         {(card.assignees ?? []).map((email) => (
           <span key={email} className="tag tag-person" title={email}>
-            <span className="peer-dot">{initialOf(email)}</span>
-            {personName(email, me?.email)}
+            <Avatar email={email} size={15} />
+            <Name email={email} />
           </span>
         ))}
         {showStatus && status && (

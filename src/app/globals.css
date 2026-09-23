@@ -6733,3 +6733,22 @@ button.review-stamp.general {
 
 
 
+
+/* ————— Board cards never get squashed ————— */
+/* The column scrolls; the cards inside it must keep their full height. A card
+   with a thumbnail has overflow:hidden (for the rounded image corners), which
+   otherwise lets flexbox shrink it below its content on short or zoomed-in
+   screens — cropping the title and chips. */
+.column-cards > * {
+  flex-shrink: 0;
+}
+
+.card-title {
+  overflow-wrap: anywhere;
+}
+
+.card-meta .tag {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+

@@ -39,6 +39,8 @@ interface PlannerState {
   toggleChecklistItem: (cardId: string, sectionId: string, itemId: string) => void;
   applyTemplate: (cardId: string, type: ContentType) => void;
   importAll: (cards: ContentCard[]) => void;
+  /** Add ready-made cards (a paste); Cmd/Ctrl+Z takes them back out. */
+  insertCards: (cards: ContentCard[]) => void;
   resetToSeed: () => void;
   /** Reverse the most recent card delete / move / duplicate. */
   undo: () => void;
@@ -121,6 +123,12 @@ export const usePlanner = create<PlannerState>()(
         set({ cards: [...copies, ...get().cards] });
         push({ kind: "remove", ids: copies.map((c) => c.id) });
         return copies.map((c) => c.id);
+      },
+
+      insertCards: (incoming) => {
+        if (!incoming.length) return;
+        set({ cards: [...incoming, ...get().cards] });
+        push({ kind: "remove", ids: incoming.map((c) => c.id) });
       },
 
       moveCard: (id, status) => {

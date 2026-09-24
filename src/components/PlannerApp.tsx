@@ -35,6 +35,7 @@ import CalendarView from "./CalendarView";
 import CardModal from "./CardModal";
 import CompetitorsView from "./CompetitorsView";
 import InspoAddDialog from "./InspoAddDialog";
+import SearchBox from "./SearchBox";
 import ShareDialog from "./ShareDialog";
 import TeamInvites from "./TeamInvites";
 import TeamPresence from "./TeamPresence";
@@ -412,12 +413,7 @@ export default function PlannerApp() {
               <RefreshCw size={15} className={refreshing ? "spin" : ""} />
             </button>
           )}
-          <input
-            className="search-input"
-            placeholder="Search titles..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <SearchBox value={search} onChange={setSearch} />
           <TeamPresence />
           {me && (
             <button

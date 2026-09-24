@@ -5,9 +5,11 @@ import {
   BookOpen,
   ChevronDown,
   ChevronRight,
+  ClipboardPaste,
   ImagePlus,
   Images,
   Trash2,
+  TriangleAlert,
   X,
 } from "lucide-react";
 import { usePlanner } from "@/lib/store";
@@ -295,54 +297,140 @@ function SectionBlock({
 }
 
 /** Long-form thumbnail: upload or paste one image; it drives the board card. */
+/**
+ * The card's thumbnail. Every way in also works as a way to change it: click
+ * Replace (or the empty box) to pick a file, drop an image on it, or click the
+ * field and paste. Remove clears it.
+ */
 function ThumbnailField({ card }: { card: ContentCard }) {
   const updateCard = usePlanner((s) => s.updateCard);
+  const viewOnly = useTeam((s) => s.role === "viewer");
   const fileRef = useRef<HTMLInputElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [note, setNote] = useState("");
 
   async function setFromFiles(files: FileList | File[] | null) {
     const img = [...(files ?? [])].find((f) => f.type.startsWith("image/"));
-    if (!img) return;
+    if (!img) {
+      setNote("That isn't an image.");
+      return;
+    }
+    setNote("");
     updateCard(card.id, { thumbnail: await compressImage(img) });
   }
 
-  async function onPaste(e: React.ClipboardEvent) {
-    const files = [...e.clipboardData.items]
-      .filter((it) => it.type.startsWith("image/"))
-      .map((it) => it.getAsFile())
-      .filter((f): f is File => f !== null);
-    if (!files.length) return;
-    e.preventDefault();
-    await setFromFiles(files);
+  // ⌘V / Ctrl+V while the field is focused. Listened for on the document:
+  // Safari doesn't deliver paste events to a focused non-text element.
+  useEffect(() => {
+    if (viewOnly) return;
+    const onPaste = (e: ClipboardEvent) => {
+      if (!boxRef.current?.contains(document.activeElement)) return;
+      const files = [...(e.clipboardData?.items ?? [])]
+        .filter((it) => it.type.startsWith("image/"))
+        .map((it) => it.getAsFile())
+        .filter((f): f is File => f !== null);
+      if (!files.length) {
+        setNote("There's no image on your clipboard.");
+        return;
+      }
+      e.preventDefault();
+      void setFromFiles(files);
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewOnly, card.id]);
+
+  /** The "Paste image" button: read the clipboard directly. */
+  async function pasteFromClipboard() {
+    setNote("");
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        const type = item.types.find((t) => t.startsWith("image/"));
+        if (type) {
+          const blob = await item.getType(type);
+          await setFromFiles([new File([blob], "pasted", { type })]);
+          return;
+        }
+      }
+      setNote("There's no image on your clipboard. Copy one first.");
+    } catch {
+      // Unsupported, or permission refused: the keyboard route still works.
+      boxRef.current?.focus();
+      setNote("Your browser blocked that — press ⌘V (Ctrl+V) now to paste instead.");
+    }
   }
 
+  const pick = () => fileRef.current?.click();
+
   return (
-    <div className="prop-thumb" onPaste={onPaste}>
+    <div className="prop-thumb">
       <div className="prop-label t-eyebrow">Thumbnail</div>
-      {card.thumbnail ? (
-        <div className="thumb-preview">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+      <div
+        ref={boxRef}
+        className={`thumb-box${dragOver ? " drag-over" : ""}${card.thumbnail ? " has-img" : ""}`}
+        // Clicking the box focuses it, ready for ⌘V; it doesn't open the file
+        // picker (that's what the Choose file button is for).
+        tabIndex={viewOnly ? undefined : 0}
+        onDragOver={(e) => {
+          if (viewOnly || ![...e.dataTransfer.types].includes("Files")) return;
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          if (viewOnly) return;
+          e.preventDefault();
+          setDragOver(false);
+          void setFromFiles(e.dataTransfer.files);
+        }}
+      >
+        {card.thumbnail ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img src={card.thumbnail} alt="Video thumbnail" />
-          <button
-            className="thumb-remove"
-            aria-label="Remove thumbnail"
-            onClick={() => updateCard(card.id, { thumbnail: undefined })}
-          >
-            <X size={13} />
+        ) : (
+          <div className="thumb-empty">
+            <ImagePlus size={18} />
+            <span>{viewOnly ? "No thumbnail" : "Add a thumbnail"}</span>
+            {!viewOnly && (
+              <span className="thumb-drop-sub">Click here and press ⌘V, or drop an image</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {!viewOnly && (
+        <div className="thumb-actions">
+          <button onClick={() => void pasteFromClipboard()}>
+            <ClipboardPaste size={13} /> Paste image
           </button>
+          <button onClick={pick}>
+            <ImagePlus size={13} /> {card.thumbnail ? "Replace" : "Choose file"}
+          </button>
+          {card.thumbnail && (
+            <button
+              className="danger"
+              onClick={() => updateCard(card.id, { thumbnail: undefined })}
+            >
+              <Trash2 size={13} /> Remove
+            </button>
+          )}
         </div>
-      ) : (
-        <button className="thumb-drop" onClick={() => fileRef.current?.click()}>
-          <ImagePlus size={18} />
-          <span>Upload</span>
-          <span className="thumb-drop-sub">or click + paste from clipboard</span>
-        </button>
       )}
+      {note && <div className="thumb-note">{note}</div>}
+
       <input
         ref={fileRef}
         type="file"
         accept="image/*"
         hidden
-        onChange={(e) => setFromFiles(e.target.files)}
+        onChange={(e) => {
+          void setFromFiles(e.target.files);
+          // Reset, so picking the same file again still counts as a change.
+          e.target.value = "";
+        }}
       />
     </div>
   );
@@ -510,6 +598,7 @@ export default function CardModal({
     }
   };
   const [showRef, setShowRef] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const titleRef = useRef<HTMLTextAreaElement | null>(null);
   // Grow the title box to fit its text (one or two lines; more scrolls).
   useLayoutEffect(() => {
@@ -521,11 +610,13 @@ export default function CardModal({
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      if (confirmDelete) setConfirmDelete(false);
+      else onClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, confirmDelete]);
 
   // Tell teammates this card is open here, so they see who they'd collide with.
   useEffect(() => {
@@ -690,12 +781,10 @@ export default function CardModal({
             )}
             {!viewOnly && (
               <button
-                className="btn btn-danger"
-                onClick={() => {
-                  deleteCard(card.id);
-                  onClose();
-                }}
+                className="btn btn-danger head-delete"
+                onClick={() => setConfirmDelete(true)}
                 aria-label="Delete card"
+                title="Delete card"
               >
                 <Trash2 size={15} />
               </button>
@@ -974,6 +1063,41 @@ export default function CardModal({
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {confirmDelete && (
+          <div className="modal-overlay confirm-layer" onClick={() => setConfirmDelete(false)}>
+            <div
+              className="confirm-box"
+              role="alertdialog"
+              aria-label="Delete this card?"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="confirm-icon">
+                <TriangleAlert size={26} />
+              </div>
+              <h3>Delete this card?</h3>
+              <p>
+                &ldquo;{card.title || "Untitled"}&rdquo; will be removed for everyone on
+                this profile. You can undo it with Cmd/Ctrl+Z.
+              </p>
+              <div className="confirm-actions">
+                <button className="btn btn-ghost" autoFocus onClick={() => setConfirmDelete(false)}>
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-danger-solid"
+                  onClick={() => {
+                    setConfirmDelete(false);
+                    deleteCard(card.id);
+                    onClose();
+                  }}
+                >
+                  <Trash2 size={14} /> Delete
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

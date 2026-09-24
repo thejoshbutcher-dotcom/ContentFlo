@@ -28,6 +28,9 @@ import {
 } from "@/lib/viewPrefs";
 import CardItem, { CardBody } from "./CardItem";
 import FilterBar from "./FilterBar";
+import { useAccounts } from "@/lib/accounts";
+import { buildPaste, copyCards, useClipboardCount } from "@/lib/cardClipboard";
+import { Clipboard, ClipboardPaste, CopyPlus } from "lucide-react";
 import { ViewDef } from "./views";
 
 interface ColumnDef {
@@ -48,6 +51,7 @@ function Column({
   pending,
   onToggleSelect,
   dropHint,
+  onContext,
 }: {
   col: ColumnDef;
   cards: ContentCard[];
@@ -59,6 +63,7 @@ function Column({
   onToggleSelect: (id: string, additive: boolean) => void;
   /** Where a dragged card would land in this column, when it's ordered. */
   dropHint: DropHint | null;
+  onContext: (e: ReactMouseEvent, colId: string, cardId: string | null) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.id });
   const hint = dropHint?.colId === col.id ? dropHint : null;
@@ -79,6 +84,10 @@ function Column({
         ref={setNodeRef}
         data-col-id={col.id}
         className={`column-cards${isOver ? " drop-hover" : ""}`}
+        onContextMenu={(e) => {
+          const tile = (e.target as HTMLElement).closest<HTMLElement>(".content-card[data-card-id]");
+          onContext(e, col.id, tile?.dataset.cardId ?? null);
+        }}
       >
         {cards.map((c) => (
           <DropSlot key={c.id} show={hint?.beforeId === c.id}>
@@ -240,6 +249,26 @@ export default function BoardView({
   const [prefs, updatePrefs] = useViewPrefs(view.id);
   const me = useTeam((s) => s.me?.email ?? null);
   const [dropHint, setDropHint] = useState<DropHint | null>(null);
+
+  // ————— Copy / paste (right-click, or Cmd/Ctrl+C / V) —————
+  const profileId = useAccounts((s) => s.activeId);
+  const roster = useTeam((s) => s.roster);
+  const insertCards = usePlanner((s) => s.insertCards);
+  const duplicateCards = usePlanner((s) => s.duplicateCards);
+  const clipCount = useClipboardCount();
+  const [menu, setMenu] = useState<{
+    x: number;
+    y: number;
+    colId: string;
+    cardIds: string[];
+  } | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flash = (msg: string) => {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2600);
+  };
 
   // Every card on this board, before this person's filters — what "full
   // column order" means for manual ordering and what the filter menu offers.
@@ -489,6 +518,84 @@ export default function BoardView({
     onOpen(card.id);
   }
 
+  function openMenu(e: ReactMouseEvent, colId: string, cardId: string | null) {
+    e.preventDefault();
+    // Right-clicking a card that's part of the selection acts on all of them.
+    const ids = cardId ? (selected.has(cardId) ? [...selected] : [cardId]) : [];
+    setMenu({
+      x: Math.min(e.clientX, window.innerWidth - 230),
+      y: Math.min(e.clientY, window.innerHeight - 170),
+      colId,
+      cardIds: ids,
+    });
+  }
+
+  function doCopy(ids: string[]) {
+    const picked = cards.filter((c) => ids.includes(c.id));
+    if (!picked.length) return;
+    copyCards(picked, profileId, buckets);
+    flash(
+      `Copied ${picked.length === 1 ? "1 card" : `${picked.length} cards`} — right-click a column to paste, on any board or profile`
+    );
+  }
+
+  function doPaste(colId: string | null) {
+    const pipeline = groupBy === "status" ? view.pipeline : pipelines[0];
+    if (!pipeline) return;
+    const target = colId ?? columns[0]?.id ?? null;
+    const pasted = buildPaste({
+      pipeline,
+      stageId: groupBy === "status" ? (target ?? undefined) : undefined,
+      bucketId: groupBy === "bucket" ? (target ?? undefined) : undefined,
+      toProfile: profileId,
+      buckets,
+      roster: roster.map((p) => p.email),
+    });
+    if (!pasted.length) return;
+    insertCards(pasted);
+    setSelected(new Set(pasted.map((c) => c.id)));
+    const where = columns.find((c) => c.id === target)?.name;
+    flash(
+      `Pasted ${pasted.length === 1 ? "1 card" : `${pasted.length} cards`}${where ? ` into ${where}` : ""} · Cmd/Ctrl+Z to undo`
+    );
+  }
+
+  // Keyboard: copy the selected cards, paste into the first column.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k !== "c" && k !== "v") return;
+      const el = document.activeElement as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable) return;
+      if (document.querySelector(".modal-overlay")) return;
+      if (window.getSelection()?.toString()) return; // copying page text: leave it alone
+      if (k === "c" && selected.size) {
+        e.preventDefault();
+        doCopy([...selected]);
+      } else if (k === "v" && clipCount) {
+        e.preventDefault();
+        doPaste(null);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    window.addEventListener("mousedown", close);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("keydown", close);
+    return () => {
+      window.removeEventListener("mousedown", close);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("keydown", close);
+    };
+  }, [menu]);
+
   const activeCard = activeId ? cards.find((c) => c.id === activeId) : null;
   const dragCount =
     activeId && selected.has(activeId) && selected.size > 1 ? selected.size : 1;
@@ -515,6 +622,7 @@ export default function BoardView({
               pending={pending}
               onToggleSelect={toggleSelect}
               dropHint={dropHint}
+              onContext={openMenu}
             />
           ))}
         </div>
@@ -583,6 +691,61 @@ export default function BoardView({
           </div>
         </div>
       )}
+
+      {menu && (
+        <div
+          className="ctx-menu"
+          style={{ left: menu.x, top: menu.y }}
+          onMouseDown={(e) => e.stopPropagation()}
+          role="menu"
+        >
+          {menu.cardIds.length > 0 && (
+            <>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  doCopy(menu.cardIds);
+                  setMenu(null);
+                }}
+              >
+                <Clipboard size={14} />
+                {menu.cardIds.length > 1 ? `Copy ${menu.cardIds.length} cards` : "Copy card"}
+                <span className="ctx-key">⌘C</span>
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => {
+                  const ids = duplicateCards(menu.cardIds);
+                  setSelected(new Set(ids));
+                  setMenu(null);
+                }}
+              >
+                <CopyPlus size={14} />
+                Duplicate
+              </button>
+            </>
+          )}
+          <button
+            role="menuitem"
+            disabled={!clipCount}
+            onClick={() => {
+              doPaste(menu.colId);
+              setMenu(null);
+            }}
+          >
+            <ClipboardPaste size={14} />
+            {clipCount
+              ? `Paste ${clipCount === 1 ? "card" : `${clipCount} cards`} here`
+              : "Paste here"}
+            <span className="ctx-key">⌘V</span>
+          </button>
+          {!clipCount && menu.cardIds.length === 0 && (
+            <div className="ctx-hint">Right-click a card and choose Copy first.</div>
+          )}
+        </div>
+      )}
+
+      {toast && <div className="board-toast">{toast}</div>}
 
       <DragOverlay>
         {activeCard ? (

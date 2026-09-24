@@ -476,14 +476,113 @@ body {
 
 /* When the refresh button is present it owns the auto-margin; the search sits
    right beside it instead of getting its own gap. */
-.topbar-refresh + .search-input {
-  margin-left: 10px;
+/* The search slot takes the bar's spare room (up to 240px); SearchBox
+   measures it and swaps to an icon when it's too narrow to type in. */
+.search-slot {
+  flex: 1 1 240px;
+  max-width: 240px;
+  min-width: 36px;
+  margin-left: auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.topbar {
+  position: relative;
+}
+
+.search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.search-field .search-icon,
+.search-overlay .search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--text-3);
+  pointer-events: none;
+}
+
+.search-clear {
+  position: absolute;
+  right: 6px;
+  display: inline-flex;
+  padding: 5px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.search-clear:hover {
+  color: #fff;
+  background: var(--ink-3);
+}
+
+.search-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-input);
+  background: var(--ink-2);
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.search-icon-btn:hover,
+.search-icon-btn.active {
+  color: var(--amber);
+  border-color: var(--amber-deep);
+}
+
+.search-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--amber);
+}
+
+/* Compact search, opened: spans the whole top bar. */
+.search-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  background: var(--paper);
+}
+
+.search-overlay .search-icon {
+  left: 26px;
+}
+
+.search-overlay .search-input {
+  width: 100%;
+  padding: 10px 38px 10px 36px;
+  font-size: 15px;
+}
+
+.search-overlay .search-clear {
+  right: 20px;
 }
 
 .search-input {
-  margin-left: auto;
-  width: 220px;
-  padding: 8px 14px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 30px 8px 34px;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-input);
   background: var(--ink-2);
@@ -2196,6 +2295,123 @@ body {
   text-align: center;
 }
 
+/* The thumbnail box: shows the image (or an empty drop area). Clicking it
+   focuses it so ⌘V pastes; the buttons below do the rest. */
+.thumb-box {
+  position: relative;
+  margin-top: 6px;
+  aspect-ratio: 16 / 9;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-input);
+  background: var(--ink);
+  overflow: hidden;
+  outline: none;
+  cursor: text;
+}
+
+.thumb-box.has-img {
+  border-style: solid;
+  border-color: transparent;
+}
+
+.thumb-box img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumb-box:focus,
+.thumb-box.drag-over {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 2px var(--amber);
+}
+
+.thumb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 100%;
+  padding: 10px;
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.thumb-box:focus .thumb-drop-sub {
+  color: var(--amber);
+}
+
+.thumb-note {
+  margin-top: 6px;
+  color: var(--text-3);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+/* Over the image: a clear "Replace" on hover. */
+.thumb-hover {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: none;
+  background: rgba(10, 11, 14, 0.55);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.thumb-preview:hover .thumb-hover,
+.thumb-hover:focus-visible {
+  opacity: 1;
+}
+
+/* Always visible under the image — touch screens have no hover. */
+.thumb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.thumb-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.thumb-actions button:hover {
+  border-color: var(--amber-deep);
+  color: var(--amber);
+}
+
+.thumb-actions button.danger:hover {
+  border-color: var(--rec);
+  color: var(--rec);
+}
+
+.thumb-hint {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
 .thumb-preview {
   position: relative;
   margin-top: 6px;
@@ -3272,11 +3488,6 @@ summary:focus-visible {
     display: none;
   }
 
-  .search-input {
-    width: 120px;
-    min-width: 0;
-    flex: 1;
-  }
 
   .btn .btn-label {
     display: none;
@@ -6750,5 +6961,95 @@ button.review-stamp.general {
 .card-meta .tag {
   max-width: 100%;
   overflow-wrap: anywhere;
+}
+
+
+
+/* Card header: keep delete clear of close, so one isn't hit for the other. */
+.head-delete {
+  margin-right: 10px;
+}
+
+.confirm-layer {
+  z-index: 120;
+}
+
+
+
+/* ————— Board: right-click menu + toast ————— */
+
+.ctx-menu {
+  position: fixed;
+  z-index: 110;
+  min-width: 210px;
+  padding: 5px;
+  border: 1px solid var(--ink-3);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: var(--shadow-lift);
+}
+
+.ctx-menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ctx-menu button:hover:not(:disabled) {
+  background: var(--ink-3);
+}
+
+.ctx-menu button:disabled {
+  color: var(--text-3);
+  cursor: default;
+}
+
+.ctx-menu svg {
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+
+.ctx-key {
+  margin-left: auto;
+  color: var(--text-3);
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+}
+
+.ctx-hint {
+  padding: 4px 10px 6px;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+
+.board-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  z-index: 95;
+  transform: translateX(-50%);
+  max-width: min(520px, calc(100vw - 24px));
+  padding: 10px 16px;
+  border: 1px solid var(--amber-deep);
+  border-radius: var(--radius-btn);
+  background: var(--ink-2);
+  box-shadow: var(--shadow-lift);
+  color: var(--text);
+  font-size: 12.5px;
+}
+
+@media (max-width: 900px) {
+  .board-toast {
+    bottom: 80px;
+  }
 }
 

@@ -388,8 +388,23 @@ function ThumbnailField({ card }: { card: ContentCard }) {
         }}
       >
         {card.thumbnail ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={card.thumbnail} alt="Video thumbnail" />
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={card.thumbnail} alt="Video thumbnail" />
+            {!viewOnly && (
+              <button
+                className="thumb-remove"
+                aria-label="Remove thumbnail"
+                title="Remove thumbnail"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  updateCard(card.id, { thumbnail: undefined });
+                }}
+              >
+                <X size={13} />
+              </button>
+            )}
+          </>
         ) : (
           <div className="thumb-empty">
             <ImagePlus size={18} />
@@ -409,14 +424,6 @@ function ThumbnailField({ card }: { card: ContentCard }) {
           <button onClick={pick}>
             <ImagePlus size={13} /> {card.thumbnail ? "Replace" : "Choose file"}
           </button>
-          {card.thumbnail && (
-            <button
-              className="danger"
-              onClick={() => updateCard(card.id, { thumbnail: undefined })}
-            >
-              <Trash2 size={13} /> Remove
-            </button>
-          )}
         </div>
       )}
       {note && <div className="thumb-note">{note}</div>}

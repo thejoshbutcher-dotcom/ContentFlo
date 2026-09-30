@@ -12,6 +12,7 @@ import {
   Mic,
   MonitorPlay,
   GraduationCap,
+  Plug,
   Plus,
   RefreshCw,
   Settings2,
@@ -41,6 +42,7 @@ import TeamInvites from "./TeamInvites";
 import TeamPresence from "./TeamPresence";
 import UpdatePrompt from "./UpdatePrompt";
 import InstallPrompt from "./InstallPrompt";
+import ConnectAiDialog from "./ConnectAiDialog";
 import { openInstall, useInstall } from "@/lib/install";
 import { useTeam } from "@/lib/team";
 import InspoView from "./InspoView";
@@ -138,6 +140,7 @@ export default function PlannerApp() {
   const [refreshing, setRefreshing] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [showAddInspo, setShowAddInspo] = useState(false);
+  const [showConnect, setShowConnect] = useState(false);
   // Offered only where installing is possible and we aren't installed already.
   const canInstall = useInstall((s) => s.kind !== null);
   const viewOnly = useTeam((s) => s.role === "viewer");
@@ -264,6 +267,12 @@ export default function PlannerApp() {
     onClick: openInstall,
   };
 
+  const connectAction = {
+    label: "MCP Connector",
+    icon: <Plug size={13} />,
+    onClick: () => setShowConnect(true),
+  };
+
   const setupAction = {
     label: "Brand setup",
     icon: <Settings2 size={13} />,
@@ -359,6 +368,10 @@ export default function PlannerApp() {
           >
             <GraduationCap size={13} />
             <span className="label">Tutorial</span>
+          </button>
+          <button className="foot-btn" onClick={() => setShowConnect(true)}>
+            <Plug size={13} />
+            <span className="label">MCP Connector</span>
           </button>
           {canInstall && (
             <button className="foot-btn" onClick={openInstall}>
@@ -523,7 +536,7 @@ export default function PlannerApp() {
         ))}
         <ProfileNavButton
           onSwitched={handleAccountSwitched}
-          actions={canInstall ? [setupAction, installAction] : [setupAction]}
+          actions={canInstall ? [setupAction, connectAction, installAction] : [setupAction, connectAction]}
         />
       </nav>
 
@@ -556,6 +569,7 @@ export default function PlannerApp() {
           onGoToLibrary={() => setViewId("inspo")}
         />
       )}
+      {showConnect && <ConnectAiDialog onClose={() => setShowConnect(false)} />}
       {showSetup && (
         <SetupWizard initialStep={setupStep} onClose={() => setShowSetup(false)} />
       )}

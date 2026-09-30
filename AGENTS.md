@@ -69,3 +69,10 @@ The content OS for creators — plan, script, organize, and publish from one wor
 - Top-bar search is `SearchBox.tsx`: collapses to an icon when its slot is < 130px wide; the icon opens it across the whole top bar
 - Card delete (trash in the card header) always confirms first
 
+
+## MCP connector (`https://creatorflo.io/api/mcp` — see `docs/MCP.md`)
+- Remote MCP server so Claude / ChatGPT / Claude Code can read boards and write into cards. Route `src/app/api/mcp/route.ts` (SDK v1 `WebStandardStreamableHTTPServerTransport`, stateless, JSON responses); tools in `src/lib/mcp/server.ts`, data in `src/lib/mcp/cards.ts`
+- Auth = **Supabase OAuth 2.1 server** (enabled in the dashboard: authorization path `/oauth/consent`, dynamic client registration on). Access tokens are ordinary user JWTs, so every tool runs through a USER-SCOPED client and RLS decides access; the service role is used ONLY for the licence check (`hasPurchase`). 401 challenge → `/.well-known/oauth-protected-resource` → Supabase AS (mirrored at `/.well-known/oauth-authorization-server`). Consent page `src/app/oauth/consent/page.tsx`; grants listed/revoked in Your profile → Connected apps (`ConnectedApps.tsx`)
+- Tools: list_boards, list_cards, get_card, get_outline_chapters, update_box (fill_if_empty default / append / replace), create_card, move_card. **No delete tool.** Every write is compare-and-swap on `updated_at` (+ optional `expected_updated_at`); a conflict writes nothing and says to re-read
+- Boxes travel as Markdown: `src/lib/mcp/markdown.ts` matches CAPW's `build.py` HTML byte-for-byte and round-trips app-written HTML exactly (literal `*`/`-` escaped; indented `<p data-indent>` and details/img/etc. carried as raw HTML lines). Outline convention parsed by `src/lib/mcp/outline.ts`
+- Sidebar footer "MCP Connector" (`ConnectAiDialog.tsx`, also in the mobile Profile menu): Claude one-click deep link (`claude.ai/customize/connectors?modal=add-custom-connector…`), ChatGPT developer-mode steps (one-click needs a listing in ChatGPT's app directory), Claude Code CLI command

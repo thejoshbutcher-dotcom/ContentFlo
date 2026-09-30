@@ -13,6 +13,8 @@ const PUBLIC_PATHS = [
   "/api/dev-login", // dev-only instant sign-in; self-gated, must run pre-session
   "/api/stripe/webhook", // unauthenticated by design; verified by signature
   "/api/version", // deploy-verification ping; exposes only commit id + build time
+  "/api/mcp", // MCP server: authenticates every request with its own bearer token
+  "/.well-known", // OAuth discovery documents for MCP clients
 ];
 
 function isPublic(pathname: string): boolean {
@@ -53,7 +55,10 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublic(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("next", request.nextUrl.pathname);
+    // Keep the query too: the OAuth consent page needs its authorization_id
+    // back after sign-in.
+    url.search = "";
+    url.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
     return NextResponse.redirect(url);
   }
 

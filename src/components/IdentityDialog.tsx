@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Camera, Loader2, Trash2, X } from "lucide-react";
 import { ownName, saveMyIdentity, useTeam } from "@/lib/team";
 import Avatar from "./Avatar";
+import ConnectedApps from "./ConnectedApps";
 
 /** Square-crop and shrink a picture to a tiny JPEG that fits in the row. */
 function toAvatar(file: File): Promise<string> {
@@ -136,6 +137,8 @@ export default function IdentityDialog({ onClose }: { onClose: () => void }) {
           to, in review notes, and in the team list.
         </p>
         {error && <div className="inspo-add-error">{error}</div>}
+
+        <ConnectedApps />
 
         <div className="share-foot">
           {current?.avatar ? (

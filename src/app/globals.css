@@ -7053,3 +7053,110 @@ button.review-stamp.general {
   }
 }
 
+
+/* ————— OAuth consent (connecting Claude and other apps) ————— */
+
+.consent-list {
+  margin: 4px 0 18px;
+  padding-left: 20px;
+  color: var(--text-2);
+  font-size: 13.5px;
+  line-height: 1.7;
+  text-align: left;
+}
+
+.consent-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.consent-actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+
+
+.connected-apps {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ink-3);
+}
+
+.connected-app {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.connected-app > svg {
+  color: var(--amber);
+  flex-shrink: 0;
+}
+
+.connected-app-name {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.connected-app-name span {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.connected-app .btn {
+  flex: none;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+
+/* MCP Connector dialog */
+.connect-seg {
+  display: flex;
+  width: fit-content;
+  margin: 4px 0 16px;
+}
+
+.connect-go {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-decoration: none;
+}
+
+.connect-steps {
+  margin: 14px 0 18px;
+}
+
+.connect-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 12px;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-input);
+  background: var(--ink);
+}
+
+.connect-field code {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.connect-dialog .share-hint code {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+}

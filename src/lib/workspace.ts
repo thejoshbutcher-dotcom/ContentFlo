@@ -146,6 +146,10 @@ export async function switchAccount(
   // Lift the viewer lock while swapping data in; re-applied just below.
   setReadOnly(false);
 
+  // Undo history belongs to the profile it was made in: undoing a delete
+  // from the last profile here would drop that card into this one.
+  usePlanner.setState({ history: [] });
+
   usePlanner.persist.setOptions({ name: plannerKey(id) });
   if (localStorage.getItem(plannerKey(id))) {
     await usePlanner.persist.rehydrate();

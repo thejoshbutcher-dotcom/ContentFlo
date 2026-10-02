@@ -7,7 +7,7 @@ import { CardRow, ProfileRow, cardToRow, rowToCard } from "./mapping";
 import { deepEqual, mergeCard, mergeProfileData } from "./merge";
 import { defaultProfileData, useProfile } from "./profile";
 import { getSupabaseBrowser } from "./supabase/client";
-import { usePlanner } from "./store";
+import { takeIntentionalRemoval, usePlanner } from "./store";
 import { loadDirectory, loadRoster, Peer, useTeam } from "./team";
 import { ContentCard } from "./types";
 
@@ -17,10 +17,14 @@ const REMOTE_BATCH_MS = 150; // coalesce a burst of realtime events
 const PARALLEL_SAVES = 8;
 
 interface Outbox {
+  /** 2 = deletes are only ever ones the person made (see loadOutbox). */
+  v?: number;
   dirty: string[];
   deleted: string[];
   profileDirty: boolean;
 }
+
+const OUTBOX_VERSION = 2;
 
 type ProfileData = ReturnType<typeof defaultProfileData>;
 
@@ -160,7 +164,11 @@ function outboxKey(profileId: string) {
 }
 
 function saveOutbox(s: SyncSession) {
+  // A session that's no longer the live one must never write the outbox —
+  // its view of the store is wrong.
+  if (session !== s) return;
   const box: Outbox = {
+    v: OUTBOX_VERSION,
     dirty: [...s.dirty],
     deleted: [...s.deleted],
     profileDirty: s.profileDirty,
@@ -179,7 +187,15 @@ function saveOutbox(s: SyncSession) {
 function loadOutbox(profileId: string): Outbox {
   try {
     const raw = localStorage.getItem(outboxKey(profileId));
-    if (raw) return JSON.parse(raw) as Outbox;
+    if (raw) {
+      const box = JSON.parse(raw) as Outbox;
+      // Outboxes written before v2 could hold deletes nobody made (a stray
+      // session read a profile swap as "every card was deleted"). Replaying
+      // those is what wiped a board, so they're dropped; an edit that's
+      // pending still goes up.
+      if (box.v !== OUTBOX_VERSION) box.deleted = [];
+      return box;
+    }
   } catch {
     /* ignore */
   }
@@ -375,6 +391,7 @@ async function doFlush(s: SyncSession): Promise<void> {
       const { error } = await s.supabase
         .from("cards")
         .update({ deleted_at: now, updated_at: now })
+        .eq("profile_id", s.profileId)
         .in("id", deletedIds);
       if (error) throw error;
       deletedIds.forEach((id) => s.base.delete(id));
@@ -403,6 +420,7 @@ async function doFlush(s: SyncSession): Promise<void> {
 
 /** Replace local state with the cloud's copy of this profile. */
 export async function pull(supabase: SupabaseClient, profileId: string) {
+  const owner = session;
   const { data: cardRows, error: cardErr } = await supabase
     .from("cards")
     .select("*")
@@ -416,6 +434,10 @@ export async function pull(supabase: SupabaseClient, profileId: string) {
     .eq("id", profileId)
     .maybeSingle();
   if (profErr) throw profErr;
+
+  // Switched profiles while this was in flight: these rows belong to a
+  // profile that's no longer open — painting them would overwrite it.
+  if (session !== owner) return;
 
   const rows = cardRows as CardRow[];
   const cards = rows.map(rowToCard);
@@ -669,6 +691,7 @@ function attachSubscriptions(s: SyncSession) {
 
   const unsubCards = usePlanner.subscribe((state) => {
     const next = state.cards;
+    if (session !== s) return; // a superseded session tracks nothing
     if (s.hydrating) {
       prevCards = next;
       return;
@@ -686,8 +709,10 @@ function attachSubscriptions(s: SyncSession) {
         s.deleted.delete(card.id);
       }
     }
+    // Gone from the store is NOT the same as deleted: only a removal the
+    // person made (trash, multi-delete, undo) becomes a cloud delete.
     for (const card of prevCards) {
-      if (!nextIds.has(card.id)) {
+      if (!nextIds.has(card.id) && takeIntentionalRemoval(card.id)) {
         s.deleted.add(card.id);
         s.dirty.delete(card.id);
       }
@@ -700,6 +725,7 @@ function attachSubscriptions(s: SyncSession) {
 
   let prevProfile = useProfile.getState();
   const unsubProfile = useProfile.subscribe((state) => {
+    if (session !== s) return;
     if (s.hydrating) {
       prevProfile = state;
       return;
@@ -757,6 +783,10 @@ export async function startSync(userId: string, profileId: string) {
   session = s;
 
   await pull(supabase, profileId);
+  // Another switch started while we were loading: that one owns the stores
+  // now. Attaching here would leave a stray session watching the wrong
+  // profile's cards — the bug that once deleted a whole shared board.
+  if (session !== s) return;
 
   // Replay anything a previous session failed to write (e.g. offline delete).
   // A viewer has nothing to replay: the cloud would reject it forever.

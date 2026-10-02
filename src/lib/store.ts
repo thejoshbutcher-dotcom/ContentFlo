@@ -17,6 +17,26 @@ type UndoAction =
 
 const HISTORY_MAX = 50;
 
+/**
+ * Cards the person deliberately took out: the trash can, a multi-select
+ * delete, or undoing a paste / duplicate. Cloud sync deletes a card ONLY if
+ * its id was put here. A card that merely vanishes from the store — a
+ * profile swap, a sync session left behind by an interrupted switch — is
+ * never read as a deletion. (Inferring deletes from "it's gone" once wiped a
+ * shared board: see sync.ts attachSubscriptions.)
+ */
+const intentionalRemovals = new Set<string>();
+
+function markRemoved(ids: Iterable<string>) {
+  if (isReadOnly()) return;
+  for (const id of ids) intentionalRemovals.add(id);
+}
+
+/** True (once) if the card with this id was removed on purpose. */
+export function takeIntentionalRemoval(id: string): boolean {
+  return intentionalRemovals.delete(id);
+}
+
 interface PlannerState {
   cards: ContentCard[];
   history: UndoAction[];
@@ -90,6 +110,7 @@ export const usePlanner = create<PlannerState>()(
       deleteCard: (id) => {
         const card = get().cards.find((c) => c.id === id);
         if (card) push({ kind: "readd", cards: [card] });
+        markRemoved([id]);
         set({ cards: get().cards.filter((c) => c.id !== id) });
       },
 
@@ -97,6 +118,7 @@ export const usePlanner = create<PlannerState>()(
         const kill = new Set(ids);
         const removed = get().cards.filter((c) => kill.has(c.id));
         if (removed.length) push({ kind: "readd", cards: removed });
+        markRemoved(kill);
         set({ cards: get().cards.filter((c) => !kill.has(c.id)) });
       },
 
@@ -270,6 +292,7 @@ export const usePlanner = create<PlannerState>()(
           });
         } else {
           const rm = new Set(action.ids);
+          markRemoved(rm);
           set({ cards: get().cards.filter((c) => !rm.has(c.id)) });
         }
       },

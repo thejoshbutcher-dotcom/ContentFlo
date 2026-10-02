@@ -134,6 +134,8 @@ export default function PlannerApp() {
     ids.filter((id) => id !== "ideate" || showBrainstorm);
   const [search, setSearch] = useState("");
   const [openCardId, setOpenCardId] = useState<string | null>(null);
+  // A card just made from Inspiration opens on Plan, where its reference sits.
+  const [openOnPlan, setOpenOnPlan] = useState(false);
   const [showSetup, setShowSetup] = useState(false);
   // Which setup step to open on; shortcuts like "Edit content buckets" skip ahead.
   const [setupStep, setSetupStep] = useState(0);
@@ -256,6 +258,7 @@ export default function PlannerApp() {
 
   function handleAccountSwitched(isNew: boolean) {
     setOpenCardId(null);
+    setOpenOnPlan(false);
     setViewId("ideate");
     setSearch("");
     if (isNew) openSetup();
@@ -512,7 +515,15 @@ export default function PlannerApp() {
         {view.kind === "table" && (
           <TableView search={search} onOpen={setOpenCardId} />
         )}
-        {view.kind === "inspo" && <InspoView search={search} />}
+        {view.kind === "inspo" && (
+          <InspoView
+            search={search}
+            onOpen={(id) => {
+              setOpenOnPlan(true);
+              setOpenCardId(id);
+            }}
+          />
+        )}
         {view.kind === "competitors" && <CompetitorsView search={search} />}
         {view.kind === "slate" && (
           <BrainstormView
@@ -561,7 +572,14 @@ export default function PlannerApp() {
       <ShareDialog onLeft={() => handleAccountSwitched(false)} />
 
       {openCardId && (
-        <CardModal cardId={openCardId} onClose={() => setOpenCardId(null)} />
+        <CardModal
+          cardId={openCardId}
+          initialTab={openOnPlan ? "plan" : undefined}
+          onClose={() => {
+            setOpenCardId(null);
+            setOpenOnPlan(false);
+          }}
+        />
       )}
       {showAddInspo && (
         <InspoAddDialog

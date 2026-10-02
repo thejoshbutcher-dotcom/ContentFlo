@@ -4,6 +4,7 @@ import type { MouseEvent } from "react";
 import { MessageSquare } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { isDone, pipelineOf, stageOf } from "@/lib/pipelines";
+import { placeholderThumb } from "@/lib/recreate";
 import { openNotes } from "@/lib/review";
 import { STATUS_COLORS } from "@/lib/seed";
 import { useProfile } from "@/lib/profile";
@@ -30,6 +31,15 @@ export function formatDate(iso?: string) {
     .toUpperCase();
 }
 
+/** The board image: the real thumbnail, or — on a long-form card that has
+ *  none yet — its first reference as a stand-in. */
+export function boardThumb(card: ContentCard): { src: string; isRef: boolean } | null {
+  if (card.thumbnail) return { src: card.thumbnail, isRef: false };
+  if (card.contentType !== "Long form") return null;
+  const ref = placeholderThumb(card);
+  return ref ? { src: ref, isRef: true } : null;
+}
+
 export function CardBody({
   card,
   showStatus,
@@ -51,12 +61,18 @@ export function CardBody({
     !isDone(card, pipelines) &&
     new Date(card.postingDate) < new Date(new Date().toDateString());
 
+  const thumb = boardThumb(card);
+
   return (
     <>
-      {card.thumbnail && (
-        <div className="card-thumb">
+      {thumb && (
+        <div
+          className={`card-thumb${thumb.isRef ? " is-ref" : ""}`}
+          title={thumb.isRef ? "Reference thumbnail — add your own on the card" : undefined}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={card.thumbnail} alt="" />
+          <img src={thumb.src} alt="" loading="lazy" />
+          {thumb.isRef && <span className="card-thumb-ref">Ref</span>}
         </div>
       )}
       <div className="card-title">
@@ -153,7 +169,7 @@ export default function CardItem({
       {...attributes}
       data-card-id={card.id}
       className={`content-card${isDragging ? " dragging" : ""}${
-        card.thumbnail ? " has-thumb" : ""
+        boardThumb(card) ? " has-thumb" : ""
       }${selected ? " selected" : ""}${
         preselected && !selected ? " pre-selected" : ""
       }`}

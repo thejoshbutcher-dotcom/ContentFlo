@@ -26,7 +26,7 @@ import {
   sortColumn,
   useViewPrefs,
 } from "@/lib/viewPrefs";
-import CardItem, { CardBody } from "./CardItem";
+import CardItem, { boardThumb, CardBody } from "./CardItem";
 import FilterBar from "./FilterBar";
 import { useAccounts } from "@/lib/accounts";
 import { buildPaste, copyCards, useClipboardCount } from "@/lib/cardClipboard";
@@ -750,7 +750,9 @@ export default function BoardView({
       <DragOverlay>
         {activeCard ? (
           <div
-            className="content-card drag-preview"
+            className={`content-card drag-preview${
+              boardThumb(activeCard) ? " has-thumb" : ""
+            }`}
             style={{
               boxShadow: "var(--shadow-lift)",
               transform: `rotate(${tilt}deg) scale(1.03)`,

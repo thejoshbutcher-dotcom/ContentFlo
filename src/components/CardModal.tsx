@@ -37,6 +37,7 @@ import ReviewTab from "./ReviewTab";
 import { openNotes } from "@/lib/review";
 import { setOpenCard } from "@/lib/sync";
 import { personName, useTeam } from "@/lib/team";
+import { placeholderThumb } from "@/lib/recreate";
 import Avatar, { Name } from "./Avatar";
 import { ContentCard, Section, Who } from "@/lib/types";
 
@@ -364,6 +365,8 @@ function ThumbnailField({ card }: { card: ContentCard }) {
   }
 
   const pick = () => fileRef.current?.click();
+  // No thumbnail yet: the board borrows the first reference, so show that.
+  const stand = placeholderThumb(card);
 
   return (
     <div className="prop-thumb">
@@ -404,6 +407,17 @@ function ThumbnailField({ card }: { card: ContentCard }) {
                 <X size={13} />
               </button>
             )}
+          </>
+        ) : stand ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={stand} alt="" className="thumb-standin" />
+            <div className="thumb-standin-note">
+              <span>Using your reference for now</span>
+              {!viewOnly && (
+                <span className="thumb-drop-sub">Paste, drop or choose your own to replace it</span>
+              )}
+            </div>
           </>
         ) : (
           <div className="thumb-empty">
@@ -572,9 +586,13 @@ function AssigneeField({ card }: { card: ContentCard }) {
 export default function CardModal({
   cardId,
   onClose,
+  initialTab,
 }: {
   cardId: string;
   onClose: () => void;
+  /** Overrides the remembered tab — e.g. a just-recreated card opens on Plan,
+   *  where its reference is. */
+  initialTab?: Tab;
 }) {
   const card = usePlanner((s) => s.cards.find((c) => c.id === cardId));
   const updateCard = usePlanner((s) => s.updateCard);
@@ -595,7 +613,7 @@ export default function CardModal({
   // (Scripting → Script, and so on), but steps are user-defined now, so the
   // app can't know what a step means — and a tab that jumps around between
   // cards is worse than one that stays put.
-  const [tab, setTabState] = useState<Tab>(readLastTab);
+  const [tab, setTabState] = useState<Tab>(() => initialTab ?? readLastTab());
   const setTab = (next: Tab) => {
     setTabState(next);
     try {
@@ -607,12 +625,25 @@ export default function CardModal({
   const [showRef, setShowRef] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const titleRef = useRef<HTMLTextAreaElement | null>(null);
-  // Grow the title box to fit its text (one or two lines; more scrolls).
+  // Grow the title box to fit its text (one or two lines; more scrolls) —
+  // and again when its width changes, e.g. rotating a phone or the header
+  // switching between its wide and stacked layouts.
   useLayoutEffect(() => {
     const el = titleRef.current;
     if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+    const fit = () => {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    };
+    fit();
+    let lastWidth = el.clientWidth;
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth === lastWidth) return; // our own height change
+      lastWidth = el.clientWidth;
+      fit();
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [card?.title, tab]);
 
   useEffect(() => {
@@ -778,12 +809,16 @@ export default function CardModal({
             )}
             {viewOnly && <span className="view-only-chip">View only</span>}
             {tab === "script" && (
-              <button className="ref-toggle" onClick={() => setShowRef((v) => !v)}>
-                <BookOpen
-                  size={11}
-                  style={{ display: "inline", marginRight: 5, verticalAlign: -1 }}
-                />
-                {showRef ? "Hide guides" : "Hooks & guides"}
+              <button
+                className={`ref-toggle${showRef ? " on" : ""}`}
+                onClick={() => setShowRef((v) => !v)}
+                aria-label={showRef ? "Hide guides" : "Hooks & guides"}
+                title={showRef ? "Hide guides" : "Hooks & guides"}
+              >
+                <BookOpen size={11} />
+                <span className="ref-toggle-label">
+                  {showRef ? "Hide guides" : "Hooks & guides"}
+                </span>
               </button>
             )}
             {!viewOnly && (

@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ExternalLink, Plus, Tag, Trash2 } from "lucide-react";
+import { Clapperboard, ExternalLink, Plus, Tag, Trash2 } from "lucide-react";
 import { useProfile } from "@/lib/profile";
+import { usePlanner } from "@/lib/store";
+import { useTeam } from "@/lib/team";
+import { recreateCardFields, recreatePipeline } from "@/lib/recreate";
 import {
   allTags,
   InspoItem,
@@ -17,8 +20,18 @@ import InspoAddDialog from "./InspoAddDialog";
  * One library, not separate packaging/format shelves — tags carry that
  * distinction, and an item is usually more than one thing at once.
  */
-export default function InspoView({ search }: { search: string }) {
+export default function InspoView({
+  search,
+  onOpen,
+}: {
+  search: string;
+  onOpen: (cardId: string) => void;
+}) {
   const inspo = useProfile((s) => s.inspo);
+  const pipelines = useProfile((s) => s.pipelines);
+  const addCard = usePlanner((s) => s.addCard);
+  const viewOnly = useTeam((s) => s.role === "viewer");
+  const target = recreatePipeline(pipelines);
   const updateInspo = useProfile((s) => s.updateInspo);
   const removeInspo = useProfile((s) => s.removeInspo);
 
@@ -43,6 +56,13 @@ export default function InspoView({ search }: { search: string }) {
     setActive((cur) =>
       cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]
     );
+  }
+
+  /** A new idea on the Long Form board with this video already pinned as
+   *  its reference — then straight into it to start on your own version. */
+  function recreate(item: InspoItem) {
+    const card = addCard(recreateCardFields(item, target));
+    onOpen(card.id);
   }
 
   function addTag(item: InspoItem, raw: string) {
@@ -178,6 +198,16 @@ export default function InspoView({ search }: { search: string }) {
                   </button>
                 )}
               </div>
+
+              {!viewOnly && (
+                <button
+                  className="inspo-recreate"
+                  onClick={() => recreate(it)}
+                  title={`New idea in ${target?.name ?? "your pipeline"} with this video as its reference`}
+                >
+                  <Clapperboard size={13} /> Recreate this video
+                </button>
+              )}
 
               <button
                 className="inspo-del"

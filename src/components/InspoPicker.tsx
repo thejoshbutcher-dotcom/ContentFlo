@@ -129,6 +129,7 @@ export default function InspoPicker({
                   <span className="inspo-pick-title">
                     {it.title || "Untitled"}
                   </span>
+                  {it.channel && <span className="inspo-pick-ch">{it.channel}</span>}
                   {on && <span className="inspo-pick-on">Added</span>}
                 </button>
               );

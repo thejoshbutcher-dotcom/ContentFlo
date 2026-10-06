@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Clapperboard, ExternalLink, Plus, Tag, Trash2 } from "lucide-react";
 import { useProfile } from "@/lib/profile";
 import { usePlanner } from "@/lib/store";
@@ -14,6 +14,10 @@ import {
   thumbUrlFor,
 } from "@/lib/inspo";
 import InspoAddDialog from "./InspoAddDialog";
+
+/** Videos already looked up this session, so a lookup that finds nothing
+ *  isn't repeated on every visit. */
+const backfilled = new Set<string>();
 
 /**
  * The inspiration library: everything you've swiped, as a wall of thumbnails.
@@ -39,6 +43,43 @@ export default function InspoView({
   const [active, setActive] = useState<string[]>([]);
   const [tagging, setTagging] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+
+  // Saves made while YouTube's lookup was failing came in "Untitled" with no
+  // channel. Fill in whatever is missing — never overwriting a title someone
+  // typed themselves.
+  useEffect(() => {
+    if (viewOnly) return;
+    const missing = inspo
+      .filter((i) => (!i.title.trim() || !i.channel) && !backfilled.has(i.videoId))
+      .slice(0, 40);
+    if (!missing.length) return;
+    missing.forEach((i) => backfilled.add(i.videoId));
+    void (async () => {
+      try {
+        const res = await fetch("/api/inspo/resolve", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ urls: missing.map((i) => i.url) }),
+        });
+        if (!res.ok) return;
+        const found: { videoId?: string; title?: string; channel?: string }[] =
+          (await res.json()).items ?? [];
+        const byId = new Map(found.filter((f) => f.videoId).map((f) => [f.videoId!, f]));
+        const latest = useProfile.getState().inspo;
+        for (const m of missing) {
+          const cur = latest.find((x) => x.id === m.id);
+          const f = byId.get(m.videoId);
+          if (!cur || !f) continue;
+          const patch: { title?: string; channel?: string } = {};
+          if (!cur.title.trim() && f.title) patch.title = f.title;
+          if (!cur.channel && f.channel) patch.channel = f.channel;
+          if (patch.title || patch.channel) updateInspo(cur.id, patch);
+        }
+      } catch {
+        /* offline — try again next session */
+      }
+    })();
+  }, [inspo, viewOnly, updateInspo]);
 
   const tags = useMemo(() => allTags(inspo), [inspo]);
 

@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { safePersistStorage } from "./safeStorage";
 import { isReadOnly } from "./access";
 import { activeAccountId, plannerKey } from "./accounts";
 import { seedCards } from "./seed";
@@ -300,6 +301,8 @@ export const usePlanner = create<PlannerState>()(
     },
     {
       name: plannerKey(activeAccountId()),
+      // A full browser store must never throw out of a state update.
+      storage: safePersistStorage(),
       version: 2,
       // Never persist the undo history — it resets each session.
       partialize: (state) => ({ cards: state.cards }),

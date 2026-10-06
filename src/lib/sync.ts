@@ -6,6 +6,7 @@ import { profileKey } from "./accounts";
 import { CardRow, ProfileRow, cardToRow, rowToCard } from "./mapping";
 import { deepEqual, mergeCard, mergeProfileData } from "./merge";
 import { defaultProfileData, useProfile } from "./profile";
+import { setCacheIsCloudBacked } from "./safeStorage";
 import { getSupabaseBrowser } from "./supabase/client";
 import { takeIntentionalRemoval, usePlanner } from "./store";
 import { loadDirectory, loadRoster, Peer, useTeam } from "./team";
@@ -71,6 +72,8 @@ let cloudUserEmail: string | null = null;
 export function setCloudUser(id: string | null, email: string | null = null) {
   cloudUserId = id;
   cloudUserEmail = email;
+  // Signed in, the local copies are only a cache and may be trimmed when full.
+  setCacheIsCloudBacked(Boolean(id));
   useTeam.setState({ me: id ? { id, email: email ?? "" } : null });
 }
 

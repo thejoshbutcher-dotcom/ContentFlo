@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { safePersistStorage } from "./safeStorage";
 import { isReadOnly } from "./access";
 import { defaultPipelines, Pipeline } from "./pipelines";
 import { activeAccountId, profileKey } from "./accounts";
@@ -160,7 +161,7 @@ export const useProfile = create<ProfileState>()(
         set((s) => ({ competitors: s.competitors.filter((c) => c.id !== id) })),
       };
     },
-    { name: profileKey(activeAccountId()) }
+    { name: profileKey(activeAccountId()), storage: safePersistStorage() }
   )
 );
 

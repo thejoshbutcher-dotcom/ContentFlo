@@ -182,8 +182,8 @@ export default function CloudSync({
       <div className="sync-error">
         <TriangleAlert size={15} />
         <span>
-          Cloud sync couldn&apos;t start: {error}. Your work is still saved in
-          this browser.
+          Cloud sync couldn&apos;t start: {error}. Changes made now won&apos;t
+          be saved — reload the page to try again.
         </span>
         <button onClick={() => setPhase("idle")} aria-label="Dismiss">
           <X size={14} />

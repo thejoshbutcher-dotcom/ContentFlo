@@ -1929,6 +1929,12 @@ body {
   margin: 0;
 }
 
+/* A line under a sub-list that lost its number stays "tabbed in" with the
+   sub-items' text (see listFlow.ts). */
+.cf-prose li > :is(ol, ul) ~ p {
+  padding-left: 1.35em;
+}
+
 .cf-prose ul { list-style: disc; }
 .cf-prose ol { list-style: decimal; }
 .cf-prose li::marker { color: var(--text-3); }

@@ -47,6 +47,8 @@ const LIST_RE = /^(\s*)(?:([-*+])|(\d+)[.)])\s+(.*)$/;
 interface ListLine {
   level: number;
   ordered: boolean;
+  /** The number written ("3." → 3); a list that continues counts from it. */
+  num: number;
   task: boolean | null; // null = not a task item; else checked
   text: string;
 }
@@ -72,7 +74,7 @@ function parseListLine(line: string): ListLine | null {
     task = tm[1].toLowerCase() === "x";
     text = tm[2];
   }
-  return { level: indentLevel(m[1]), ordered: Boolean(m[3]), task, text };
+  return { level: indentLevel(m[1]), ordered: Boolean(m[3]), num: m[3] ? parseInt(m[3], 10) : 1, task, text };
 }
 
 function renderList(items: ListLine[]): string {
@@ -81,7 +83,11 @@ function renderList(items: ListLine[]): string {
     const first = items[i];
     const isTask = first.task !== null;
     const tag = first.ordered ? "ol" : "ul";
-    const open = isTask ? '<ul data-type="taskList">' : `<${tag}>`;
+    const open = isTask
+      ? '<ul data-type="taskList">'
+      : first.ordered && first.num !== 1
+        ? `<ol start="${first.num}">`
+        : `<${tag}>`;
     const close = isTask ? "</ul>" : `</${tag}>`;
     const parts: string[] = [];
     while (i < items.length && items[i].level >= level) {
@@ -106,7 +112,7 @@ function renderList(items: ListLine[]): string {
 }
 
 /** A line that is raw block HTML (how toggles/bookmarks are carried). */
-const RAW_BLOCK_RE = /^<(details|div|img|blockquote|table|figure)\b|^<p\s[^>]*data-indent/i;
+const RAW_BLOCK_RE = /^<(details|div|img|blockquote|table|figure|ol|ul)\b|^<p\s[^>]*data-indent/i;
 
 export function markdownToHtml(src: string): string {
   const lines = src.replace(/\r\n?/g, "\n").replace(/\n+$/, "").split("\n");
@@ -229,11 +235,32 @@ function inlineHtml(node: Node): string {
   }
 }
 
+/** Each item = one line of text, then optional sub-lists — nothing after them. */
+function listFitsMarkdown(list: HTMLElement): boolean {
+  for (const li of list.childNodes) {
+    if (!isEl(li) || li.tagName.toLowerCase() !== "li") continue;
+    let lines = 0;
+    let sawList = false;
+    for (const c of li.childNodes) {
+      if (!isEl(c)) continue;
+      const ct = c.tagName.toLowerCase();
+      if (ct === "ul" || ct === "ol") {
+        sawList = true;
+        if (!listFitsMarkdown(c)) return false;
+      } else if (ct === "p") {
+        if (sawList || ++lines > 1) return false;
+      }
+    }
+  }
+  return true;
+}
+
 function listToMd(list: HTMLElement, depth: number): string[] {
   const tag = list.tagName.toLowerCase();
   const isTask = list.getAttribute("data-type") === "taskList";
   const lines: string[] = [];
-  let n = 0;
+  // A list split by an un-numbered line keeps counting (<ol start="3">).
+  let n = (parseInt(list.getAttribute("start") ?? "1", 10) || 1) - 1;
   for (const li of list.childNodes) {
     if (!isEl(li) || li.tagName.toLowerCase() !== "li") continue;
     n++;
@@ -255,7 +282,11 @@ function listToMd(list: HTMLElement, depth: number): string[] {
         if (ct === "ul" || ct === "ol") nested.push(...listToMd(c, depth + 1));
         else if (ct === "p") texts.push(c.childNodes.map(inlineHtml).join(""));
         else if (ct === "label" || ct === "div") walk(c); // task items wrap content
-        else if (ct !== "input") texts.push(inlineHtml(c));
+        else if (ct !== "input") {
+          // A to-do's checkbox comes with an empty <span>: not a line of text.
+          const t = inlineHtml(c);
+          if (t) texts.push(t);
+        }
       }
     };
     walk(li);
@@ -294,6 +325,10 @@ export function htmlToMarkdown(html: string): string {
       // <pre> is parsed as raw text, so its <code> wrapper arrives as text.
       const raw = node.rawText.replace(/^\s*<code[^>]*>/i, "").replace(/<\/code>\s*$/i, "");
       blocks.push("```\n" + decode(raw).replace(/\n$/, "") + "\n```");
+    } else if ((tag === "ul" || tag === "ol") && !listFitsMarkdown(node)) {
+      // An item holding an un-numbered line under its sub-list (Backspace took
+      // that line's number away) has no Markdown form — carry it as HTML.
+      blocks.push(node.toString().replace(/\n/g, ""));
     } else if (tag === "ul" || tag === "ol") {
       blocks.push(listToMd(node, 0).join("\n"));
     } else if (tag === "blockquote") {

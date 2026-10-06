@@ -314,6 +314,7 @@ import {
 } from "lucide-react";
 import { toEditorHtml } from "@/lib/richtext";
 import { Indent } from "@/lib/indent";
+import { ListFlow } from "@/lib/listFlow";
 import { Bookmark } from "./BookmarkView";
 import CodeBlockView from "./CodeBlockView";
 
@@ -499,6 +500,7 @@ export default function RichEditor({
       TaskList,
       TaskItem.configure({ nested: true }),
       Indent,
+      ListFlow,
       BlockPick,
       Bookmark,
       BlockKeys,

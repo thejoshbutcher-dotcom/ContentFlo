@@ -7336,3 +7336,11 @@ button.review-stamp.general {
     font-size: 11.5px;
   }
 }
+
+
+/* While the local copies load (IndexedDB, a few ms) — just the app canvas. */
+.app-boot {
+  position: fixed;
+  inset: 0;
+  background: var(--paper);
+}

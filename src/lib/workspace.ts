@@ -3,6 +3,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { setReadOnly } from "./access";
 import { Account, plannerKey, profileKey, useAccounts } from "./accounts";
+import { cacheHas, cacheRemove } from "./localCache";
 import type { ProfileRow } from "./mapping";
 import { defaultProfileData, useProfile } from "./profile";
 import { usePlanner } from "./store";
@@ -151,14 +152,14 @@ export async function switchAccount(
   usePlanner.setState({ history: [] });
 
   usePlanner.persist.setOptions({ name: plannerKey(id) });
-  if (localStorage.getItem(plannerKey(id))) {
+  if (cacheHas(plannerKey(id))) {
     await usePlanner.persist.rehydrate();
   } else {
     usePlanner.setState({ cards: [] });
   }
 
   useProfile.persist.setOptions({ name: profileKey(id) });
-  if (localStorage.getItem(profileKey(id))) {
+  if (cacheHas(profileKey(id))) {
     await useProfile.persist.rehydrate();
   } else {
     useProfile.setState(defaultProfileData());
@@ -227,8 +228,8 @@ export async function deleteAccount(id: string): Promise<void> {
   }
 
   st.remove(id);
-  localStorage.removeItem(plannerKey(id));
-  localStorage.removeItem(profileKey(id));
+  cacheRemove(plannerKey(id));
+  cacheRemove(profileKey(id));
   localStorage.removeItem(`cf-outbox:${id}`);
 
   if (wasActive) {

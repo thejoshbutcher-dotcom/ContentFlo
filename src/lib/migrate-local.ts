@@ -2,6 +2,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Account, plannerKey, profileKey } from "./accounts";
+import { cacheGet } from "./localCache";
 import { cardToRow } from "./mapping";
 import { defaultProfileData } from "./profile";
 import { newId } from "./templates";
@@ -15,7 +16,7 @@ interface Envelope<T> {
 
 function readEnvelope<T>(key: string): Envelope<T> | null {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = cacheGet(key);
     return raw ? (JSON.parse(raw) as Envelope<T>) : null;
   } catch {
     return null;

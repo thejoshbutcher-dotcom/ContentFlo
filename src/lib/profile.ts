@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { safePersistStorage } from "./safeStorage";
+import { safePersistStorage } from "./localCache";
 import { isReadOnly } from "./access";
 import { defaultPipelines, Pipeline } from "./pipelines";
 import { activeAccountId, profileKey } from "./accounts";
@@ -161,7 +161,8 @@ export const useProfile = create<ProfileState>()(
         set((s) => ({ competitors: s.competitors.filter((c) => c.id !== id) })),
       };
     },
-    { name: profileKey(activeAccountId()), storage: safePersistStorage() }
+    // Hydrated by boot.ts once the IndexedDB copy has loaded.
+    { name: profileKey(activeAccountId()), storage: safePersistStorage(), skipHydration: true }
   )
 );
 

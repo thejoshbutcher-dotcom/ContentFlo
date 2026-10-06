@@ -6,7 +6,7 @@ import { profileKey } from "./accounts";
 import { CardRow, ProfileRow, cardToRow, rowToCard } from "./mapping";
 import { deepEqual, mergeCard, mergeProfileData } from "./merge";
 import { defaultProfileData, useProfile } from "./profile";
-import { setCacheIsCloudBacked } from "./safeStorage";
+import { cacheGet, setCacheIsCloudBacked } from "./localCache";
 import { getSupabaseBrowser } from "./supabase/client";
 import { takeIntentionalRemoval, usePlanner } from "./store";
 import { loadDirectory, loadRoster, Peer, useTeam } from "./team";
@@ -142,7 +142,7 @@ function restoreDroppedKeys(
 /** This profile's locally cached copy (zustand's persist envelope), if any. */
 function cachedProfile(profileId: string): Partial<ProfileData> | null {
   try {
-    const rawEnv = localStorage.getItem(profileKey(profileId));
+    const rawEnv = cacheGet(profileKey(profileId));
     return rawEnv ? ((JSON.parse(rawEnv) as { state?: Partial<ProfileData> }).state ?? null) : null;
   } catch {
     return null;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { bootLocalState } from "@/lib/boot";
 import Image from "next/image";
 import {
   CalendarDays,
@@ -91,7 +92,27 @@ const MOBILE_GROUP_META: {
 // back to whatever you were doing beats a fixed home screen.
 const LAST_VIEW_KEY = "cf-last-view";
 
+/**
+ * Waits for the local copies (IndexedDB) to load and hydrate the stores before
+ * anything renders — so cloud sync never starts on top of a half-loaded cache.
+ * Usually a few milliseconds.
+ */
 export default function PlannerApp() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void bootLocalState().then(() => {
+      if (alive) setReady(true);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  if (!ready) return <div className="app-boot" aria-busy="true" />;
+  return <PlannerAppMain />;
+}
+
+function PlannerAppMain() {
   // "Have we hydrated yet?" without a state write from an effect: the server
   // snapshot is false, the client's is true, and the store never changes.
   const mounted = useSyncExternalStore(

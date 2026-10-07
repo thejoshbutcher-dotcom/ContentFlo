@@ -54,6 +54,8 @@ export interface ContentCard {
   referenceUrl?: string;
   // Long-form video thumbnail (compressed JPEG data URL); shown on the board.
   thumbnail?: string;
+  /** Other thumbnail options (Post tab), any of which can be swapped in. */
+  thumbnails?: { id: string; src: string }[];
   // Ideation flow fields
   topic?: string;
   pillar?: string;

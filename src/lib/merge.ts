@@ -175,6 +175,9 @@ export function mergeCard(
   const merged = mergeFields<ContentCard>(base, ours, theirs, {
     sections: (b, o, t) => mergeById<Section>(b ?? [], o, t, (s) => s.id),
     review: (b, o, t) => (o && t ? mergeReview(b, o, t) : (o ?? t)),
+    // Per option, so two people adding thumbnail options at once both keep theirs.
+    thumbnails: (b, o, t) =>
+      o || t ? mergeById(b ?? [], o ?? [], t ?? [], (x) => x.id) : undefined,
   });
   // Not content — just "when was this last touched".
   merged.updatedAt =

@@ -5,7 +5,6 @@ import {
   BookOpen,
   ChevronDown,
   ChevronRight,
-  ClipboardPaste,
   ImagePlus,
   Images,
   Trash2,
@@ -37,7 +36,7 @@ import ReviewTab from "./ReviewTab";
 import { openNotes } from "@/lib/review";
 import { setOpenCard } from "@/lib/sync";
 import { personName, useTeam } from "@/lib/team";
-import { placeholderThumb } from "@/lib/recreate";
+import { AltThumbnails, compressImage, ThumbnailField } from "./Thumbnails";
 import Avatar, { Name } from "./Avatar";
 import { ContentCard, Section, Who } from "@/lib/types";
 
@@ -76,27 +75,6 @@ function sectionsAreEmpty(card: ContentCard) {
       text.startsWith("00:00") ||
       text.startsWith("Subject:");
     return untouched && (!s.images || s.images.length === 0);
-  });
-}
-
-// Downscale pasted screenshots so a handful of them fit in localStorage
-function compressImage(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      const maxW = 900;
-      const scale = Math.min(1, maxW / img.width);
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round(img.width * scale);
-      canvas.height = Math.round(img.height * scale);
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/jpeg", 0.82));
-    };
-    img.onerror = reject;
-    img.src = url;
   });
 }
 
@@ -140,7 +118,7 @@ function SectionBlock({
   }
 
   async function addImages(files: File[]) {
-    const dataUrls = await Promise.all(files.map(compressImage));
+    const dataUrls = await Promise.all(files.map((f) => compressImage(f)));
     updateSection(cardId, sec.id, {
       images: [...(sec.images ?? []), ...dataUrls],
     });
@@ -297,165 +275,6 @@ function SectionBlock({
   );
 }
 
-/** Long-form thumbnail: upload or paste one image; it drives the board card. */
-/**
- * The card's thumbnail. Every way in also works as a way to change it: click
- * Replace (or the empty box) to pick a file, drop an image on it, or click the
- * field and paste. Remove clears it.
- */
-function ThumbnailField({ card }: { card: ContentCard }) {
-  const updateCard = usePlanner((s) => s.updateCard);
-  const viewOnly = useTeam((s) => s.role === "viewer");
-  const fileRef = useRef<HTMLInputElement>(null);
-  const boxRef = useRef<HTMLDivElement>(null);
-  const [dragOver, setDragOver] = useState(false);
-  const [note, setNote] = useState("");
-
-  async function setFromFiles(files: FileList | File[] | null) {
-    const img = [...(files ?? [])].find((f) => f.type.startsWith("image/"));
-    if (!img) {
-      setNote("That isn't an image.");
-      return;
-    }
-    setNote("");
-    updateCard(card.id, { thumbnail: await compressImage(img) });
-  }
-
-  // ⌘V / Ctrl+V while the field is focused. Listened for on the document:
-  // Safari doesn't deliver paste events to a focused non-text element.
-  useEffect(() => {
-    if (viewOnly) return;
-    const onPaste = (e: ClipboardEvent) => {
-      if (!boxRef.current?.contains(document.activeElement)) return;
-      const files = [...(e.clipboardData?.items ?? [])]
-        .filter((it) => it.type.startsWith("image/"))
-        .map((it) => it.getAsFile())
-        .filter((f): f is File => f !== null);
-      if (!files.length) {
-        setNote("There's no image on your clipboard.");
-        return;
-      }
-      e.preventDefault();
-      void setFromFiles(files);
-    };
-    document.addEventListener("paste", onPaste);
-    return () => document.removeEventListener("paste", onPaste);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewOnly, card.id]);
-
-  /** The "Paste image" button: read the clipboard directly. */
-  async function pasteFromClipboard() {
-    setNote("");
-    try {
-      const items = await navigator.clipboard.read();
-      for (const item of items) {
-        const type = item.types.find((t) => t.startsWith("image/"));
-        if (type) {
-          const blob = await item.getType(type);
-          await setFromFiles([new File([blob], "pasted", { type })]);
-          return;
-        }
-      }
-      setNote("There's no image on your clipboard. Copy one first.");
-    } catch {
-      // Unsupported, or permission refused: the keyboard route still works.
-      boxRef.current?.focus();
-      setNote("Your browser blocked that — press ⌘V (Ctrl+V) now to paste instead.");
-    }
-  }
-
-  const pick = () => fileRef.current?.click();
-  // No thumbnail yet: the board borrows the first reference, so show that.
-  const stand = placeholderThumb(card);
-
-  return (
-    <div className="prop-thumb">
-      <div className="prop-label t-eyebrow">Thumbnail</div>
-      <div
-        ref={boxRef}
-        className={`thumb-box${dragOver ? " drag-over" : ""}${card.thumbnail ? " has-img" : ""}`}
-        // Clicking the box focuses it, ready for ⌘V; it doesn't open the file
-        // picker (that's what the Choose file button is for).
-        tabIndex={viewOnly ? undefined : 0}
-        onDragOver={(e) => {
-          if (viewOnly || ![...e.dataTransfer.types].includes("Files")) return;
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          if (viewOnly) return;
-          e.preventDefault();
-          setDragOver(false);
-          void setFromFiles(e.dataTransfer.files);
-        }}
-      >
-        {card.thumbnail ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={card.thumbnail} alt="Video thumbnail" />
-            {!viewOnly && (
-              <button
-                className="thumb-remove"
-                aria-label="Remove thumbnail"
-                title="Remove thumbnail"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  updateCard(card.id, { thumbnail: undefined });
-                }}
-              >
-                <X size={13} />
-              </button>
-            )}
-          </>
-        ) : stand ? (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={stand} alt="" className="thumb-standin" />
-            <div className="thumb-standin-note">
-              <span>Using your reference for now</span>
-              {!viewOnly && (
-                <span className="thumb-drop-sub">Paste, drop or choose your own to replace it</span>
-              )}
-            </div>
-          </>
-        ) : (
-          <div className="thumb-empty">
-            <ImagePlus size={18} />
-            <span>{viewOnly ? "No thumbnail" : "Add a thumbnail"}</span>
-            {!viewOnly && (
-              <span className="thumb-drop-sub">Click here and press ⌘V, or drop an image</span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {!viewOnly && (
-        <div className="thumb-actions">
-          <button onClick={() => void pasteFromClipboard()}>
-            <ClipboardPaste size={13} /> Paste image
-          </button>
-          <button onClick={pick}>
-            <ImagePlus size={13} /> {card.thumbnail ? "Replace" : "Choose file"}
-          </button>
-        </div>
-      )}
-      {note && <div className="thumb-note">{note}</div>}
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        hidden
-        onChange={(e) => {
-          void setFromFiles(e.target.files);
-          // Reset, so picking the same file again still counts as a change.
-          e.target.value = "";
-        }}
-      />
-    </div>
-  );
-}
 
 /**
  * The publishing checklist, collapsed by default. It reads the section's
@@ -1160,6 +979,15 @@ export default function CardModal({
             </div>
 
             <div className="modal-props">
+              {/* The same thumbnail as on Plan, plus the other options —
+                  everything needed to upload, in one place. */}
+              {card.contentType === "Long form" && (
+                <>
+                  <ThumbnailField card={card} />
+                  <AltThumbnails card={card} />
+                </>
+              )}
+
               <div className="prop-label t-eyebrow">Posting date</div>
               <input
                 type="date"

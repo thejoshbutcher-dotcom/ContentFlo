@@ -4,18 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CreatorFlo — The content OS for creators</title>
-<meta name="description" content="Never wonder what to post again. Plan, script, organize, and publish your content from one workspace built for creators. One-time $29.">
+<meta name="description" content="Find what's already working on YouTube, then plan, script and publish it — competitor research, your inspiration library and your content pipeline in one workspace. One-time $29.">
 <link rel="canonical" href="https://getcreatorflo.io/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://getcreatorflo.io/">
 <meta property="og:title" content="CreatorFlo — The content OS for creators">
-<meta property="og:description" content="Never wonder what to post again. Plan, script, organize, and publish your content from one workspace built for creators. One-time $29.">
+<meta property="og:description" content="Find what's already working on YouTube, then plan, script and publish it — competitor research, your inspiration library and your content pipeline in one workspace. One-time $29.">
 <meta property="og:image" content="https://getcreatorflo.io/assets/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="CreatorFlo — The content OS for creators">
-<meta name="twitter:description" content="Never wonder what to post again. One workspace for your entire content workflow. $29 once.">
+<meta name="twitter:description" content="Competitor research, inspiration and your whole content pipeline in one workspace. $29 once.">
 <meta name="twitter:image" content="https://getcreatorflo.io/assets/og.png">
 <link rel="icon" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -276,80 +276,108 @@ h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em;text-wrap:balanc
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 
-/* — brainstorm (matches Brainstorm view) — */
-.stripes{height:10px;flex:none;border-radius:99px;margin-bottom:12px;
-  background:repeating-linear-gradient(115deg,var(--amber) 0 22px,transparent 22px 46px)}
-.bs-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;flex-wrap:wrap}
-.bs-head .bulb{font-size:15px;line-height:1.5}
-.bs-title{font-size:15px;font-weight:700}
-.bs-sub{font-size:10px;color:var(--text-3);max-width:52ch;line-height:1.5}
-.bs-flo{font-family:var(--mono);font-size:9px;letter-spacing:.02em;color:var(--amber);line-height:1.6;margin:16px 0 14px;max-width:none}
-.bs-btns{margin-left:auto;display:flex;gap:8px;align-items:center}
-.bs-brand{
-  font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
-  border:1px solid var(--border);border-radius:10px;background:none;color:var(--text-2);padding:7px 12px;
-}
-.bs-shuffle{
-  background:var(--amber);color:#181a20;border:none;border-radius:10px;
-  font-weight:600;font-size:12px;padding:7px 15px;transition:background .15s ease;
-}
-.bs-shuffle:hover{background:#ffd45e}
-.bs-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px}
-.deck{margin-bottom:16px}
-.dim-h{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
-.dim-h em{font-style:normal;text-transform:none;letter-spacing:.02em;color:var(--text-3);margin-left:6px}
-.picks{display:flex;flex-wrap:wrap;gap:5px}
-.pick{
-  border:1px solid var(--border);background:var(--surface);border-radius:99px;
-  padding:3px 10px;font-size:10px;color:var(--text-2);font-family:var(--font);font-weight:500;
-  transition:border-color .15s ease,color .15s ease,background .15s ease;
-}
-.pick:hover{border-color:var(--text-3);color:var(--text)}
-.pick.on{border-color:var(--amber);color:var(--amber);background:rgba(247,201,72,.08)}
-.pick-select{
-  width:100%;max-width:260px;
-  background:var(--surface);border:1px solid var(--border);border-radius:10px;
-  color:var(--text-2);font-family:var(--font);font-size:11px;font-weight:500;
-  padding:7px 10px;outline:none;cursor:pointer;
-}
-.pick-select:focus{border-color:var(--amber)}
-.deck{
-  border:1px solid rgba(247,201,72,.55);border-radius:14px;padding:14px 16px;flex:none;
-}
-.wt-input{
-  width:100%;background:none;border:none;outline:none;color:var(--text);
-  font-family:var(--font);font-size:14px;font-weight:800;letter-spacing:-.01em;
-  border-bottom:1px solid var(--line);padding:0 0 9px;margin-bottom:11px;
-}
-.wt-input::placeholder{color:var(--text-3);font-weight:700}
-.goal-input{
-  width:100%;background:none;border:none;outline:none;color:var(--text);
-  font-family:var(--font);font-size:11.5px;
-  border-bottom:1px solid var(--line);padding:0 0 9px;margin-bottom:11px;
-}
-.goal-input::placeholder{color:var(--text-3)}
-.wt-input:focus,.goal-input:focus{border-bottom-color:var(--amber)}
-.deck-rows{display:flex;flex-direction:column;gap:5px}
-.drow{display:grid;grid-template-columns:86px 1fr;gap:10px;align-items:baseline}
-.drow .l{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--text-3);text-transform:uppercase}
-.drow .v{font-size:11.5px;font-weight:600;color:var(--text)}
-.drow .v.none{color:var(--text-3);font-weight:400}
-.drow .v.spin{animation:slotspin .12s linear infinite}
-@keyframes slotspin{0%{opacity:1;transform:translateY(0)}49%{opacity:0;transform:translateY(-6px)}51%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:translateY(0)}}
-.deck-foot{display:flex;align-items:center;gap:6px;margin-top:14px;flex-wrap:wrap}
-.deck-foot .sa{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--text-3);text-transform:uppercase;margin-right:4px}
-.send{
-  border:1px solid var(--border);background:none;border-radius:99px;
-  padding:4px 12px;font-size:10.5px;font-weight:600;color:var(--text-2);font-family:var(--font);
-  transition:background .15s ease,color .15s ease,border-color .15s ease;
-}
-.send.on{background:var(--amber);border-color:var(--amber);color:#181a20}
-.add-pipe{
-  margin-left:auto;display:inline-flex;align-items:center;gap:6px;
-  background:#fff;color:#14161b;border:none;border-radius:99px;
-  font-weight:600;font-size:12px;padding:8px 16px;transition:transform .15s ease;
-}
-.add-pipe:hover{transform:translateY(-1px)}
+/* — fake YouTube thumbnails (no real creators' artwork) — */
+.yt{position:relative;aspect-ratio:16/9;container-type:inline-size;border-radius:9px;overflow:hidden;background:linear-gradient(135deg,var(--a),var(--b));flex:none}
+.yt::before{content:"";position:absolute;right:2%;bottom:-8%;width:40%;height:98%;
+  background:
+    radial-gradient(circle at 50% 13%,rgba(0,0,0,.55) 0 15%,transparent 15.5%),
+    radial-gradient(ellipse 17% 21% at 50% 31%,var(--s) 0 99%,transparent 100%),
+    radial-gradient(ellipse 50% 40% at 50% 100%,var(--f) 0 99%,transparent 100%);
+  filter:drop-shadow(0 0 6px rgba(0,0,0,.35))}
+.yt::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.28),transparent 60%)}
+.yt-t{position:absolute;left:7%;top:50%;transform:translateY(-50%) rotate(-2deg);z-index:1;max-width:60%;
+  font-weight:900;font-size:clamp(8px,9cqi,34px);line-height:.98;letter-spacing:-.02em;text-transform:uppercase;color:var(--t);
+  text-shadow:0 2px 0 rgba(0,0,0,.45),0 0 14px rgba(0,0,0,.35)}
+.yt-x{position:absolute;left:58%;top:16%;z-index:1;width:22%;aspect-ratio:1;border:2.5px solid #ff3b3b;border-radius:50%;transform:rotate(-8deg)}
+.yt-dur{position:absolute;right:5px;bottom:5px;z-index:2;background:rgba(0,0,0,.8);color:#fff;font-family:var(--mono);font-size:8.5px;border-radius:4px;padding:1px 4px}
+.yt-ref{position:absolute;left:5px;top:5px;z-index:2;background:rgba(0,0,0,.72);color:var(--amber);font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;border-radius:4px;padding:1px 5px}
+.yt-empty::before,.yt-empty::after{display:none}
+.yt.dim{filter:saturate(.6) brightness(.72)}
+
+/* — competitors + inspiration walls — */
+.cw-channels{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.cw-ch{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px 12px 6px 6px;color:var(--text-2);font-family:var(--font);font-size:11px;font-weight:600;transition:border-color .15s ease,color .15s ease}
+.cw-ch:hover{border-color:var(--text-3);color:var(--text)}
+.cw-ch.on{border-color:var(--amber);color:var(--text)}
+.cw-ch .av{width:24px;height:24px;border-radius:99px;display:grid;place-items:center;font-size:9px;font-weight:800;color:#181a20;flex:none}
+.cw-ch small{display:block;font-family:var(--mono);font-size:8.5px;color:var(--text-3);font-weight:400}
+.cw-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.seg{display:flex;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:2px}
+.seg button{background:none;border:none;border-radius:99px;padding:4px 11px;font-size:10.5px;font-weight:600;color:var(--text-3);font-family:var(--font);transition:color .15s ease,background .15s ease}
+.seg button:hover{color:var(--text)}
+.seg button.on{background:var(--amber);color:#181a20}
+.cw-stat{font-family:var(--mono);font-size:9px;color:var(--text-3);margin-left:auto}
+.vgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 12px;align-content:start}
+.vt{display:flex;flex-direction:column;gap:6px;min-width:0;animation:viewin .3s ease}
+.vt .yt{transition:transform .2s ease,box-shadow .2s ease}
+.vt:hover .yt{transform:translateY(-2px);box-shadow:0 10px 24px rgba(0,0,0,.4)}
+.vt.strong .yt{box-shadow:0 0 0 2px rgba(247,201,72,.75)}
+.flag{position:absolute;left:5px;top:5px;z-index:2;display:inline-flex;align-items:center;gap:3px;border-radius:99px;padding:2px 7px;font-family:var(--mono);font-size:9px;font-weight:600;background:rgba(20,22,27,.85);color:#e6e9ee;border:1px solid rgba(255,255,255,.14)}
+.flag.mid{background:rgba(50,213,131,.92);color:#0d1a13;border-color:transparent}
+.flag.strong{background:var(--amber);color:#181a20;border-color:transparent}
+.flag.new{background:rgba(91,141,239,.92);color:#fff;border-color:transparent}
+.save{position:absolute;right:5px;top:5px;z-index:2;width:24px;height:24px;border-radius:8px;border:none;background:rgba(20,22,27,.85);color:#fff;font-size:12px;display:grid;place-items:center;transition:background .15s ease,transform .15s ease}
+.save:hover{background:var(--amber);color:#181a20;transform:scale(1.08)}
+.save.on{background:var(--success);color:#0d1a13}
+.vt-title{font-size:11px;font-weight:600;line-height:1.35;color:var(--text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vt-meta{font-family:var(--mono);font-size:8.5px;color:var(--text-3);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.vph{color:#5fe3a1;font-weight:600}
+.vph.hot{color:var(--amber)}
+.in-add{display:flex;gap:8px;margin-bottom:10px}
+.in-add input{flex:1;min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--font);font-size:11.5px;padding:8px 12px;outline:none}
+.in-add input:focus{border-color:var(--amber)}
+.in-add button{background:var(--amber);color:#181a20;border:none;border-radius:10px;font-weight:600;font-size:11.5px;padding:0 14px}
+.in-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.tag{border:1px solid var(--border);background:var(--surface);border-radius:99px;padding:2px 9px;font-size:9.5px;color:var(--text-2);font-family:var(--font);font-weight:500}
+button.tag:hover{border-color:var(--text-3);color:var(--text)}
+.tag.on{border-color:var(--amber);color:var(--amber);background:rgba(247,201,72,.08)}
+.tag.sm{font-size:8.5px;padding:1px 7px}
+.vt-tags{display:flex;gap:4px;flex-wrap:wrap}
+.recreate{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;background:#fff;color:#14161b;border:none;border-radius:99px;font-weight:600;font-size:10px;padding:5px 11px;font-family:var(--font);transition:transform .15s ease,background .15s ease}
+.recreate:hover{transform:translateY(-1px);background:var(--amber)}
+.in-empty{grid-column:1/-1;border:1px dashed var(--border);border-radius:12px;padding:22px;text-align:center;font-size:11.5px;color:var(--text-3)}
+
+/* board extras */
+.presence{display:inline-flex;align-items:center;margin-left:auto}
+.presence i{width:22px;height:22px;border-radius:99px;display:grid;place-items:center;font-style:normal;font-size:8.5px;font-weight:700;color:#181a20;border:2px solid var(--paper);margin-left:-6px}
+.presence em{font-style:normal;font-family:var(--mono);font-size:9px;color:var(--success);margin-left:7px}
+.presence+.b-new{margin-left:10px}
+.kcard .yt{margin:-3px -4px 8px;border-radius:8px}
+.kav{width:17px;height:17px;border-radius:99px;display:grid;place-items:center;font-size:7px;font-weight:700;color:#181a20;flex:none}
+.kref{font-family:var(--mono);font-size:8px;color:var(--amber);letter-spacing:.06em}
+
+/* editor tab panels */
+.ed-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ed-sec .yt{margin-top:6px}
+.ref-row{display:flex;gap:10px;align-items:center;margin-top:6px}
+.ref-row .yt{width:120px;margin:0}
+.ref-row p{font-size:11px;font-weight:600;line-height:1.35}
+.ref-row small{display:block;font-family:var(--mono);font-size:8.5px;color:var(--text-3);font-weight:400;margin-top:3px}
+.player{position:relative;width:100%;max-width:520px;margin:0 auto;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#0b0c0f}
+.player .yt{position:absolute;inset:0;border-radius:0;aspect-ratio:auto}
+.player .play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;width:44px;height:44px;border-radius:99px;background:rgba(0,0,0,.6);color:#fff;font-size:15px;display:grid;place-items:center}
+.scrub{position:relative;max-width:520px;margin-left:auto!important;margin-right:auto!important;height:5px;border-radius:99px;background:#2e323a;margin:10px 0 4px}
+.scrub b{position:absolute;left:0;top:0;bottom:0;width:38%;border-radius:99px;background:var(--amber)}
+.scrub i{position:absolute;top:-3px;width:3px;height:11px;border-radius:2px;background:#fff;opacity:.75}
+.note-in{display:flex;gap:8px;margin:8px 0 10px}
+.note-in input{flex:1;min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:var(--font);font-size:11.5px;padding:8px 12px;outline:none}
+.note-in input:focus{border-color:var(--amber)}
+.note-in span{font-family:var(--mono);font-size:10px;color:var(--amber);align-self:center}
+.note{display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line);font-size:11.5px;color:var(--text-2)}
+.note .ts{font-family:var(--mono);font-size:9.5px;color:var(--amber);background:rgba(247,201,72,.1);border-radius:6px;padding:1px 6px;flex:none}
+.note .who{font-weight:700;color:var(--text);margin-right:4px}
+.note.done{opacity:.45}
+.note.done .txt{text-decoration:line-through}
+.note button{margin-left:auto;flex:none;background:none;border:1px solid var(--border);border-radius:99px;color:var(--text-3);font-size:9px;padding:2px 8px;font-family:var(--font)}
+.note button:hover{border-color:var(--success);color:var(--success)}
+.alts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+.alt{display:flex;flex-direction:column;gap:5px}
+.alt .yt{margin:0}
+.alt button{background:none;border:1px solid var(--border);border-radius:99px;color:var(--text-2);font-size:9px;font-weight:600;padding:3px 8px;font-family:var(--font)}
+.alt button:hover{border-color:var(--amber);color:var(--amber)}
+.alt-n{position:absolute;left:5px;bottom:5px;z-index:2;background:rgba(0,0,0,.75);color:#fff;font-family:var(--mono);font-size:8px;border-radius:4px;padding:0 5px}
+.post-row{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--text-2);margin-top:4px}
+.post-row b{color:var(--text)}
 
 /* — card editor (matches Script view) — */
 .editor{
@@ -376,7 +404,7 @@ h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em;text-wrap:balanc
   background:none;color:var(--text);font-size:10px;line-height:1;flex:none;
 }
 .ed-close:hover{border-color:var(--text-3)}
-.ed-body{flex:1;overflow:auto;padding:14px 18px 20px;display:flex;flex-direction:column;gap:12px;width:100%;max-width:600px;margin:0 auto}
+.ed-body{flex:1;overflow:auto;padding:14px 18px 20px;display:flex;flex-direction:column;gap:12px;width:100%;max-width:760px;margin:0 auto}
 .ed-sec{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 15px;display:flex;flex-direction:column}
 .ed-sec-t{font-size:12.5px;font-weight:700}
 .ed-sec-h{font-size:9.5px;color:var(--text-3);margin:3px 0 8px;line-height:1.5}
@@ -409,7 +437,10 @@ h1,h2,h3{font-weight:700;line-height:1.08;letter-spacing:-.03em;text-wrap:balanc
   .demo-side button .ct{display:none}
   .demo-view{max-height:560px}
   .cols{grid-template-columns:repeat(6,158px)}
-  .bs-grid{grid-template-columns:1fr}
+  .vgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cw-stat{margin-left:0;width:100%}
+  .ed-grid{grid-template-columns:1fr}
+  .presence em{display:none}
   .day{min-height:52px}
 }
 
@@ -426,7 +457,7 @@ section{padding:96px 0}
 
 /* ————— Chaos section ————— */
 .chaos{border-top:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.015),transparent)}
-.chaos-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:760px;margin:0 auto 30px}
+.chaos-row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:900px;margin:0 auto 30px}
 .chaos-chip{
   display:inline-flex;align-items:center;gap:10px;
   font-size:14px;font-weight:500;color:var(--text-2);
@@ -476,29 +507,30 @@ section{padding:96px 0}
 .shot-bar{display:flex;gap:6px;padding:10px 14px;border-bottom:1px solid var(--line);background:#101216}
 .shot-bar i{width:8px;height:8px;border-radius:99px;background:#2c3038}
 .shot-body{padding:14px 16px 16px;pointer-events:none}
-.shot .stripes{height:8px;margin-bottom:10px}
 
 /* shot: shared minis */
 .s-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .s-title{font-size:12.5px;font-weight:700;letter-spacing:-.01em}
 .s-sub{font-size:9px;color:var(--text-3)}
 .s-btn{margin-left:auto;background:var(--amber);color:#181a20;font-weight:600;font-size:9.5px;border-radius:99px;padding:4px 11px;white-space:nowrap}
-.s-btn.ghostb{background:none;border:1px solid var(--border);color:var(--text-2);font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase}
-.s-dim{margin-bottom:10px}
-.s-dim .dim-h{font-size:8px;margin-bottom:5px}
 .s-pick{border:1px solid var(--border);background:var(--surface);border-radius:99px;padding:2px 9px;font-size:8.5px;color:var(--text-2);font-weight:500;display:inline-block}
 .s-pick.on{border-color:var(--amber);color:var(--amber);background:rgba(247,201,72,.08)}
 .s-picks{display:flex;flex-wrap:wrap;gap:4px}
-.s-deck{border:1px solid rgba(247,201,72,.55);border-radius:12px;padding:11px 13px;margin-top:12px}
-.s-deck .wt{font-size:11px;font-weight:700;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:8px}
-.s-drow{display:grid;grid-template-columns:64px 1fr;gap:8px;margin-bottom:3px;align-items:baseline}
-.s-drow .l{font-family:var(--mono);font-size:7.5px;letter-spacing:.12em;color:var(--text-3);text-transform:uppercase}
-.s-drow .v{font-size:9.5px;font-weight:600}
-.s-foot{display:flex;align-items:center;gap:5px;margin-top:9px}
-.s-foot .sa{font-family:var(--mono);font-size:7.5px;letter-spacing:.12em;color:var(--text-3)}
-.s-send{border-radius:99px;padding:2px 9px;font-size:8.5px;font-weight:600;border:1px solid var(--border);color:var(--text-2)}
-.s-send.on{background:var(--amber);border-color:var(--amber);color:#181a20}
-.s-add{margin-left:auto;background:#fff;color:#14161b;border-radius:99px;padding:4px 11px;font-size:9px;font-weight:600}
+
+/* shot: research + inspiration */
+.s-seg{margin-left:auto;display:flex;gap:2px;background:var(--surface);border-radius:99px;padding:2px}
+.s-seg>*{font-size:7.5px;font-weight:600;padding:2px 8px;border-radius:99px;color:var(--text-3)}
+.s-seg b{background:var(--amber);color:#181a20}
+.s-vgrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 8px}
+.s-vgrid .vt{animation:none;gap:4px}
+.s-vgrid .vt-title{font-size:8.5px}
+.s-vgrid .vt-meta{font-size:6.5px;gap:4px}
+.s-vgrid .flag{font-size:7px;padding:1px 5px;left:4px;top:4px}
+.s-vgrid .yt-dur{font-size:6.5px;right:3px;bottom:3px}
+.s-vgrid .tag.sm{font-size:6.5px;padding:0 5px}
+.s-vgrid .recreate{font-size:7.5px;padding:3px 8px}
+.s-toast{margin:12px auto 0;width:fit-content;background:#101216;border:1px solid var(--border);border-radius:9px;padding:5px 11px;font-size:8.5px;color:var(--text-2)}
+.s-toast b{color:var(--amber)}
 
 /* shot: script editor */
 .s-card-top{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding-bottom:9px;margin-bottom:10px}
@@ -641,6 +673,7 @@ footer{border-top:1px solid var(--line);background:var(--ink);padding:56px 0 40p
   margin-top:48px;padding-top:22px;border-top:1px solid var(--line);
   font-size:12.5px;color:var(--text-3);
 }
+.foot-tm{margin-top:36px;font-size:11.5px;color:var(--text-3);opacity:.75;max-width:80ch}
 @media(max-width:720px){.foot{grid-template-columns:1fr;gap:32px}}
 
 @media(prefers-reduced-motion:reduce){
@@ -695,7 +728,7 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
   <div class="wrap">
     <p class="eyebrow rise">The content OS for creators</p>
     <h1 class="rise d1">Stay in your Creator<span class="flo">Flo</span>.</h1>
-    <p class="lede rise d2">Never wonder what to post again. Plan, script, organize, and publish your content from one workspace built for creators.</p>
+    <p class="lede rise d2">Never wonder what to post again. Find the videos already winning in your niche, turn them into your own ideas, then script, film and publish — all from one workspace built for creators.</p>
     <div class="hero-cta rise d3">
       <a class="btn btn-amber" href="#pricing">Get CreatorFlo — $29 once</a>
       <a class="btn btn-ghost" href="#how">See how it works</a>
@@ -704,7 +737,7 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
 
     <!-- ————— Live interactive demo ————— -->
     <div class="rise d4">
-      <p class="demo-hint"><span class="dot"></span>LIVE DEMO — a simplified version of the app · stack the deck, drag a card, click one to script</p>
+      <p class="demo-hint"><span class="dot"></span>LIVE DEMO — a simplified version of the app · save an outlier, hit Recreate, drag a card, click one to script</p>
     </div>
     <div class="demo-scene rise d4">
       <div class="demo-frame" id="demo">
@@ -716,20 +749,59 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
           <aside class="demo-side" aria-label="Demo navigation">
             <img src="assets/icon.png" alt="">
             <p class="grp">Create</p>
-            <button data-view="brainstorm"><span class="ic">💡</span>Brainstorm</button>
+            <button data-view="inspo"><span class="ic">✦</span>Inspiration<span class="ct" data-count="inspo"></span></button>
+            <button data-view="comp" class="on"><span class="ic">◎</span>Competitors<span class="ct">3</span></button>
             <p class="grp">Pipeline</p>
-            <button data-view="board" data-board="short" class="on"><span class="ic">▤</span>Short Form<span class="ct" data-count="short"></span></button>
+            <button data-view="board" data-board="short"><span class="ic">▤</span>Short Form<span class="ct" data-count="short"></span></button>
             <button data-view="board" data-board="long"><span class="ic">▥</span>Long Form<span class="ct" data-count="long"></span></button>
             <p class="grp">Plan</p>
             <button data-view="calendar"><span class="ic">▣</span>Posting Schedule<span class="ct">4</span></button>
           </aside>
           <div class="demo-main">
 
+            <!-- Competitors view -->
+            <div class="demo-view on" data-view="comp">
+              <div class="b-head">
+                <span class="b-title">Competitors</span>
+                <span class="b-sub">Their outliers, sorted and flagged — without the YouTube rabbit hole</span>
+              </div>
+              <div class="cw-channels" id="cw-channels"></div>
+              <div class="cw-bar">
+                <div class="seg" id="cw-sort">
+                  <button data-sort="views" class="on">Most viewed</button>
+                  <button data-sort="newest">Newest</button>
+                  <button data-sort="trending">Trending</button>
+                </div>
+                <div class="seg" id="cw-kind">
+                  <button data-kind="all" class="on">All</button>
+                  <button data-kind="long">Long</button>
+                  <button data-kind="short">Short</button>
+                </div>
+                <span class="cw-stat" id="cw-stat"></span>
+              </div>
+              <div class="vgrid" id="cw-grid"></div>
+            </div>
+
+            <!-- Inspiration view -->
+            <div class="demo-view" data-view="inspo">
+              <div class="b-head">
+                <span class="b-title">Inspiration</span>
+                <span class="b-sub">Your swipe file — every video worth recreating, in one place</span>
+              </div>
+              <form class="in-add" id="in-add">
+                <input id="in-url" placeholder="Paste a YouTube link, playlist, or channel" autocomplete="off" aria-label="YouTube link">
+                <button type="submit">＋ Add</button>
+              </form>
+              <div class="in-tags" id="in-tags"></div>
+              <div class="vgrid" id="in-grid"></div>
+            </div>
+
             <!-- Board view -->
-            <div class="demo-view on" data-view="board">
+            <div class="demo-view" data-view="board">
               <div class="b-head">
                 <span class="b-title" id="b-title">Video Status · Short</span>
                 <span class="b-sub" id="b-sub">Shorts pipeline, idea → posted</span>
+                <span class="presence" title="Your team, live on this board"><i style="background:#5b8def">AL</i><i style="background:#b692f6">MK</i><em>2 editing now</em></span>
                 <button class="b-new" id="b-new">＋ New idea</button>
               </div>
               <div class="cols" id="cols"></div>
@@ -754,52 +826,16 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
               <div class="cal" id="cal"></div>
             </div>
 
-            <!-- Brainstorm view -->
-            <div class="demo-view" data-view="brainstorm">
-              <div class="stripes"></div>
-              <div class="bs-head">
-                <span class="bulb">💡</span>
-                <div>
-                  <p class="bs-title">Brainstorm</p>
-                  <p class="bs-sub">Create a new idea for your next piece of content. Follow the Flo to generate a new idea from scratch or shuffle things up for some random inspiration!</p>
-                </div>
-                <div class="bs-btns">
-                  <button class="bs-brand">⚙ Brand Setup</button>
-                  <button class="bs-shuffle" id="bs-shuffle">🎲 Shuffle</button>
-                </div>
-              </div>
-              <div class="deck">
-                <input class="wt-input" id="deck-title" placeholder="WORKING TITLE…" autocomplete="off" aria-label="Working title">
-                <input class="goal-input" id="deck-goal" placeholder="Goal of this video — what should it DO for the viewer?" autocomplete="off" aria-label="Goal of this video">
-                <div class="deck-rows">
-                  <div class="drow"><span class="l">Topic</span><span class="v none" data-deck="topic">—</span></div>
-                  <div class="drow"><span class="l">Bucket</span><span class="v none" data-deck="lens">—</span></div>
-                  <div class="drow"><span class="l">Who</span><span class="v none" data-deck="who">—</span></div>
-                  <div class="drow"><span class="l">Feel → Do</span><span class="v none" data-deck="feeldo">—</span></div>
-                  <div class="drow"><span class="l">Format</span><span class="v none" data-deck="format">—</span></div>
-                </div>
-                <div class="deck-foot">
-                  <span class="sa">Send as</span>
-                  <button class="send on" data-send="short">Short form</button>
-                  <button class="send" data-send="long">Long form</button>
-                  <button class="send" data-send="podcast">Podcast</button>
-                  <button class="send" data-send="carousel">Carousel</button>
-                  <button class="add-pipe" id="bs-add">✈ Add to pipeline</button>
-                </div>
-              </div>
-              <p class="bs-flo">Flo: relatable topic → through the lens of your content bucket → who → what they should feel → format</p>
-              <div class="bs-grid" id="bs-grid"></div>
-            </div>
-
           </div>
 
-          <!-- Card editor (Script view) -->
+          <!-- Card editor -->
           <div class="editor" id="editor">
             <div class="ed-top">
               <span class="ed-title" id="ed-title">My idea</span>
               <div class="ed-tabs">
                 <button class="ed-tab" data-tab="plan">Plan</button>
                 <button class="ed-tab on" data-tab="script">Script</button>
+                <button class="ed-tab" data-tab="review">Review</button>
                 <button class="ed-tab" data-tab="post">Post</button>
               </div>
               <button class="ed-guides" id="ed-guides">📖 Hooks &amp; Guides</button>
@@ -821,9 +857,25 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
     <div class="sec-head center reveal">
       <p class="eyebrow">The problem</p>
       <h2>Content creation shouldn't feel chaotic.</h2>
-      <p class="lede">Ideas in one app, scripts in another, planning in a third — and no clue what's actually ready to post.</p>
+      <p class="lede">Research in one tool, inspiration in another, scripts in a third, planning in a fourth — a stack of subscriptions, and still no clue what's actually ready to post.</p>
     </div>
     <div class="chaos-row reveal">
+      <span class="chaos-chip">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4.5" fill="#2a2e36"/><path d="M6.5 16.5l3.4-4 2.8 2.4 4.8-6" stroke="#ff6b4a" stroke-width="1.9" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="17.5" cy="8.6" r="1.5" fill="#ff6b4a"/></svg>
+        Outlier hunting in 1of10
+      </span>
+      <span class="chaos-chip">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4.5" fill="#2a2e36"/><rect x="6.5" y="12" width="2.6" height="5" rx="1" fill="#5fe3a1"/><rect x="10.7" y="9" width="2.6" height="8" rx="1" fill="#5fe3a1"/><rect x="14.9" y="6.5" width="2.6" height="10.5" rx="1" fill="#5fe3a1"/></svg>
+        Channel stats in vidIQ
+      </span>
+      <span class="chaos-chip">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4.5" fill="#2a2e36"/><circle cx="11" cy="11" r="4.2" stroke="#5b8def" stroke-width="1.9" fill="none"/><path d="M14.2 14.2l3.3 3.3" stroke="#5b8def" stroke-width="1.9" stroke-linecap="round"/></svg>
+        Research in TubeBuddy
+      </span>
+      <span class="chaos-chip">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="4" fill="#ff3b3b"/><path d="M10.2 9.2v5.6l4.8-2.8z" fill="#fff"/></svg>
+        40 open YouTube tabs
+      </span>
       <span class="chaos-chip">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4" fill="#fff"/><path d="M3 7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v2H3z" fill="#f7c948"/><rect x="6" y="12" width="12" height="1.6" rx=".8" fill="#c8cdd4"/><rect x="6" y="15.5" width="9" height="1.6" rx=".8" fill="#c8cdd4"/></svg>
         Ideas in Notes
@@ -851,7 +903,7 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
     </div>
     <p class="chaos-arrow reveal">↓</p>
     <div class="chaos-one reveal">
-      <img src="assets/icon.png" alt=""> One workspace. Every piece of content.
+      <img src="assets/icon.png" alt=""> One workspace. From research to published.
     </div>
   </div>
 </section>
@@ -861,61 +913,60 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
   <div class="wrap">
     <div class="sec-head reveal">
       <p class="eyebrow">Everything you need</p>
-      <h2>From idea to published, without leaving the page.</h2>
+      <h2>From research to published, without leaving the page.</h2>
     </div>
 
     <div class="feat reveal">
       <div class="feat-txt">
-        <p class="eyebrow">Ideate</p>
-        <h3>Never run out of ideas.</h3>
-        <p>Brainstorm builds ideas the way bangers actually get made: a relatable topic, through the lens of your content bucket, aimed at the right depth of your audience, in a proven format.</p>
+        <p class="eyebrow">Research</p>
+        <h3>Find the outliers before you film.</h3>
+        <p>Add the channels you study and CreatorFlo pulls their recent uploads and all-time hits into one wall — then flags every video that beat that channel's normal. The outlier research creators pay vidIQ, TubeBuddy or 1of10 for every month, built into the same app as your pipeline.</p>
         <ul>
-          <li>Relatable topic × lens × who × feel × format</li>
-          <li>Stack the deck yourself, or hit Shuffle</li>
-          <li>One click sends it to your pipeline</li>
+          <li>Outliers flagged at 1.5×, 3× and 10× the channel's typical views</li>
+          <li>Trending sort: views per hour, right now</li>
+          <li>Long-form and Shorts scored separately, so nothing hides</li>
+          <li>No autoplay, no recommendations — no YouTube rabbit hole</li>
         </ul>
       </div>
       <div class="shot-scene">
         <div class="shot">
           <div class="shot-bar"><i></i><i></i><i></i></div>
           <div class="shot-body">
-            <div class="stripes"></div>
             <div class="s-head">
-              <span class="s-title">💡 Brainstorm</span>
-              <span class="s-btn ghostb">⚙ Brand Setup</span>
-              <span class="s-btn" style="margin-left:0">🎲 Shuffle</span>
+              <span class="s-title">Money Minded</span>
+              <span class="s-sub">@moneyminded · 1.2M subs</span>
+              <span class="s-seg"><b>Most viewed</b><span>Newest</span><span>Trending</span></span>
             </div>
-            <div class="s-deck" style="margin:0 0 12px">
-              <p class="wt">You don't have imposter syndrome — you have no reps yet</p>
-              <div class="s-drow"><span class="l">Topic</span><span class="v">Imposter syndrome</span></div>
-              <div class="s-drow"><span class="l">Bucket</span><span class="v">Personal / BTS</span></div>
-              <div class="s-drow"><span class="l">Who</span><span class="v">TOF</span></div>
-              <div class="s-drow"><span class="l">Feel → Do</span><span class="v">Understood / seen → Follow</span></div>
-              <div class="s-drow"><span class="l">Format</span><span class="v">Hot take / opinion</span></div>
-              <div class="s-foot">
-                <span class="sa">SEND AS</span>
-                <span class="s-send on">Short form</span>
-                <span class="s-send">Long form</span>
-                <span class="s-add">✈ Add to pipeline</span>
-              </div>
+            <div class="vgrid s-vgrid"><div class="vt strong"><div class="yt " style="--a:#13a35b;--b:#7be495;--t:#fff;--f:#062614;--s:#5c3a24"><i class=yt-x></i><span class="yt-t">365 days</span><span class="flag strong">🔥 23×</span><span class="yt-dur">22:10</span></div><p class="vt-title">I tracked every dollar for a year</p><p class="vt-meta">2.8M views · <span class="vph">292 VPH</span></p></div><div class="vt"><div class="yt " style="--a:#f7c948;--b:#ff8a3d;--t:#181a20;--f:#2a1600;--s:#b67b52"><span class="yt-t">$100/day</span><span class="flag mid">3.4× · new</span><span class="yt-dur">11:02</span></div><p class="vt-title">$100 a day side hustle (honest results)</p><p class="vt-meta">410K views · 30h ago · <span class="vph hot">↗ 14K VPH</span></p></div><div class="vt"><div class="yt " style="--a:#ff5f3c;--b:#ffb02e;--t:#fff;--f:#1d0f0a;--s:#f1c7a0"><span class="yt-t">Lying</span><span class="flag strong">🔥 17×</span><span class="yt-dur">SHORT</span></div><p class="vt-title">Your budget is lying to you</p><p class="vt-meta">1.1M views · <span class="vph">1.8K VPH</span></p></div><div class="vt"><div class="yt " style="--a:#d7263d;--b:#ff7a59;--t:#fff;--f:#2a0508;--s:#6e4a33"><span class="yt-t">Mistake</span><span class="flag mid">5.3×</span><span class="yt-dur">15:30</span></div><p class="vt-title">The money mistake nobody talks about</p><p class="vt-meta">640K views · <span class="vph">444 VPH</span></p></div><div class="vt"><div class="yt " style="--a:#2b5cff;--b:#0fd1ff;--t:#fff;--f:#071433;--s:#8d5a3b"><span class="yt-t">Rent?</span><span class="yt-dur">13:44</span></div><p class="vt-title">Rent vs buy in 2026</p><p class="vt-meta">150K views · <span class="vph">446 VPH</span></p></div><div class="vt"><div class="yt " style="--a:#111317;--b:#3a3f4a;--t:#f7c948;--f:#000;--s:#d9a27a"><span class="yt-t">100 asked</span><span class="yt-dur">18:20</span></div><p class="vt-title">I asked 100 millionaires one question</p><p class="vt-meta">98K views · <span class="vph">454 VPH</span></p></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feat reveal">
+      <div class="feat-txt">
+        <p class="eyebrow">Inspiration</p>
+        <h3>A swipe file that turns into videos.</h3>
+        <p>Every video worth stealing from — competitors' outliers, packaging you love, formats you want to try — saved in one place and tagged so you can actually find it again. When one clicks, hit Recreate and it becomes a card in your pipeline with the original pinned as its reference.</p>
+        <ul>
+          <li>Paste a link, or import a whole playlist at once</li>
+          <li>Tag for packaging: big face, before/after, curiosity gap…</li>
+          <li>One click from "that's a banger" to a card in your pipeline</li>
+          <li>Pull any saved video into a card as a reference</li>
+        </ul>
+      </div>
+      <div class="shot-scene">
+        <div class="shot">
+          <div class="shot-bar"><i></i><i></i><i></i></div>
+          <div class="shot-body">
+            <div class="s-head">
+              <span class="s-title">Inspiration</span>
+              <span class="s-sub">Your swipe file</span>
+              <span class="s-btn">＋ Add</span>
             </div>
-            <div class="s-dim">
-              <p class="dim-h">01 · Relatable Topic <em>what they're living through</em></p>
-              <div class="s-picks">
-                <span class="s-pick">Feeling overwhelmed by options</span>
-                <span class="s-pick on">Imposter syndrome</span>
-                <span class="s-pick">Procrastination</span>
-                <span class="s-pick">Burnout</span>
-              </div>
-            </div>
-            <div class="s-dim" style="margin-bottom:0">
-              <p class="dim-h">02 · Through The Lens Of <em>your content bucket</em></p>
-              <div class="s-picks">
-                <span class="s-pick">Educational</span>
-                <span class="s-pick on">Personal / BTS</span>
-                <span class="s-pick">Authority</span>
-              </div>
-            </div>
+            <div class="s-picks" style="margin-bottom:10px"><span class="s-pick on">curiosity gap</span><span class="s-pick">before/after</span><span class="s-pick">text heavy</span><span class="s-pick">big number</span></div>
+            <div class="vgrid s-vgrid"><div class="vt"><div class="yt " style="--a:#8a2be2;--b:#ff5ec4;--t:#fff;--f:#1c0730;--s:#f5d3b8"><i class=yt-x></i><span class="yt-t">2x views</span><span class="yt-dur">14:30</span></div><p class="vt-title">Thumbnails that doubled my views</p><p class="vt-meta">The Creator Lab · 520K views</p><div class="vt-tags"><span class="tag sm">before/after</span></div><span class="recreate">↻ Recreate this video</span></div><div class="vt"><div class="yt " style="--a:#d7263d;--b:#ff7a59;--t:#fff;--f:#2a0508;--s:#6e4a33"><span class="yt-t">Stop.</span><span class="yt-dur">SHORT</span></div><p class="vt-title">Stop posting every day</p><p class="vt-meta">Solo Stack · 486K views</p><div class="vt-tags"><span class="tag sm">text heavy</span></div><span class="recreate">↻ Recreate this video</span></div><div class="vt"><div class="yt " style="--a:#ff5f3c;--b:#ffb02e;--t:#fff;--f:#1d0f0a;--s:#f1c7a0"><i class=yt-x></i><span class="yt-t">$0 → quit</span><span class="yt-dur">17:42</span></div><p class="vt-title">I quit my 9–5 with a $0 audience</p><p class="vt-meta">Solo Stack · 1.4M views</p><div class="vt-tags"><span class="tag sm">curiosity gap</span></div><span class="recreate">↻ Recreate this video</span></div></div>
+            <div class="s-toast">Recreated in <b>Long Form → Ideas</b> — reference pinned</div>
           </div>
         </div>
       </div>
@@ -925,11 +976,12 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
       <div class="feat-txt">
         <p class="eyebrow">Script</p>
         <h3>Script faster.</h3>
-        <p>Every card opens to the right template for its format, with a reference library of viral hook formulas, hook angles, and interest peaks one click away while you write.</p>
+        <p>Every card opens to the right template for its format, with the video you're recreating pinned at the top and a library of viral hook formulas, hook angles, and interest peaks one click away while you write.</p>
         <ul>
           <li>Visual hook + script sections per format</li>
           <li>Hook → Build Up → Value → Resolution → CTA → Loop Back</li>
-          <li>Paste reference clips and images right into the card</li>
+          <li>Reference videos, thumbnails and images live in the card</li>
+          <li>Works with Claude &amp; ChatGPT — let your AI read boards and draft into cards</li>
         </ul>
       </div>
       <div class="shot-scene">
@@ -938,7 +990,7 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
           <div class="shot-body">
             <div class="s-card-top">
               <span class="s-card-title">The muggle conversation: explaining my job at Thanksgiving</span>
-              <div class="s-tabs"><span class="s-tab">Plan</span><span class="s-tab on">Script</span><span class="s-tab">Post</span></div>
+              <div class="s-tabs"><span class="s-tab">Plan</span><span class="s-tab on">Script</span><span class="s-tab">Review</span><span class="s-tab">Post</span></div>
             </div>
             <div class="s-script-grid">
               <div>
@@ -972,12 +1024,13 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
     <div class="feat reveal">
       <div class="feat-txt">
         <p class="eyebrow">Produce</p>
-        <h3>Stay organized.</h3>
-        <p>Every video moves across one board — Ideas, Up Next, Scripting, Filming, Editing, Ready for Posting. Drag a card forward and you always know exactly where everything stands.</p>
+        <h3>Stay organized — with your whole team.</h3>
+        <p>Every video moves across one board — Ideas, Up Next, Scripting, Filming, Editing, Ready for Posting. Drag a card forward and everyone knows exactly where it stands, live.</p>
         <ul>
-          <li>A pipeline board per content type: short, long, podcast, carousels</li>
-          <li>Content buckets keep your niches balanced</li>
-          <li>Unlimited brand profiles in one install</li>
+          <li>Your own pipelines: rename, reorder and add steps</li>
+          <li>Share a board with editors and assign cards to people</li>
+          <li>Review tab: paste a cut, leave notes pinned to the exact second</li>
+          <li>Unlimited brand profiles in one account</li>
         </ul>
       </div>
       <div class="shot-scene">
@@ -1018,7 +1071,7 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
         <p>The Posting Schedule shows everything with a posting date, color-coded by production status. Drag a video onto a day to reschedule it — then open the app any morning and know what today is for.</p>
         <ul>
           <li>Month view of everything with a posting date</li>
-          <li>Drag a video onto a day to reschedule it</li>
+          <li>Thumbnail options side by side — swap in a winner, download it for YouTube</li>
           <li>All Content table for the full bird's-eye view</li>
         </ul>
       </div>
@@ -1027,7 +1080,7 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
           <div class="shot-bar"><i></i><i></i><i></i></div>
           <div class="shot-body">
             <div class="s-cal-top">
-              <span class="s-cal-month">July 2026</span>
+              <span class="s-cal-month" id="shot-month">July 2026</span>
               <span class="s-cal-nav">‹</span><span class="s-cal-nav">›</span>
               <span class="s-cal-today">Today</span>
               <span class="s-cal-hint">Drag a video onto a day to reschedule it</span>
@@ -1072,29 +1125,29 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
       <h2>One flow. Start to finish.</h2>
     </div>
     <div class="rail reveal" id="rail">
+      <span class="stage">Research</span><span class="sep">→</span>
       <span class="stage">Idea</span><span class="sep">→</span>
       <span class="stage">Script</span><span class="sep">→</span>
       <span class="stage">Record</span><span class="sep">→</span>
       <span class="stage">Edit</span><span class="sep">→</span>
-      <span class="stage">Schedule</span><span class="sep">→</span>
-      <span class="stage">Publish</span><span class="sep">→</span>
-      <span class="stage">Track</span>
+      <span class="stage">Review</span><span class="sep">→</span>
+      <span class="stage">Publish</span>
     </div>
     <div class="steps">
       <div class="step reveal">
         <span class="n">STEP 1</span>
-        <h3>Set up your brand</h3>
-        <p>Tell CreatorFlo your niche, audience, topics, and content buckets once. Every board, template, and brainstorm is built from your profile — and you can run multiple brands side by side.</p>
+        <h3>Set up your brand &amp; research</h3>
+        <p>Add your niche, your audience, the competitor channels you study, and the videos that inspire you. CreatorFlo flags what's outperforming and keeps it all in one swipe file — so you always have a steady flow of ideas worth making.</p>
       </div>
       <div class="step reveal">
         <span class="n">STEP 2</span>
-        <h3>Brainstorm &amp; script</h3>
-        <p>Stack the deck until an idea clicks, add it to your pipeline, and open the card to a ready-made script template with hooks, frameworks, and CTAs for that exact format.</p>
+        <h3>Recreate a winner &amp; script it</h3>
+        <p>Spot an outlier, hit Recreate, and it lands in your pipeline with the original pinned as its reference. Open the card to a ready-made script template with hooks, frameworks, and CTAs for that exact format.</p>
       </div>
       <div class="step reveal">
         <span class="n">STEP 3</span>
         <h3>Drag it to done</h3>
-        <p>Move cards through scripting, filming, and editing, then drop them on the calendar. Open the app any morning and know exactly what today is for.</p>
+        <p>Move cards through scripting, filming, editing and review — solo or with your team — then drop them on the calendar. Open the app any morning and know exactly what today is for.</p>
       </div>
     </div>
   </div>
@@ -1106,22 +1159,23 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
     <div class="sec-head center reveal">
       <p class="eyebrow">Pricing</p>
       <h2>One price. Yours forever.</h2>
-      <p class="lede">No subscription, no per-seat math, no "pro tier". Buy it once, create with it forever.</p>
+      <p class="lede">No subscription, no "pro tier", no monthly research tool on top. Buy it once, research and create with it forever.</p>
     </div>
     <div class="price-card reveal">
       <span class="badge-top">One-time purchase</span>
       <div class="price"><sup>$</sup>29</div>
       <p class="price-sub">pay once · use forever</p>
       <ul class="price-list">
+        <li>Competitor research: outliers, views per hour, trending</li>
+        <li>Inspiration library with one-click Recreate</li>
         <li>Every board, calendar &amp; table view</li>
-        <li>Brainstorm ideation engine</li>
         <li>Script templates, hooks &amp; CTA library</li>
-        <li>Unlimited brand profiles</li>
-        <li>Local-first, synced privately to your account</li>
+        <li>Team sharing, assignees &amp; video review notes</li>
+        <li>Unlimited brand profiles, synced across your devices</li>
         <li>All future updates included</li>
       </ul>
       <a class="btn btn-amber" href="https://buy.stripe.com/8x2fZhaQA416a7SaOl18c02" id="buy">Buy CreatorFlo — $29</a>
-      <p class="price-fine">Instant access · works on desktop &amp; mobile</p>
+      <p class="price-fine">Instant access · works on desktop &amp; mobile · teammates each use their own CreatorFlo</p>
       <p class="price-login">Already purchased? <a href="https://creatorflo.io/">Log in to your workspace →</a></p>
     </div>
   </div>
@@ -1131,7 +1185,7 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
 <section class="final">
   <div class="wrap reveal">
     <h2>Stop creating in chaos.<br>Start creating in Creator<span class="flo">Flo</span>.</h2>
-    <p>Know exactly what to create next — for $29, once.</p>
+    <p>Find what works, make it yours, and ship it — for $29, once.</p>
     <a class="btn btn-amber" href="#pricing">Get CreatorFlo — $29 once</a>
   </div>
 </section>
@@ -1164,6 +1218,7 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
         </ul>
       </div>
     </div>
+    <p class="foot-tm">vidIQ, TubeBuddy, 1of10, Notion, Trello, Airtable, Google Docs and YouTube are trademarks of their respective owners. CreatorFlo isn't affiliated with or endorsed by them.</p>
     <div class="foot-base">
       <span>© 2026 CreatorFlo. All rights reserved. &nbsp;·&nbsp;
         <a href="/privacy/" style="color:inherit">Privacy</a> ·
@@ -1175,7 +1230,9 @@ src="https://www.facebook.com/tr?id=3306734846380695&ev=PageView&noscript=1"
 </footer>
 
 <script>
-/* ————————————————————————— Demo data (mirrors the real app) ————————————————————————— */
+/* ————————————————————————— Demo data (mirrors the real app) —————————————————————————
+   Channels, videos and thumbnails are made up — drawn in CSS, never a real
+   creator's artwork. */
 const STATUS = {
   ideas:{name:"Ideas",             c:"#9aa1ab", rgb:"154,161,171"},
   next: {name:"Up Next",           c:"#f472b6", rgb:"244,114,182"},
@@ -1189,22 +1246,191 @@ const BOARDS = {
   short:{title:"Video Status · Short", sub:"Shorts pipeline, idea → posted", fmt:"Short form"},
   long: {title:"Video Status · Long",  sub:"Long form pipeline, idea → posted", fmt:"Long form"}
 };
+const TEAM = {AL:"#5b8def", MK:"#b692f6", JB:"#f7c948"};
+
+/* thumbnail palettes: [from, to, text, figure] */
+const PALS = [
+  ["#ff5f3c","#ffb02e","#fff","#1d0f0a"], ["#2b5cff","#0fd1ff","#fff","#071433"],
+  ["#111317","#3a3f4a","#f7c948","#000"],  ["#13a35b","#7be495","#fff","#062614"],
+  ["#8a2be2","#ff5ec4","#fff","#1c0730"], ["#f7c948","#ff8a3d","#181a20","#2a1600"],
+  ["#e8ecf2","#b7c2d0","#181a20","#2a2f38"], ["#d7263d","#ff7a59","#fff","#2a0508"]
+];
+const $ = s => document.querySelector(s);
+const SKIN = ["#f1c7a0","#8d5a3b","#d9a27a","#5c3a24","#f5d3b8","#b67b52","#e8b48f","#6e4a33"];
+const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function thumb(th, cls="", extra=""){
+  if(!th) return "";
+  const [a,b,t,f] = PALS[th.p % PALS.length];
+  const skin = SKIN[th.p % SKIN.length];
+  return `<div class="yt ${cls}" style="--a:${a};--b:${b};--t:${t};--f:${f};--s:${skin}">${th.x?'<i class="yt-x"></i>':""}<span class="yt-t">${esc(th.t)}</span>${extra}</div>`;
+}
+
+/* ————— Competitors ————— */
+const CHANNELS = [
+  {id:"solo",  name:"Solo Stack",      handle:"@solostack",     subs:"412K", color:"#f7c948", median:38000,  shortMedian:21000},
+  {id:"money", name:"Money Minded",    handle:"@moneyminded",   subs:"1.2M", color:"#5fe3a1", median:120000, shortMedian:64000},
+  {id:"lab",   name:"The Creator Lab", handle:"@thecreatorlab", subs:"286K", color:"#b692f6", median:24000,  shortMedian:15000}
+];
+const D = 24;
+const VIDEOS = [
+  {id:"s1",ch:"solo", title:"I quit my 9–5 with a $0 audience (full breakdown)", th:{t:"$0 → quit",p:0,x:1}, views:1400000,ageH:D*200,dur:"17:42"},
+  {id:"s2",ch:"solo", title:"The 4-hour content week (my exact system)",          th:{t:"4 hours",p:2},     views:312000, ageH:D*45, dur:"12:10"},
+  {id:"s3",ch:"solo", title:"Stop posting every day",                             th:{t:"Stop.",p:7},       views:486000, ageH:D*20, short:1},
+  {id:"s4",ch:"solo", title:"AI tools I'd pay for twice",                         th:{t:"Pay 2x?",p:1},     views:41000,  ageH:D*6,  dur:"14:05"},
+  {id:"s5",ch:"solo", title:"Why your first 1,000 subs take forever",             th:{t:"1,000",p:5,x:1},   views:96000,  ageH:50,   dur:"9:48"},
+  {id:"s6",ch:"solo", title:"My $47 studio setup",                                th:{t:"$47 setup",p:6},   views:22000,  ageH:D*30, dur:"8:12"},
+  {id:"s7",ch:"solo", title:"Nobody tells you this about freelancing",            th:{t:"Nobody",p:4},      views:18000,  ageH:D*3,  short:1},
+  {id:"m1",ch:"money",title:"I tracked every dollar for a year",                  th:{t:"365 days",p:3,x:1},views:2800000,ageH:D*400,dur:"22:10"},
+  {id:"m2",ch:"money",title:"The millennial money mistake nobody talks about",    th:{t:"Mistake",p:7},     views:640000, ageH:D*60, dur:"15:30"},
+  {id:"m3",ch:"money",title:"$100 a day side hustle (honest results)",            th:{t:"$100/day",p:5},    views:410000, ageH:30,   dur:"11:02"},
+  {id:"m4",ch:"money",title:"Rent vs buy in 2026",                                th:{t:"Rent?",p:1},       views:150000, ageH:D*14, dur:"13:44"},
+  {id:"m5",ch:"money",title:"Your budget is lying to you",                        th:{t:"Lying",p:0},       views:1100000,ageH:D*25, short:1},
+  {id:"m6",ch:"money",title:"I asked 100 millionaires one question",              th:{t:"100 asked",p:2},   views:98000,  ageH:D*9,  dur:"18:20"},
+  {id:"l1",ch:"lab",  title:"Thumbnails that doubled my views",                   th:{t:"2x views",p:4,x:1},views:520000, ageH:D*120,dur:"14:30"},
+  {id:"l2",ch:"lab",  title:"I copied viral hooks for 30 days",                   th:{t:"30 days",p:1},     views:88000,  ageH:D*21, dur:"16:02"},
+  {id:"l3",ch:"lab",  title:"The script template I use for every video",          th:{t:"Template",p:6},    views:64000,  ageH:40,   dur:"10:15"},
+  {id:"l4",ch:"lab",  title:"How to find video ideas that already work",          th:{t:"Outliers",p:5,x:1},views:31000,  ageH:D*10, dur:"12:40"},
+  {id:"l5",ch:"lab",  title:"Hook them in 3 seconds",                             th:{t:"3 sec",p:7},       views:260000, ageH:D*8,  short:1},
+  {id:"l6",ch:"lab",  title:"Batch a month of content in a weekend",              th:{t:"1 weekend",p:3},   views:19000,  ageH:D*50, dur:"11:20"}
+];
+const chOf = v => CHANNELS.find(c=>c.id===v.ch);
+VIDEOS.forEach(v=>{
+  const c = chOf(v);
+  const m = v.views / (v.short ? c.shortMedian : c.median);
+  v.x = m >= 10 ? Math.round(m) : Math.round(m*10)/10;
+  v.vph = v.views / v.ageH;
+  v.fresh = v.ageH < 72;
+});
+const vid = id => VIDEOS.find(v=>v.id===id);
+
+const fmtN = n => n>=1e6 ? (n/1e6).toFixed(n>=1e7?0:1).replace(/\.0$/,"")+"M" : n>=1e3 ? (n/1e3).toFixed(n>=1e4?0:1).replace(/\.0$/,"")+"K" : String(Math.round(n));
+const fmtAge = h => h<48 ? `${Math.round(h)}h ago` : h<D*30 ? `${Math.round(h/D)}d ago` : h<D*365 ? `${Math.round(h/D/30)}mo ago` : `${Math.round(h/D/365)}y ago`;
+
+let INSPO = [
+  {id:"m1", tags:["curiosity gap","big number"]},
+  {id:"l1", tags:["before/after"]},
+  {id:"s3", tags:["text heavy"]}
+];
+const saved = id => INSPO.some(i=>i.id===id);
+
+let compCh = "money", compSort = "views", compKind = "all";
+function renderComp(){
+  $("#cw-channels").innerHTML = CHANNELS.map(c=>
+    `<button class="cw-ch${c.id===compCh?" on":""}" data-ch="${c.id}"><span class="av" style="background:${c.color}">${c.name.split(" ").map(w=>w[0]).join("").slice(0,2)}</span><span>${c.name}<small>${c.handle} · ${c.subs} subs</small></span></button>`
+  ).join("");
+  const c = CHANNELS.find(x=>x.id===compCh);
+  let list = VIDEOS.filter(v=>v.ch===compCh && (compKind==="all" || (compKind==="short") === !!v.short));
+  list.sort((a,b)=> compSort==="views" ? b.views-a.views : compSort==="newest" ? a.ageH-b.ageH : b.vph-a.vph);
+  $("#cw-stat").textContent = `typical upload ${fmtN(c.median)} · typical Short ${fmtN(c.shortMedian)} · flagged past 1.5× normal`;
+  $("#cw-grid").innerHTML = list.map(v=>{
+    const tier = v.x>=10 ? "strong" : v.x>=3 ? "mid" : "";
+    const flag = v.x>=1.5 ? `<span class="flag ${tier}">${v.x>=10?"🔥 ":""}${v.x}×${v.fresh?" · new":""}</span>` : v.fresh ? `<span class="flag new">✦ new</span>` : "";
+    const on = saved(v.id);
+    return `<div class="vt${v.x>=10?" strong":""}">
+      ${thumb(v.th,"",`${flag}<span class="yt-dur">${v.short?"SHORT":v.dur}</span><button class="save${on?" on":""}" data-save="${v.id}" title="${on?"In your inspiration library":"Save to inspiration"}" aria-label="Save to inspiration">${on?"✓":"＋"}</button>`)}
+      <p class="vt-title">${esc(v.title)}</p>
+      <p class="vt-meta"><span>${fmtN(v.views)} views · ${fmtAge(v.ageH)}</span><span class="vph${v.vph>2000?" hot":""}">${v.fresh?"↗ ":""}${fmtN(v.vph)} VPH</span></p>
+    </div>`;
+  }).join("");
+}
+$("#cw-channels").addEventListener("click", e=>{
+  const b = e.target.closest("[data-ch]"); if(!b) return;
+  compCh = b.dataset.ch; renderComp();
+});
+$("#cw-sort").addEventListener("click", e=>{
+  const b = e.target.closest("[data-sort]"); if(!b) return;
+  compSort = b.dataset.sort;
+  $("#cw-sort").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b));
+  renderComp();
+  if(compSort==="trending") toast("Sorted by <b>views per hour</b> — what's taking off right now");
+});
+$("#cw-kind").addEventListener("click", e=>{
+  const b = e.target.closest("[data-kind]"); if(!b) return;
+  compKind = b.dataset.kind;
+  $("#cw-kind").querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b));
+  renderComp();
+});
+$("#cw-grid").addEventListener("click", e=>{
+  const b = e.target.closest("[data-save]"); if(!b) return;
+  const id = b.dataset.save;
+  if(saved(id)){ toast("Already in your <b>Inspiration</b> library"); return; }
+  INSPO.unshift({id, tags:[]});
+  renderComp(); updateCounts();
+  toast("Saved to <b>Inspiration</b> — hit Recreate there to make it yours");
+});
+
+/* ————— Inspiration ————— */
+let activeTags = [];
+function renderInspo(){
+  const tags = [...new Set(INSPO.flatMap(i=>i.tags))];
+  activeTags = activeTags.filter(t=>tags.includes(t));
+  $("#in-tags").innerHTML = tags.map(t=>`<button class="tag${activeTags.includes(t)?" on":""}" data-tag="${esc(t)}">${esc(t)}</button>`).join("");
+  const shown = INSPO.filter(i=>activeTags.every(t=>i.tags.includes(t)));
+  $("#in-grid").innerHTML = shown.length ? shown.map(i=>{
+    const v = vid(i.id), made = CARDS.find(k=>k.ref===i.id);
+    return `<div class="vt">
+      ${thumb(v.th,"",`<span class="yt-dur">${v.short?"SHORT":v.dur}</span>`)}
+      <p class="vt-title">${esc(v.title)}</p>
+      <p class="vt-meta">${chOf(v).name} · ${fmtN(v.views)} views</p>
+      ${i.tags.length?`<div class="vt-tags">${i.tags.map(t=>`<span class="tag sm">${esc(t)}</span>`).join("")}</div>`:""}
+      <button class="recreate" data-recreate="${i.id}">${made?"✓ Open the card":"↻ Recreate this video"}</button>
+    </div>`;
+  }).join("") : `<p class="in-empty">Nothing matches — clear a tag.</p>`;
+}
+$("#in-tags").addEventListener("click", e=>{
+  const b = e.target.closest("[data-tag]"); if(!b) return;
+  const t = b.dataset.tag;
+  activeTags = activeTags.includes(t) ? activeTags.filter(x=>x!==t) : [...activeTags, t];
+  renderInspo();
+});
+$("#in-grid").addEventListener("click", e=>{
+  const b = e.target.closest("[data-recreate]"); if(!b) return;
+  const v = vid(b.dataset.recreate);
+  const made = CARDS.find(k=>k.ref===v.id);
+  if(made){ openCard(made.id, "plan"); return; }
+  const board = v.short ? "short" : "long";
+  const card = {id:nextId++, board, col:"ideas", who:"TOF", title:v.title, ref:v.id};
+  CARDS.unshift(card);
+  toast(`Recreated in <b>${board==="short"?"Short":"Long"} Form → Ideas</b> — reference pinned`);
+  setTimeout(()=>{ activeBoard = board; switchView("board", card.id); }, 450);
+});
+$("#in-add").addEventListener("submit", e=>{
+  e.preventDefault();
+  $("#in-url").value = "";
+  toast("Links, whole playlists and channels import in <b>the full app</b>");
+});
+
+/* ————— Pipeline cards ————— */
 let CARDS = [
   {id:1,board:"short",col:"ideas",who:"TOF",title:"The muggle conversation: explaining my job at Thanksgiving"},
-  {id:2,board:"short",col:"ideas",who:"TOF",title:"Millennial career crisis: the spreadsheet that made me quit"},
+  {id:2,board:"short",col:"ideas",who:"TOF",title:"Millennial career crisis: the spreadsheet that made me quit",team:["MK"]},
   {id:3,board:"short",col:"ideas",who:"TOF",title:"You don't have shiny object syndrome — you have no filter"},
-  {id:4,board:"short",col:"next", who:"TOF",title:"5 AI tools I actually pay for as a solo creator",date:"JUL 14"},
-  {id:5,board:"short",col:"edit", who:"MOF",title:"Why 'learn more' is keeping you broke (action > planning)",date:"JUL 11"},
-  {id:6,board:"long", col:"script",who:"MOF",title:"I let AI plan my content for 30 days",date:"JUL 21"},
-  {id:7,board:"long", col:"ready",who:"TOF",title:"How I schedule a week of content in 1 hour",date:"JUL 10"}
+  {id:4,board:"short",col:"next", who:"TOF",title:"5 AI tools I actually pay for as a solo creator",off:5,team:["AL"]},
+  {id:5,board:"short",col:"edit", who:"MOF",title:"Why 'learn more' is keeping you broke (action > planning)",off:2,team:["MK"]},
+  {id:8,board:"long", col:"ideas",who:"TOF",title:"I tracked every dollar for a year — here's what I'd change",ref:"m1"},
+  {id:6,board:"long", col:"script",who:"MOF",title:"I let AI plan my content for 30 days",off:12,th:{t:"AI planned it",p:1,x:1},team:["AL"]},
+  {id:7,board:"long", col:"edit",who:"TOF",title:"How I schedule a week of content in 1 hour",off:1,th:{t:"1 hour",p:5},team:["MK","AL"]}
 ];
-let nextId = 8;
+let nextId = 9;
 let activeBoard = "short";
 
-const $ = s => document.querySelector(s);
-const colsEl = $("#cols");
+
+/* ————— Dates: the demo always shows the current month ————— */
+const NOW = new Date();
+const MON = NOW.toLocaleString("en-US",{month:"short"}).toUpperCase();
+const DIM = new Date(NOW.getFullYear(), NOW.getMonth()+1, 0).getDate();
+const TODAY = NOW.getDate();
+// A posting day this month, `off` days out (folded back inside the month).
+const postDay = off => TODAY+off <= DIM ? TODAY+off : Math.max(1, TODAY-off);
+const dateLabel = k => k.off ? `${MON} ${postDay(k.off)}` : "";
 
 /* ————— Board render ————— */
+function cardThumb(k){
+  if(k.board!=="long") return "";
+  if(k.th) return thumb(k.th);
+  if(k.ref) return thumb(vid(k.ref).th, "dim", `<span class="yt-ref">REF</span>`);
+  return "";
+}
 function renderBoard(flashId){
   const b = BOARDS[activeBoard];
   $("#b-title").textContent = b.title;
@@ -1222,29 +1448,29 @@ function renderBoard(flashId){
       const el = document.createElement("div");
       el.className = "kcard" + (k.id===flashId ? " flash" : "");
       el.dataset.id = k.id;
-      el.innerHTML = `<p class="kt">${k.title}</p>
-        <div class="km"><span class="fmt">${BOARDS[k.board].fmt}</span><span class="whop">${k.who}</span>${k.date?`<span class="kd">${k.date}</span>`:""}</div>`;
+      const d = dateLabel(k);
+      el.innerHTML = `${cardThumb(k)}<p class="kt">${esc(k.title)}</p>
+        <div class="km"><span class="fmt">${BOARDS[k.board].fmt}</span><span class="whop">${k.who}</span>${(k.team||[]).map(t=>`<span class="kav" style="background:${TEAM[t]}" title="Assigned to ${t}">${t}</span>`).join("")}${d?`<span class="kd">${d}</span>`:k.ref?`<span class="kd kref">↻ REF</span>`:""}</div>`;
       el.addEventListener("pointerdown", e=>startDrag(e, k.id, el));
       col.appendChild(el);
     });
     col.insertAdjacentHTML("beforeend", `<button class="knew" tabindex="-1">＋ New idea</button>`);
-    col.querySelector(".knew").addEventListener("click", ()=>{
-      switchView("brainstorm");
-      toast("Stack the deck, then <b>Add to pipeline</b>");
-    });
+    col.querySelector(".knew").addEventListener("click", newIdea);
     colsEl.appendChild(col);
   });
   updateCounts();
 }
+const colsEl = $("#cols");
 function updateCounts(){
   document.querySelectorAll("[data-count]").forEach(el=>{
-    el.textContent = CARDS.filter(k=>k.board===el.dataset.count).length;
+    el.textContent = el.dataset.count==="inspo" ? INSPO.length : CARDS.filter(k=>k.board===el.dataset.count).length;
   });
 }
-$("#b-new").addEventListener("click", ()=>{
-  switchView("brainstorm");
-  toast("Stack the deck, then <b>Add to pipeline</b>");
-});
+function newIdea(){
+  switchView("inspo");
+  toast("Start from a proven video — hit <b>Recreate</b>");
+}
+$("#b-new").addEventListener("click", newIdea);
 
 /* ————— Pointer drag (mouse + touch) ————— */
 let drag = null;
@@ -1306,14 +1532,14 @@ function endDrag(e){
   renderBoard();
 }
 
-/* ————— Calendar (July 2026, Sunday start — Jul 1 is a Wednesday) ————— */
-const SCHEDULED = {10:7, 11:5, 14:4, 21:6};
-const TODAY = 9;
+/* ————— Calendar (this month, Sunday start) ————— */
 function calCells(){
   const cells = [];
-  [28,29,30].forEach(d=>cells.push({d, dim:true}));       // June
-  for(let d=1; d<=31; d++) cells.push({d, dim:false});     // July
-  cells.push({d:1, dim:true});                             // Aug 1 — 35 cells
+  const lead = new Date(NOW.getFullYear(), NOW.getMonth(), 1).getDay();
+  const prevDim = new Date(NOW.getFullYear(), NOW.getMonth(), 0).getDate();
+  for(let i=lead-1; i>=0; i--) cells.push({d:prevDim-i, dim:true});
+  for(let d=1; d<=DIM; d++) cells.push({d, dim:false});
+  for(let d=1; cells.length%7; d++) cells.push({d, dim:true});
   return cells;
 }
 function renderCal(){
@@ -1323,146 +1549,17 @@ function renderCal(){
     const day = document.createElement("div");
     day.className = "day" + (dim ? " dim" : "") + (!dim && d===TODAY ? " today" : "");
     day.innerHTML = `<span class="num">${d}</span>`;
-    if(!dim && SCHEDULED[d] !== undefined){
-      const card = CARDS.find(k=>k.id===SCHEDULED[d]);
-      if(card){
-        const st = STATUS[card.col];
-        day.insertAdjacentHTML("beforeend",
-          `<div class="chip" style="background:rgba(${st.rgb},.18);color:${st.c}">${card.title}</div>`);
-      }
-    }
+    if(!dim) CARDS.filter(k=>k.off && postDay(k.off)===d).forEach(card=>{
+      const st = STATUS[card.col];
+      day.insertAdjacentHTML("beforeend",
+        `<div class="chip" style="background:rgba(${st.rgb},.18);color:${st.c}">${esc(card.title)}</div>`);
+    });
     cal.appendChild(day);
   });
 }
+$(".cal-month").textContent = $("#shot-month").textContent = NOW.toLocaleString("en-US",{month:"long", year:"numeric"});
 
-/* ————— Brainstorm (matches the real deck) ————— */
-const DIMS = [
-  {key:"topic", num:"01", label:"Relatable Topic", hint:"what they're living through", type:"select",
-   opts:["Feeling overwhelmed by options","Never enough time","Fear of getting started","Procrastination","Comparing yourself to others","Imposter syndrome","Perfectionism holding you back","Burnout","Losing motivation","Information overload","Feeling stuck","Wanting results faster","Self-doubt"]},
-  {key:"lens", num:"02", label:"Through The Lens Of", hint:"your content bucket", type:"chips",
-   opts:["Millennial Money","Online Business Life","AI Tools","Content Creation"]},
-  {key:"who", num:"03", label:"Who", hint:"how deep we getting", type:"chips",
-   opts:["TOF","MOF","BOF"]},
-  {key:"action", num:"04", label:"Goal Action", hint:"what they should do", type:"select",
-   opts:["Follow","Share","Save","Comment","Click the link"]},
-  {key:"feel", num:"05", label:"Need Them To Feel", hint:"feeling > action", type:"select",
-   opts:["Inspired","Motivated","Understood / seen","Curious","Entertained","Surprised","Empowered","Reassured"]},
-  {key:"format", num:"06", label:"Format", hint:"the structure of the piece", type:"select",
-   opts:["Quick tip","How-to / tutorial","Story time","List / top picks","Hot take / opinion","Myth busting","Behind the scenes","Review / reaction","Skit / entertainment","Carousel"]}
-];
-const SEL = {topic:null,lens:null,who:null,action:null,feel:null,format:null};
-let sendAs = "short";
-const pick = a => a[Math.floor(Math.random()*a.length)];
-const TITLES = [
-  t=>`The truth about ${t.toLowerCase()} nobody says out loud`,
-  t=>`${t} is costing you more than you think`,
-  t=>`How I finally beat ${t.toLowerCase()}`,
-  t=>`Stop romanticizing ${t.toLowerCase()}`,
-  t=>`${t}: read this before you post today`
-];
-function renderDims(){
-  const grid = $("#bs-grid");
-  grid.innerHTML = "";
-  DIMS.forEach(dim=>{
-    const box = document.createElement("div");
-    box.innerHTML = `<p class="dim-h">${dim.num} · ${dim.label} <em>${dim.hint}</em></p>`;
-    if(dim.type==="select"){
-      const sel = document.createElement("select");
-      sel.className = "pick-select";
-      sel.setAttribute("aria-label", dim.label);
-      const any = document.createElement("option");
-      any.value = ""; any.textContent = "— Any —";
-      sel.appendChild(any);
-      dim.opts.forEach(o=>{
-        const opt = document.createElement("option");
-        opt.value = o; opt.textContent = o;
-        if(SEL[dim.key]===o) opt.selected = true;
-        sel.appendChild(opt);
-      });
-      sel.addEventListener("change", ()=>{
-        SEL[dim.key] = sel.value || null;
-        renderDeck();
-      });
-      box.appendChild(sel);
-    } else {
-      const picks = document.createElement("div");
-      picks.className = "picks";
-      dim.opts.forEach(o=>{
-        const btn = document.createElement("button");
-        btn.className = "pick" + (SEL[dim.key]===o ? " on" : "");
-        btn.textContent = o;
-        btn.addEventListener("click", ()=>{
-          SEL[dim.key] = SEL[dim.key]===o ? null : o;
-          renderDims(); renderDeck();
-        });
-        picks.appendChild(btn);
-      });
-      box.appendChild(picks);
-    }
-    grid.appendChild(box);
-  });
-}
-function renderDeck(){
-  const set = (key, val)=>{
-    const el = document.querySelector(`[data-deck="${key}"]`);
-    el.textContent = val || "—";
-    el.classList.toggle("none", !val);
-  };
-  set("topic", SEL.topic);
-  set("lens", SEL.lens);
-  set("who", SEL.who);
-  set("feeldo", SEL.feel && SEL.action ? `${SEL.feel} → ${SEL.action}` : (SEL.feel || SEL.action));
-  set("format", SEL.format);
-}
-function shuffleDeck(){
-  DIMS.forEach((dim,i)=>{
-    const el = document.querySelector(`[data-deck="${dim.key==='action'||dim.key==='feel' ? 'feeldo' : dim.key}"]`);
-    el.classList.add("spin");
-    setTimeout(()=>{
-      SEL[dim.key] = pick(dim.opts);
-      el.classList.remove("spin");
-      if(i===DIMS.length-1){
-        $("#deck-title").value = pick(TITLES)(SEL.topic);
-        renderDims(); renderDeck();
-      }
-    }, 380 + i*120);
-  });
-}
-function resetDeck(){
-  Object.keys(SEL).forEach(k=>SEL[k]=null);
-  $("#deck-title").value = "";
-  $("#deck-goal").value = "";
-  renderDims(); renderDeck();
-}
-$("#bs-shuffle").addEventListener("click", shuffleDeck);
-document.querySelectorAll(".send").forEach(b=>{
-  b.addEventListener("click", ()=>{
-    sendAs = b.dataset.send;
-    document.querySelectorAll(".send").forEach(x=>x.classList.toggle("on", x===b));
-  });
-});
-$("#bs-add").addEventListener("click", ()=>{
-  const typed = $("#deck-title").value.trim();
-  if(!typed && !SEL.topic){
-    toast("Type a title or pick a topic — or hit <b>Shuffle</b>");
-    return;
-  }
-  if(sendAs!=="short" && sendAs!=="long"){
-    toast("Podcast &amp; Carousel pipelines are in the full app — send as <b>Short or Long form</b>");
-    return;
-  }
-  const title = typed || pick(TITLES)(SEL.topic);
-  const card = {id:nextId++, board:sendAs, col:"ideas", who:SEL.who||"TOF", title, goal:$("#deck-goal").value.trim()};
-  CARDS.unshift(card);
-  toast(`Added to <b>${sendAs==="short"?"Short":"Long"} Form → Ideas</b>`);
-  setTimeout(()=>{
-    activeBoard = sendAs;
-    switchView("board", card.id);
-    resetDeck();
-  }, 500);
-});
-
-/* ————— Card editor (Script view) ————— */
+/* ————— Card editor: Plan · Script · Review · Post ————— */
 const SCRIPT_SECTIONS = {
   short:[
     {key:"vhook",  t:"Visual Hook", h:"Summarize in 3–7 key words · at least one POWER word · graphic that previews value, borrows interest, or shows before→after", rows:3},
@@ -1476,42 +1573,128 @@ const SCRIPT_SECTIONS = {
     {key:"outro",   t:"↪ Outro", h:"Link to the next video", rows:3}
   ]
 };
-let openCardId = null;
-function openCard(id){
-  const card = CARDS.find(k=>k.id===id);
+let openCardId = null, edTab = "script";
+const cardById = id => CARDS.find(k=>k.id===id);
+function textBox(card, key, t, h, rows, ph){
+  const box = document.createElement("div");
+  box.className = "ed-sec";
+  box.innerHTML = `<p class="ed-sec-t">${t}</p>` + (h ? `<p class="ed-sec-h">${h}</p>` : "");
+  const ta = document.createElement("textarea");
+  ta.className = "ed-ta"; ta.rows = rows;
+  ta.placeholder = ph || "Write here… (you can paste images too)";
+  ta.value = card.notes[key] || "";
+  ta.addEventListener("input", ()=>{ card.notes[key] = ta.value; });
+  box.appendChild(ta);
+  return box;
+}
+function mainThumb(card){
+  if(card.th) return thumb(card.th);
+  if(card.ref) return thumb(vid(card.ref).th, "dim", `<span class="yt-ref">REF</span>`);
+  return `<div class="yt yt-empty" style="--a:#22252c;--b:#2b2f37;--t:#8a9099"><span class="yt-t">Add a thumbnail</span></div>`;
+}
+function renderEditor(){
+  const card = cardById(openCardId);
+  if(!card) return;
+  document.querySelectorAll(".ed-tab").forEach(t=>t.classList.toggle("on", t.dataset.tab===edTab));
+  const body = $("#ed-body");
+  body.innerHTML = "";
+  if(edTab==="script"){
+    SCRIPT_SECTIONS[card.board].forEach(sec=>body.appendChild(textBox(card, sec.key, sec.t, sec.h, sec.rows)));
+  }
+  if(edTab==="plan"){
+    const v = card.ref && vid(card.ref);
+    const ref = document.createElement("div");
+    ref.className = "ed-sec";
+    ref.innerHTML = `<p class="ed-sec-t">🎯 Video &amp; Thumbnail References</p>` + (v
+      ? `<div class="ref-row">${thumb(v.th,"",`<span class="yt-dur">${v.short?"SHORT":v.dur}</span>`)}<p>${esc(v.title)}<small>${chOf(v).name} · ${fmtN(v.views)} views · ${v.x}× their normal</small></p></div>`
+      : `<p class="ed-sec-h">Pin videos from your Inspiration library — or hit Recreate on one and it lands here.</p>`);
+    body.appendChild(ref);
+    const grid = document.createElement("div");
+    grid.className = "ed-grid";
+    grid.appendChild(textBox(card, "titles", "Title ideas", "Riff on the reference — what's YOUR angle?", 4, "1. …"));
+    const th = document.createElement("div");
+    th.className = "ed-sec";
+    th.innerHTML = `<p class="ed-sec-t">Thumbnail</p><p class="ed-sec-h">${card.th ? "Shown on the board and the Post tab" : card.ref ? "Using your reference for now — paste your own to replace it" : "Paste, drop or choose an image"}</p>${mainThumb(card)}`;
+    grid.appendChild(th);
+    body.appendChild(grid);
+  }
+  if(edTab==="review"){
+    card.review = card.review || [
+      {t:"0:08", who:"AL", txt:"Hook lands — cut the breath before \"here's why\""},
+      {t:"1:24", who:"MK", txt:"B-roll here runs long, trim ~2s"},
+      {t:"3:02", who:"AL", txt:"Add the on-screen stat from the outline", done:true}
+    ];
+    const box = document.createElement("div");
+    box.className = "ed-sec";
+    const pv = card.th || (card.ref && vid(card.ref).th) || {t:"Cut v2",p:2};
+    box.innerHTML = `<p class="ed-sec-t">Cut v2 <span class="ed-sec-h" style="display:inline;margin:0 0 0 6px">YouTube · Vimeo · Dropbox links</span></p>
+      <div class="player">${thumb(pv)}<span class="play">▶</span></div>
+      <div class="scrub"><b></b>${card.review.map((n,i)=>`<i style="left:${[6,30,64,48,80,22][i%6]}%"></i>`).join("")}</div>
+      <form class="note-in" id="note-in"><input id="note-txt" placeholder="Leave a note at this moment…" autocomplete="off" aria-label="Review note"><span>@ 1:47</span></form>
+      <div id="notes">${card.review.map((n,i)=>`<div class="note${n.done?" done":""}"><span class="ts">${n.t}</span><span class="txt"><span class="who">${n.who}</span>${esc(n.txt)}</span><button data-note="${i}">${n.done?"Reopen":"Resolve"}</button></div>`).join("")}</div>`;
+    body.appendChild(box);
+    box.querySelector("#note-in").addEventListener("submit", e=>{
+      e.preventDefault();
+      const txt = $("#note-txt").value.trim();
+      if(!txt) return;
+      card.review.push({t:"1:47", who:"JB", txt});
+      renderEditor();
+      toast("Note pinned at <b>1:47</b> — your editor sees it live");
+    });
+    box.querySelectorAll("[data-note]").forEach(b=>b.addEventListener("click", ()=>{
+      const n = card.review[+b.dataset.note]; n.done = !n.done; renderEditor();
+    }));
+  }
+  if(edTab==="post"){
+    card.alts = card.alts || [{t:"Try this",p:(card.th?.p ?? 2)+3,x:1},{t:"Honest?",p:(card.th?.p ?? 2)+5}];
+    const grid = document.createElement("div");
+    grid.className = "ed-grid";
+    const main = document.createElement("div");
+    main.className = "ed-sec";
+    main.innerHTML = `<p class="ed-sec-t">Thumbnail</p><p class="ed-sec-h">Same one as the Plan tab — download it straight to YouTube</p>${mainThumb(card)}
+      <p class="ed-sec-t" style="margin-top:14px">More thumbnail options</p>
+      <div class="alts">${card.alts.map((a,i)=>`<div class="alt">${thumb(a,"",`<span class="alt-n">${i+2}</span>`)}<button data-main="${i}">★ Use as main</button></div>`).join("")}</div>`;
+    grid.appendChild(main);
+    const side = document.createElement("div");
+    side.style.cssText = "display:flex;flex-direction:column;gap:12px";
+    side.appendChild(textBox(card, "caption", "Description", "", 5, "Description, links, chapters…"));
+    const sched = document.createElement("div");
+    sched.className = "ed-sec";
+    sched.innerHTML = `<p class="ed-sec-t">Posting</p><p class="post-row">📅 <b>${dateLabel(card) || "Pick a date"}</b> · drop it on the Posting Schedule</p><p class="post-row">👥 Assigned to ${(card.team||["JB"]).map(t=>`<span class="kav" style="background:${TEAM[t]}">${t}</span>`).join("")}</p>`;
+    side.appendChild(sched);
+    grid.appendChild(side);
+    body.appendChild(grid);
+    main.querySelectorAll("[data-main]").forEach(b=>b.addEventListener("click", ()=>{
+      const i = +b.dataset.main, pick = card.alts[i];
+      const cur = card.th || (card.ref ? {...vid(card.ref).th} : null);
+      if(cur) card.alts[i] = cur; else card.alts.splice(i,1);
+      card.th = pick;
+      renderEditor();
+      toast("Swapped in as the <b>main thumbnail</b>");
+    }));
+  }
+}
+function openCard(id, tab){
+  const card = cardById(id);
   if(!card) return;
   openCardId = id;
   card.notes = card.notes || {};
+  edTab = tab || (card.ref && !card.notes.script ? "plan" : "script");
   $("#ed-title").textContent = card.title;
-  const body = $("#ed-body");
-  body.innerHTML = "";
-  SCRIPT_SECTIONS[card.board].forEach(sec=>{
-    const box = document.createElement("div");
-    box.className = "ed-sec";
-    box.innerHTML = `<p class="ed-sec-t">${sec.t}</p>` + (sec.h ? `<p class="ed-sec-h">${sec.h}</p>` : "");
-    const ta = document.createElement("textarea");
-    ta.className = "ed-ta";
-    ta.rows = sec.rows;
-    ta.placeholder = "Write here… (you can paste images too)";
-    ta.value = card.notes[sec.key] || "";
-    ta.addEventListener("input", ()=>{ card.notes[sec.key] = ta.value; });
-    box.appendChild(ta);
-    body.appendChild(box);
-  });
+  renderEditor();
   $("#editor").classList.add("on");
 }
 function closeCard(){
   $("#editor").classList.remove("on");
   openCardId = null;
+  if($('.demo-view[data-view="board"]').classList.contains("on")) renderBoard();
 }
 $("#ed-close").addEventListener("click", closeCard);
 document.addEventListener("keydown", e=>{
   if(e.key==="Escape" && openCardId!==null) closeCard();
 });
 document.querySelectorAll(".ed-tab").forEach(t=>{
-  t.addEventListener("click", ()=>{
-    if(t.dataset.tab!=="script") toast("Plan &amp; Post tabs are in the full app — <b>this demo scripts</b>");
-  });
+  t.addEventListener("click", ()=>{ edTab = t.dataset.tab; renderEditor(); });
 });
 $("#ed-guides").addEventListener("click", ()=>{
   toast("Viral hook formulas &amp; guides ship with <b>the full app</b>");
@@ -1527,6 +1710,8 @@ function switchView(view, flashId, btn){
   document.querySelectorAll(".demo-view").forEach(v=>v.classList.toggle("on", v.dataset.view===view));
   if(view==="board") renderBoard(flashId);
   if(view==="calendar") renderCal();
+  if(view==="comp") renderComp();
+  if(view==="inspo") renderInspo();
 }
 document.querySelectorAll(".demo-side button").forEach(b=>{
   b.addEventListener("click", ()=>{
@@ -1581,10 +1766,9 @@ const railIO = new IntersectionObserver(entries=>{
 railIO.observe($("#rail"));
 
 /* ————— Init ————— */
-renderBoard();
+renderComp();
+updateCounts();
 renderCal();
-renderDims();
-renderDeck();
 </script>
 <!-- Cutting Corners traffic beacon (dashboard: powderblue-weasel-104544) -->
 <script>
